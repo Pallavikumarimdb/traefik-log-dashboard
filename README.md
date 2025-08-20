@@ -1,6 +1,12 @@
-# Traefik Log Dashboard
 
-A real-time dashboard for analyzing Traefik logs and OpenTelemetry traces with IP geolocation, status code analysis, and service metrics. Built with React (Shadcn UI) and Go backend.
+<div align="center">
+    <h1 align="center"><a href="https://github.com/hhftechnology/traefik-log-dashboard">Traefik Log Dashboard</a></h1>
+
+![Stars](https://img.shields.io/github/stars/hhftechnology/traefik-log-dashboard?style=flat-square)
+[![Discord](https://img.shields.io/discord/994247717368909884?logo=discord&style=flat-square)](https://discord.gg/HDCt9MjyMJ)
+
+</div>
+## A real-time dashboard for analyzing Traefik logs and OpenTelemetry traces with IP geolocation, status code analysis, and service metrics. Built with React (Shadcn UI) and Go backend.
 
 ![Dashboard Preview-Light](scripts/dashboard-light.png)
 ![Dashboard Preview-Dark](scripts/dashboard-dark.png)
