@@ -3,10 +3,11 @@
 
 ![Stars](https://img.shields.io/github/stars/hhftechnology/traefik-log-dashboard?style=flat-square)
 [![Discord](https://img.shields.io/discord/994247717368909884?logo=discord&style=flat-square)](https://discord.gg/HDCt9MjyMJ)
+</div>
 
 A comprehensive analytics platform for Traefik access logs with three deployment options: a Go-based API agent, a modern Next.js web dashboard, and a beautiful terminal-based CLI.
 
-## 🚀 Features
+##  Features
 
 - **Real-time Monitoring** - Live request tracking and metrics
 - **Beautiful Dashboards** - Web UI and terminal TUI interfaces
@@ -19,7 +20,7 @@ A comprehensive analytics platform for Traefik access logs with three deployment
 - **Gzip Support** - Compressed log file handling
 - **Docker Ready** - Complete Docker Compose setup
 
-## 📦 Components
+##  Components
 
 ### 1. Traefik Log Dashboard Agent (Go)
 
