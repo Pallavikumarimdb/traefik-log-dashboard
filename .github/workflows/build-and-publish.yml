@@ -3,12 +3,10 @@ name: Build and Push Docker Images
 on:
   push:
     branches:
-      - main
-      - master
       - dev
     paths:
-      - 'backend/**'
-      - 'frontend/**'
+      - 'agent/**'
+      - 'dashboard/**'
       - '.github/workflows/**'
     tags:
       - 'v*'

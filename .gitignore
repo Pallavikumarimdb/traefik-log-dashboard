@@ -1,14 +1,20 @@
-# Dependencies
-node_modules/
+# Traefik Log Dashboard - Root .gitignore
 
-# Production builds
-dist/
-build/
+# General
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+*.sublime-*
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Logs
 logs/
@@ -16,21 +22,222 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Editor directories and files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Test coverage
+# Test Coverage
 coverage/
+*.cover
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.pytest_cache/
+.hypothesis/
 
 # Temporary files
 tmp/
 temp/
+*.tmp
+*.bak
+*.cache
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Secrets and credentials
+*.key
+*.pem
+*.crt
+secrets/
+credentials/
+*.secret
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# GeoIP databases (large files)
+*.mmdb
+GeoLite2-*.mmdb
+GeoIP2-*.mmdb
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Build artifacts - General
+dist/
+build/
+out/
+target/
+
+# ============================================
+# Go (Agent & CLI)
+# ============================================
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+agent/bin/
+cli/bin/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories
+vendor/
+
+# Go module cache
+go.sum.backup
+
+# IDE - GoLand
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Delve debugger
+__debug_bin*
+
+# ============================================
+# Node.js (Dashboard)
+# ============================================
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Production build
+dashboard/dist/
+dashboard/build/
+dashboard/.next/
+dashboard/out/
+
+# Next.js
+.next/
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# Package manager lock files (keep yarn.lock or package-lock.json, ignore others)
+# Uncomment the one you're NOT using:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Turborepo
+.turbo
+
+# ============================================
+# Project-specific
+# ============================================
+
+# Sample logs and test data
+agent/testdata/
+agent/tmp/
+cli/testdata/
+cli/tmp/
+
+# Position tracking files
+*.pos
+*.position
+.position
+agent/.position
+cli/.position
+
+# Downloaded GeoIP databases
+agent/GeoLite2-*.mmdb
+cli/GeoLite2-*.mmdb
+
+# Generated documentation
+docs/build/
+site/
+
+# Backup files
+*.backup
+*.bak.*
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Release artifacts
+release/
+releases/
+*.deb
+*.rpm
+
+# Performance profiling
+*.prof
+*.pprof
+cpu.prof
+mem.prof
+trace.out
+
+# ============================================
+# CI/CD
+# ============================================
+
+# GitHub Actions
+.github/workflows/*.log
+
+# CircleCI
+.circleci/config.local.yml
+
+# GitLab CI
+.gitlab-ci-local/
+
+# ============================================
+# Documentation
+# ============================================
+
+# Rendered documentation
+docs/_build/
+docs/.doctrees/
+
+# ============================================
+# Data files (if large sample logs are committed)
+# ============================================
+
+# Large log files
+*.log.*
+access.log*
+error.log*
+traefik.log*
+
+# Compressed logs
+*.gz
+*.bz2
+*.xz
+
+# Sample data (if too large)
+*.json.gz
+sample-logs/
