@@ -3,8 +3,8 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache git
+# Install build dependencies with retry for unstable networks
+RUN apk add --no-cache git || (sleep 5 && apk add --no-cache git)
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -14,6 +14,9 @@ RUN go mod download
 
 # Copy source code
 COPY . .
+
+# Tidy modules to resolve internal paths
+RUN go mod tidy
 
 # Build the application with optimizations for target architecture
 ARG TARGETOS
