@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/logs"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/ui/styles"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/logs"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/ui/styles"
 )
 
 // RenderRouters renders the routers metrics card
@@ -62,12 +62,11 @@ func RenderRouters(routers []logs.RouterMetric, width int) string {
 			routerName = routerName[:nameWidth-5] + "..."
 		}
 
-		// Format metrics
+		// FIX: Removed reference to router.ErrorRate which does not exist
 		metricsText := fmt.Sprintf(
-			"Req: %s  Avg: %s  Err: %.1f%%",
+			"Req: %s  Avg: %s",
 			formatNumber(router.Count),
 			formatDuration(router.AvgDuration),
-			router.ErrorRate*100,
 		)
 
 		// Create progress bar for request volume
@@ -79,7 +78,8 @@ func RenderRouters(routers []logs.RouterMetric, width int) string {
 		if barWidth > 30 {
 			barWidth = 30
 		}
-		requestBar := renderProgressBar(float64(router.Count)/float64(maxRequests), barWidth, router.ErrorRate > 0.05)
+		// FIX: Removed error condition from progress bar
+		requestBar := renderProgressBar(float64(router.Count)/float64(maxRequests), barWidth, false)
 
 		// Router name cell
 		nameCell := styles.TableCellStyle.Width(nameWidth).Render(routerName)

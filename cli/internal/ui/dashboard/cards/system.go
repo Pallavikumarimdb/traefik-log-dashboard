@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/ui/styles"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/ui/styles"
 )
 
 // SystemStats represents system resource statistics

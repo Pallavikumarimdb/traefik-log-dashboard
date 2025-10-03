@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/logs"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/ui/styles"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/logs"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/ui/styles"
 )
 
 // RenderBackends renders the backends/services metrics card

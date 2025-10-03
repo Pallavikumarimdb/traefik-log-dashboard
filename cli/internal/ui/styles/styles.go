@@ -1,16 +1,19 @@
 package styles
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
 // Color palette
 var (
-	Primary   = lipgloss.Color("#3B82F6") // Blue
-	Success   = lipgloss.Color("#10B981") // Green
-	Warning   = lipgloss.Color("#F59E0B") // Yellow
-	Error     = lipgloss.Color("#EF4444") // Red
-	Muted     = lipgloss.Color("#6B7280") // Gray
+	Primary    = lipgloss.Color("#3B82F6") // Blue
+	Success    = lipgloss.Color("#10B981") // Green
+	Warning    = lipgloss.Color("#F59E0B") // Yellow
+	Error      = lipgloss.Color("#EF4444") // Red
+	Muted      = lipgloss.Color("#6B7280") // Gray
 	Background = lipgloss.Color("#1F2937") // Dark gray
 	Foreground = lipgloss.Color("#F9FAFB") // Light gray
 )
@@ -50,6 +53,9 @@ var (
 			Foreground(lipgloss.Color("#FFFFFF")).
 			Bold(true).
 			Padding(0, 1)
+
+	AccentStyle = lipgloss.NewStyle().
+			Foreground(Primary)
 )
 
 // Card styles
@@ -65,14 +71,14 @@ var (
 			Foreground(Primary).
 			MarginBottom(1)
 
+	// FIX: Removed invalid FontSize call. Bold is used for emphasis.
 	CardValueStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(Foreground).
-			FontSize(24)
+			Foreground(Foreground)
 
+	// FIX: Removed invalid FontSize call.
 	CardLabelStyle = lipgloss.NewStyle().
-			Foreground(Muted).
-			FontSize(12)
+			Foreground(Muted)
 )
 
 // Metric styles
@@ -147,27 +153,31 @@ var (
 
 // Helper functions
 
-// FormatNumber formats a number with thousand separators
+// FIX: Replaced with a correct and simpler implementation.
+// FormatNumber formats an integer with thousand separators.
 func FormatNumber(n int) string {
 	if n < 1000 {
-		return lipgloss.NewStyle().Render(lipgloss.NewStyle().Render(lipgloss.NewStyle().Render(lipgloss.NewStyle().Render(string(rune(n + 48))))))
+		return fmt.Sprintf("%d", n)
 	}
-	return lipgloss.NewStyle().Render(lipgloss.NewStyle().Render(string(rune((n / 1000) + 48))) + "," + lipgloss.NewStyle().Render(string(rune((n % 1000 / 100) + 48))) + lipgloss.NewStyle().Render(string(rune((n % 100 / 10) + 48))) + lipgloss.NewStyle().Render(string(rune((n % 10) + 48))))
+
+	if n < 1000000 {
+		return fmt.Sprintf("%d,%03d", n/1000, n%1000)
+	}
+
+	return fmt.Sprintf("%d,%03d,%03d", n/1000000, (n%1000000)/1000, n%1000)
 }
 
 // ProgressBar creates a progress bar
 func ProgressBar(percent float64, width int) string {
 	filled := int(float64(width) * percent / 100)
+	if filled > width {
+		filled = width
+	} else if filled < 0 {
+		filled = 0
+	}
 	empty := width - filled
 
-	bar := ""
-	for i := 0; i < filled; i++ {
-		bar += "█"
-	}
-	for i := 0; i < empty; i++ {
-		bar += "░"
-	}
-
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", empty)
 	return ProgressFillStyle.Render(bar[:filled]) + MutedStyle.Render(bar[filled:])
 }
 

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hhftechnology/traefik-log-dashboard/internal/logs"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/ui/styles"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/logs"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/ui/styles"
 )
 
 // RenderTimeline renders a timeline of request activity
@@ -64,11 +64,12 @@ func RenderTimeline(logEntries []logs.TraefikLog, metrics *logs.Metrics, width i
 	b.WriteString("\n")
 
 	// Timeline stats
+	// FIX: Changed metrics.RequestsPerSecond to metrics.RequestsPerSec
 	statsLine := fmt.Sprintf(
 		"Peak: %s req/5min  |  Avg: %s req/5min  |  Current: %.1f req/sec",
 		formatNumber(maxCount),
 		formatNumber(calculateAverage(buckets)),
-		metrics.RequestsPerSecond,
+		metrics.RequestsPerSec,
 	)
 	b.WriteString(styles.CardStyle.Width(cardWidth).Render(
 		styles.MutedStyle.Render(statsLine),
@@ -111,21 +112,33 @@ func groupByTimeBucket(logs []logs.TraefikLog, interval time.Duration) []TimeBuc
 	bucketMap := make(map[int64]int)
 	var minTime, maxTime time.Time
 
+	// Find the time range of the logs
 	for i, log := range logs {
+		// Assuming StartUTC is a string, parse it.
+		// If it's already a time.Time, this check can be simplified.
+		parsedTime, err := time.Parse(time.RFC3339Nano, log.StartUTC)
+		if err != nil {
+			continue // Skip logs with unparseable timestamps
+		}
+
 		if i == 0 {
-			minTime = log.Time
-			maxTime = log.Time
+			minTime = parsedTime
+			maxTime = parsedTime
 		} else {
-			if log.Time.Before(minTime) {
-				minTime = log.Time
+			if parsedTime.Before(minTime) {
+				minTime = parsedTime
 			}
-			if log.Time.After(maxTime) {
-				maxTime = log.Time
+			if parsedTime.After(maxTime) {
+				maxTime = parsedTime
 			}
 		}
 
-		bucketKey := log.Time.Unix() / int64(interval.Seconds())
+		bucketKey := parsedTime.Unix() / int64(interval.Seconds())
 		bucketMap[bucketKey]++
+	}
+
+	if minTime.IsZero() {
+		return nil // No valid logs found
 	}
 
 	// Create ordered buckets
@@ -146,6 +159,7 @@ func groupByTimeBucket(logs []logs.TraefikLog, interval time.Duration) []TimeBuc
 	return buckets
 }
 
+
 // renderSparkline renders a sparkline chart
 func renderSparkline(buckets []TimeBucket, width, maxCount int) string {
 	if len(buckets) == 0 || width < 5 {
@@ -159,10 +173,13 @@ func renderSparkline(buckets []TimeBucket, width, maxCount int) string {
 	}
 
 	// Height levels for sparkline
-	levels := []string{"▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
+	levels := []string{" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
 
 	var sparkline strings.Builder
 	for _, bucket := range sampledBuckets {
+		if maxCount == 0 {
+			maxCount = 1
+		}
 		level := int(float64(bucket.Count) / float64(maxCount) * float64(len(levels)-1))
 		if level >= len(levels) {
 			level = len(levels) - 1

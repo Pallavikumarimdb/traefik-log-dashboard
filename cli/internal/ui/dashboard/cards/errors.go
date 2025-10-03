@@ -3,10 +3,11 @@ package cards
 import (
 	"fmt"
 	"strings"
+	"time" // Import the 'time' package
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/logs"
-	"github.com/hhftechnology/traefik-log-dashboard/internal/ui/styles"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/logs"
+	"github.com/hhftechnology/traefik-log-dashboard/cli/internal/ui/styles"
 )
 
 // RenderErrors renders the recent errors card
@@ -42,8 +43,15 @@ func RenderErrors(errorLogs []logs.TraefikLog, width int) string {
 	for i := 0; i < displayCount; i++ {
 		log := errorLogs[i]
 
-		// Format timestamp
-		timestamp := log.Time.Format("15:04:05")
+		// FIX: Parse the timestamp string into a time.Time object before formatting
+		var timestamp string
+		parsedTime, err := time.Parse(time.RFC3339Nano, log.StartUTC)
+		if err != nil {
+			// If parsing fails, use a fallback or the raw string
+			timestamp = "??:??:??"
+		} else {
+			timestamp = parsedTime.Format("15:04:05")
+		}
 
 		// Status code with color
 		statusText := fmt.Sprintf("%d", log.DownstreamStatus)
@@ -114,6 +122,7 @@ func RenderErrors(errorLogs []logs.TraefikLog, width int) string {
 
 	return b.String()
 }
+
 
 // RenderErrorSummary renders a summary of error types
 func RenderErrorSummary(metrics *logs.Metrics, width int) string {
