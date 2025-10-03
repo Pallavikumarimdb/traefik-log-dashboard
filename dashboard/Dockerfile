@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# FIX: Install dependencies and the required tailwindcss postcss plugin
-RUN npm install --legacy-peer-deps && npm install @tailwindcss/postcss
+# FIX: Install dependencies with force to resolve conflicts, and the required tailwindcss postcss plugin
+RUN npm install --legacy-peer-deps --force && npm install @tailwindcss/postcss
 
 # Copy source code
 COPY . .
