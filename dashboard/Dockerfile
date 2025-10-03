@@ -6,9 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-# FIX: Added --legacy-peer-deps to ignore peer dependency conflicts
-RUN npm install --legacy-peer-deps
+# Install dependencies, including the new Tailwind CSS package
+RUN npm install --legacy-peer-deps @tailwindcss/postcss
 
 # Copy source code
 COPY . .
