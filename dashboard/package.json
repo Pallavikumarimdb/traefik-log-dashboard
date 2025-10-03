@@ -21,7 +21,7 @@
     "d3-geo": "^3.1.0",
     "date-fns": "^3.0.6",
     "clsx": "^2.1.0",
-    "lucide-react": "^0.344.0",
+    "lucide-react": "^0.544.0",
     "tailwind-merge": "^2.2.1",
     "topojson-client": "^3.1.0"
   },

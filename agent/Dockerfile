@@ -3,6 +3,9 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
+# Prevent proxy lookup for own module paths
+ENV GOPRIVATE=github.com/hhftechnology/traefik-log-dashboard
+
 # Install build dependencies with retry for unstable networks
 RUN apk add --no-cache git || (sleep 5 && apk add --no-cache git)
 
