@@ -10,15 +10,17 @@ export class APIClient {
   private authToken?: string;
 
   constructor(baseURL?: string, authToken?: string) {
-    this.baseURL = baseURL || process.env.AGENT_API_URL || 'http://localhost:5000';
-    this.authToken = authToken || process.env.AGENT_API_TOKEN;
+    // Default to empty string to use relative URLs (dashboard's own API routes)
+    // The dashboard's API routes will then proxy to the agent
+    this.baseURL = baseURL || '';
+    this.authToken = authToken;
   }
 
   private async fetch<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const headers: Record<string, string> = {  // <-- Changed from HeadersInit
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> || {}),
     };
@@ -110,7 +112,7 @@ export class APIClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      await this.fetch('/');
+      await this.fetch('/api/logs/status');
       return true;
     } catch {
       return false;

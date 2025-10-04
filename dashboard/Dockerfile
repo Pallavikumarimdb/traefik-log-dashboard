@@ -3,13 +3,12 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Install dependencies
+# Only copy package.json and package-lock.json (if available) first to leverage caching
 COPY package*.json ./
+RUN npm ci
 
-# FIX: Install dependencies with force to resolve conflicts, and the required tailwindcss postcss plugin
-RUN npm install --legacy-peer-deps
-
-# Copy source code
+# Copy the rest of the source code
 COPY . .
 
 # Build the application
@@ -22,20 +21,23 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Create non-root user
+# Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# Copy the standalone output from the build stage
+COPY --from=builder /app/.next/standalone ./
+# Copy the static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy public assets
+COPY --from=builder /app/public ./public
+
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
 
 CMD ["node", "server.js"]
