@@ -245,3 +245,82 @@ func GetDirectoryLogs(dirPath string, positions []Position, isErrorLog bool, inc
 		Positions: newPositions,
 	}, nil
 }
+// GetLogSizes analyzes log files and returns their sizes
+func GetLogSizes(path string) (*LogSizesResult, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("path error: %w", err)
+	}
+
+	var files []LogFileSize
+	var summary LogFilesSummary
+
+	// If it's a directory, analyze all files in it
+	if fileInfo.IsDir() {
+		entries, err := os.ReadDir(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read directory: %w", err)
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+
+			info, err := entry.Info()
+			if err != nil {
+				continue
+			}
+
+			fileName := entry.Name()
+			fileSize := info.Size()
+			extension := filepath.Ext(fileName)
+
+			// Track file
+			files = append(files, LogFileSize{
+				Name:      fileName,
+				Size:      fileSize,
+				Extension: extension,
+			})
+
+			// Update summary
+			summary.TotalSize += fileSize
+			summary.TotalFiles++
+
+			if extension == ".log" {
+				summary.LogFilesSize += fileSize
+				summary.LogFilesCount++
+			} else if extension == ".gz" {
+				summary.CompressedFilesSize += fileSize
+				summary.CompressedFilesCount++
+			}
+		}
+	} else {
+		// Single file
+		fileName := filepath.Base(path)
+		fileSize := fileInfo.Size()
+		extension := filepath.Ext(fileName)
+
+		files = append(files, LogFileSize{
+			Name:      fileName,
+			Size:      fileSize,
+			Extension: extension,
+		})
+
+		summary.TotalSize = fileSize
+		summary.TotalFiles = 1
+
+		if extension == ".log" {
+			summary.LogFilesSize = fileSize
+			summary.LogFilesCount = 1
+		} else if extension == ".gz" {
+			summary.CompressedFilesSize = fileSize
+			summary.CompressedFilesCount = 1
+		}
+	}
+
+	return &LogSizesResult{
+		Files:   files,
+		Summary: summary,
+	}, nil
+}
