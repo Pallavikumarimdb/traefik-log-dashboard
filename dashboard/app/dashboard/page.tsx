@@ -20,7 +20,7 @@ export default function DashboardPage() {
         // Check agent status first
         const status = await apiClient.getStatus();
         
-        if (!status.access_log_exists) {
+        if (!status.access_path_exists) {
           setError('Access log file not found. Please check agent configuration.');
           setLoading(false);
           return;
@@ -81,10 +81,7 @@ export default function DashboardPage() {
               <h2 className="text-xl font-semibold mb-2">Connection Error</h2>
               <p className="text-muted-foreground mb-4">{error}</p>
               <p className="text-sm text-muted-foreground">
-                Please check that the agent is running at{' '}
-                <code className="bg-muted px-2 py-1 rounded">
-                  {process.env.AGENT_API_URL || 'http://localhost:5000'}
-                </code>
+                Please check that the agent is running and accessible.
               </p>
             </div>
           </div>
