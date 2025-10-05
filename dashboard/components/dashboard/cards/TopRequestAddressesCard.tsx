@@ -1,7 +1,7 @@
 'use client';
 
 import { Locate } from 'lucide-react';
-import Card from '@/components/ui/Card';
+import Card from '@/components/ui/DashboardCard';
 import { formatNumber } from '@/lib/utils';
 
 interface AddressMetric {

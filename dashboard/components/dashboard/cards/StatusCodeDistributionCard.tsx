@@ -3,7 +3,7 @@
 // This file mirrors the existing StatusCodesCard under a new name
 // to match the desired dashboard structure without changing logic.
 import { BarChart3 } from 'lucide-react';
-import Card from '@/components/ui/Card';
+import Card from '@/components/ui/DashboardCard';
 import { StatusCodeMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 

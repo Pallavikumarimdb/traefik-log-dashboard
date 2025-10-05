@@ -1,7 +1,7 @@
 'use client';
 
 import { List } from 'lucide-react';
-import Card from '@/components/ui/Card';
+import Card from '@/components/ui/DashboardCard';
 import { TraefikLog } from '@/lib/types';
 
 interface Props {

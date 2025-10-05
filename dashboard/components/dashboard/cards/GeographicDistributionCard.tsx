@@ -1,7 +1,7 @@
 'use client';
 
 import { MapPin } from 'lucide-react';
-import Card from '@/components/ui/Card';
+import Card from '@/components/ui/DashboardCard';
 import { GeoLocation } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 
