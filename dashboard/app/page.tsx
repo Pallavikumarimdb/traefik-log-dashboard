@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Activity, BarChart3, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
+import { Card, CardContent } from '@/components/ui/Card';
 
 export default function HomePage() {
 	return (
