@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api-client';
 import { parseTraefikLogs } from '@/lib/traefik-parser';
 import { TraefikLog } from '@/lib/types';
 import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
   const [logs, setLogs] = useState<TraefikLog[]>([]);
@@ -175,16 +176,17 @@ export default function DashboardPage() {
                   ? 'The agent is connected but no logs are available yet.'
                   : 'Please check that the agent is running and accessible.'}
               </p>
-              <button
+              <Button
                 onClick={() => {
                   isFirstFetch.current = true;
                   positionRef.current = -1;
                   fetchLogs();
                 }}
-                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                variant="default"
+                className="mt-4"
               >
                 Retry
-              </button>
+              </Button>
             </div>
           </div>
         </div>

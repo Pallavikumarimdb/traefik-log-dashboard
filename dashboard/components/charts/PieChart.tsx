@@ -46,6 +46,8 @@ export default function PieChart({
     ],
   };
 
+  const tooltipBg = 'rgba(0, 0, 0, 0.8)';
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -59,7 +61,7 @@ export default function PieChart({
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: tooltipBg,
         padding: 12,
         titleColor: '#fff',
         bodyColor: '#fff',
