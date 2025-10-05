@@ -1,7 +1,7 @@
 'use client';
 
 import { Activity } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import { RequestMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 

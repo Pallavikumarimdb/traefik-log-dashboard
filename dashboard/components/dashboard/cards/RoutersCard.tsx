@@ -1,7 +1,7 @@
 'use client';
 
 import { GitBranch } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import { RouterMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 

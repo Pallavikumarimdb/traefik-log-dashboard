@@ -1,7 +1,7 @@
 'use client';
 
 import { BarChart3 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import { StatusCodeMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 
