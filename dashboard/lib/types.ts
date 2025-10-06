@@ -132,6 +132,7 @@ export interface BackendMetrics {
   requests: number;
   avgDuration: number;
   errorRate: number;
+  url: string;
 }
 
 export interface RouterMetrics {
