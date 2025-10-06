@@ -101,7 +101,8 @@ function calculateMetrics(logs: TraefikLog[]): DashboardMetrics {
     .slice(0, 10);
 
   // Geographic locations
-  const geoLocations = aggregateGeoLocations(logs);
+  const clientAddresses = logs.map(log => log.ClientAddr);
+  const geoLocations = aggregateGeoLocations(clientAddresses);
 
   // User agents
   const userAgentGroups = groupBy(
