@@ -17,7 +17,18 @@ interface DashboardGridProps {
   demoMode?: boolean;
 }
 
-export default function DashboardGrid({ metrics, demoMode: _demoMode = false }: DashboardGridProps) {
+export default function DashboardGrid({ metrics, demoMode = false }: DashboardGridProps) {
+  console.log('Dashboard Metrics:', {
+    requests: metrics.requests.total,
+    routes: metrics.topRoutes.length,
+    backends: metrics.backends.length,
+    routers: metrics.routers.length,
+    userAgents: metrics.userAgents.length,
+    geoLocations: metrics.geoLocations.length,
+    timeline: metrics.timeline.length,
+    errors: metrics.errors.length,
+  });
+
   return (
     <div className="space-y-6">
       {/* Top Row - Key Metrics */}
@@ -44,9 +55,17 @@ export default function DashboardGrid({ metrics, demoMode: _demoMode = false }: 
       {/* Geographic Map */}
       <GeoMapCard locations={metrics.geoLocations} />
 
-      {/* Errors */}
-      {metrics.errors.length > 0 && (
+      {/* Errors - Always show, even if empty */}
+      {metrics.errors && metrics.errors.length > 0 && (
         <ErrorsCard errors={metrics.errors} />
+      )}
+
+      {/* Debug Info - Remove after testing */}
+      {demoMode && (
+        <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-xs">
+          <div className="font-semibold mb-2">Debug Info:</div>
+          <pre>{JSON.stringify(metrics, null, 2).substring(0, 500)}...</pre>
+        </div>
       )}
     </div>
   );
