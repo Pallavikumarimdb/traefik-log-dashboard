@@ -168,6 +168,21 @@ export interface ErrorLog {
   message: string;
 }
 
+export interface AddressMetric {
+  addr: string;
+  count: number;
+}
+
+export interface HostMetric {
+  host: string;
+  count: number;
+}
+
+export interface ClientMetric {
+  ip: string;
+  count: number;
+}
+
 // Chart Data Types
 export interface ChartData {
   labels: string[];
@@ -206,6 +221,9 @@ export interface DashboardMetrics {
   timeline: TimeSeriesPoint[];
   errors: ErrorLog[];
   logs: TraefikLog[]; // Include raw logs for RecentLogsTable
+  topRequestAddresses: AddressMetric[]; // Added for TopRequestAddressesCard
+  topRequestHosts: HostMetric[]; // Added for TopRequestHostsCard
+  topClientIPs: ClientMetric[]; // Added for TopClientIPsCard       
 }
 
 // Config Types

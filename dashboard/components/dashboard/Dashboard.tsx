@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
-import { TraefikLog, DashboardMetrics } from '@/lib/types';
+import { TraefikLog, DashboardMetrics, AddressMetric, HostMetric, ClientMetric } from '@/lib/types';
 import {
   calculateAverage,
   calculatePercentile,
@@ -37,7 +37,35 @@ function calculateMetrics(logs: TraefikLog[]): DashboardMetrics {
   const total = logs.length;
   const timeSpan = calculateTimeSpan(logs);
   const perSecond = timeSpan > 0 ? total / timeSpan : 0;
+    // Top Request Addresses
+  const addressGroups = groupBy(logs.filter(l => l.RequestAddr), 'RequestAddr');
+  const topRequestAddresses: AddressMetric[] = Object.entries(addressGroups)
+    .map(([addr, addrLogs]) => ({
+      addr,
+      count: addrLogs.length,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
 
+  // Top Request Hosts
+  const hostGroups = groupBy(logs.filter(l => l.RequestHost), 'RequestHost');
+  const topRequestHosts: HostMetric[] = Object.entries(hostGroups)
+    .map(([host, hostLogs]) => ({
+      host,
+      count: hostLogs.length,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // Top Client IPs
+  const clientIPGroups = groupBy(logs.filter(l => l.ClientHost), 'ClientHost');
+  const topClientIPs: ClientMetric[] = Object.entries(clientIPGroups)
+    .map(([ip, ipLogs]) => ({
+      ip,
+      count: ipLogs.length,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
   // Response time metrics
   const durations = logs.map(log => log.Duration / 1000000);
   const avgDuration = calculateAverage(durations);
@@ -71,6 +99,7 @@ function calculateMetrics(logs: TraefikLog[]): DashboardMetrics {
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
+  
 
   // Backends
   const serviceGroups = groupBy(logs.filter(l => l.ServiceName), 'ServiceName');
@@ -161,6 +190,9 @@ function calculateMetrics(logs: TraefikLog[]): DashboardMetrics {
     timeline,
     errors,
     logs, // <-- Ensure logs are included here
+    topRequestAddresses, // <-- ADD THIS
+    topRequestHosts,     // <-- ADD THIS
+    topClientIPs,        // <-- ADD THIS
   };
 }
 
@@ -244,5 +276,8 @@ function getEmptyMetrics(): DashboardMetrics {
     timeline: [],
     errors: [],
     logs: [], // <-- Ensure empty metrics also has the logs property
+    topRequestAddresses: [], 
+    topRequestHosts: [],     
+    topClientIPs: [],       
   };
 }
