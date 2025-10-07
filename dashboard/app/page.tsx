@@ -22,7 +22,7 @@ export default function LandingPage() {
               </a>
               <a href="https://github.com/hhftechnology/traefik-log-dashboard" className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 transition-colors">
                 <Github className="w-4 h-4" />
-                <span>GitHub.</span>
+                <span>GitHub</span>
               </a>
             </div>
           </div>
