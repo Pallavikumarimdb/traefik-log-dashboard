@@ -5,7 +5,7 @@ import Dashboard from '@/components/dashboard/Dashboard';
 import { TraefikLog } from '@/lib/types';
 import { parseTraefikLogs } from '@/lib/traefik-parser';
 import { Activity } from 'lucide-react';
-import Header from '@/components/ui/Header'; // <-- IMPORT THE SHARED HEADER
+import Header from '@/components/ui/Header'; // Correctly import the shared Header
 
 export default function DashboardPage() {
   const [logs, setLogs] = useState<TraefikLog[]>([]);
@@ -13,58 +13,56 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [logCount, setLogCount] = useState(0);
 
   const positionRef = useRef<number>(-1);
   const isFirstFetch = useRef(true);
 
   useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch(
+          `/api/logs/access?period=1h&position=${positionRef.current}`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.logs && data.logs.length > 0) {
+          const parsedLogs = parseTraefikLogs(data.logs);
+
+          setLogs(prevLogs => {
+            if (isFirstFetch.current) {
+              isFirstFetch.current = false;
+              return parsedLogs;
+            }
+            // Keep the last 1000 logs to prevent memory issues
+            return [...prevLogs, ...parsedLogs].slice(-1000);
+          });
+        }
+
+        if (data.positions && data.positions.length > 0) {
+          positionRef.current = data.positions[0].Position;
+        }
+
+        setConnected(true);
+        setError(null);
+        setLastUpdate(new Date());
+      } catch (err) {
+        console.error('Error fetching logs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch logs');
+        setConnected(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchLogs();
     const interval = setInterval(fetchLogs, 3000);
     return () => clearInterval(interval);
   }, []);
-
-  const fetchLogs = async () => {
-    try {
-      const response = await fetch(
-        `/api/logs/access?period=1h&position=${positionRef.current}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.logs && data.logs.length > 0) {
-        const parsedLogs = parseTraefikLogs(data.logs);
-
-        setLogs(prevLogs => {
-          if (isFirstFetch.current) {
-            isFirstFetch.current = false;
-            return parsedLogs;
-          }
-          return [...prevLogs, ...parsedLogs].slice(-1000);
-        });
-
-        setLogCount(prev => prev + parsedLogs.length);
-      }
-
-      if (data.positions && data.positions.length > 0) {
-        positionRef.current = data.positions[0].Position;
-      }
-
-      setConnected(true);
-      setError(null);
-      setLastUpdate(new Date());
-    } catch (err) {
-      console.error('Error fetching logs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch logs');
-      setConnected(false);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading && logs.length === 0) {
     return (
@@ -80,7 +78,7 @@ export default function DashboardPage() {
   if (error && logs.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Traefik Log Dashboard" connected={false} />
+        <Header title="Traefik Log Dashboard" connected={false} demoMode={false} />
         <div className="flex items-center justify-center py-20">
           <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-8 text-center">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -96,7 +94,8 @@ export default function DashboardPage() {
               onClick={() => {
                 isFirstFetch.current = true;
                 positionRef.current = -1;
-                fetchLogs();
+                // You need to define a way to re-trigger fetchLogs, e.g., by wrapping it
+                window.location.reload(); // Simple way to retry for now
               }}
               className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
@@ -110,11 +109,11 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Traefik Log Dashboard" connected={connected} />
+      <Header title="Traefik Log Dashboard" connected={connected} demoMode={false} />
       
       {/* Status bar */}
       <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-gray-600">
+        <div className="container mx-auto flex items-center justify-between text-sm text-gray-600">
           <div>
             Showing <span className="font-semibold text-gray-900">{logs.length}</span> logs
           </div>
@@ -135,26 +134,4 @@ export default function DashboardPage() {
   );
 }
 
-  if (error && logs.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Update the props here as well */}
-        <Header title="Traefik Log Dashboard" connected={false} demoMode={false} />
-        <div className="flex items-center justify-center py-20">
-          {/* ... error content ... */}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Update the props here to match the shared component */}
-      <Header title="Traefik Log Dashboard" connected={connected} demoMode={false} />
-      
-      {/* Status bar ... */}
-      
-      <Dashboard logs={logs} demoMode={false} />
-    </div>
-  );
-}
+// NOTE: The old, locally-defined Header component has been removed from this file.
