@@ -47,7 +47,7 @@ export default function InteractiveGeoMap({ locations }: Props) {
         // ---- THIS IS THE CORRECTED LINE ----
         .data((topojson.feature(world, world.objects.countries) as any).features)
         .enter().append('path')
-        .attr('d', path)
+        .attr('d', d => path(d) as string)
         .attr('fill', 'hsl(var(--muted))')
         .attr('stroke', 'hsl(var(--background))');
 
