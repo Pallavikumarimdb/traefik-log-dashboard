@@ -15,7 +15,7 @@ import TopClientIPsCard from './cards/TopClientIPsCard';
 import TopRequestHostsCard from './cards/TopRequestHostsCard';
 import TopRequestAddressesCard from './cards/TopRequestAddressesCard';
 import UserAgentsCard from './cards/UserAgentsCard';
-import InteractiveGeoMap from './cards/InteractiveGeoMap';
+import GeographicDistributionCard from './cards/GeographicDistributionCard';
 import RecentLogsTable from './cards/RecentLogsTable';
 import ErrorsCard from './cards/ErrorsCard';
 
@@ -86,7 +86,7 @@ export default function DashboardGrid({ metrics, demoMode = false }: DashboardGr
 
       {/* Row 7: Geographic Distribution and Recent Errors - 2 columns */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <InteractiveGeoMap locations={metrics.geoLocations} />
+        <GeographicDistributionCard locations={metrics.geoLocations} />
         <ErrorsCard errors={metrics.errors} />
       </div>
 
