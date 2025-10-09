@@ -6,36 +6,67 @@ import { BackendMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 
 interface Props {
-	services: BackendMetrics[]; // reuse BackendMetrics shape
+  services: BackendMetrics[];
 }
 
 export default function TopServicesCard({ services }: Props) {
-	if (!services || services.length === 0) {
-		return (
-			<Card title="Top Services" icon={<Server className="w-5 h-5 text-green-600" />}>
-				<div className="text-center py-8 text-muted-foreground">No service data available</div>
-			</Card>
-		);
-	}
+  if (!services || services.length === 0) {
+    return (
+      <Card title="Top Services" icon={<Server className="w-5 h-5 text-green-600" />}>
+        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+          No service data available
+        </div>
+      </Card>
+    );
+  }
 
-	return (
-		<Card title="Top Services" icon={<Server className="w-5 h-5 text-green-600" />}>
-			<div className="space-y-3">
-				{services.slice(0, 10).map((svc, idx) => (
-					<div key={idx} className="flex items-center justify-between text-sm">
-						<span className="truncate font-medium flex-1">{svc.name}</span>
-						<div className="flex items-center gap-3 text-xs text-muted-foreground">
-							<span>{formatNumber(svc.requests)}</span>
-							<span>{svc.avgDuration.toFixed(0)}ms</span>
-							<span className={svc.errorRate > 5 ? 'text-red-600' : 'text-green-600'}>
-								{svc.errorRate.toFixed(1)}%
-							</span>
-						</div>
-					</div>
-				))}
-			</div>
-		</Card>
-	);
+  const maxRequests = Math.max(...services.map(s => s.requests), 1);
+  const topServices = services.slice(0, 10);
+
+  return (
+    <Card title="Top Services" icon={<Server className="w-5 h-5 text-green-600" />}>
+      <div className="space-y-4">
+        {topServices.map((service, idx) => (
+          <div key={idx} className="space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium bg-muted rounded text-muted-foreground">
+                    {idx + 1}
+                  </span>
+                  <span className="text-sm font-medium truncate" title={service.name}>
+                    {service.name}
+                  </span>
+                </div>
+                {service.url && (
+                  <div className="ml-8 mt-1">
+                    <span className="text-xs text-muted-foreground truncate block" title={service.url}>
+                      {service.url}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap">
+                <span className="font-medium">{formatNumber(service.requests)}</span>
+                <span className="text-muted-foreground/60">•</span>
+                <span>{service.avgDuration.toFixed(0)}ms</span>
+                <span className="text-muted-foreground/60">•</span>
+                <span className={service.errorRate > 5 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                  {service.errorRate.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+            <div className="ml-8">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 transition-all duration-500 ease-out"
+                  style={{ width: `${(service.requests / maxRequests) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }
-
-

@@ -1,39 +1,54 @@
 'use client';
 
-import { Fingerprint } from 'lucide-react';
+import { Users } from 'lucide-react';
 import Card from '@/components/ui/DashboardCard';
 import { formatNumber } from '@/lib/utils';
 
 interface ClientMetric {
-	ip: string;
-	count: number;
+  ip: string;
+  count: number;
 }
 
 interface Props {
-	clients: ClientMetric[];
+  clients: ClientMetric[];
 }
 
 export default function TopClientIPsCard({ clients }: Props) {
-	if (!clients || clients.length === 0) {
-		return (
-			<Card title="Top Client IPs" icon={<Fingerprint className="w-5 h-5 text-teal-600" />}>
-				<div className="text-center py-8 text-muted-foreground">No client data available</div>
-			</Card>
-		);
-	}
+  if (!clients || clients.length === 0) {
+    return (
+      <Card title="Top Client IPs" icon={<Users className="w-5 h-5 text-indigo-600" />}>
+        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+          No client IP data available
+        </div>
+      </Card>
+    );
+  }
 
-	return (
-		<Card title="Top Client IPs" icon={<Fingerprint className="w-5 h-5 text-teal-600" />}>
-			<div className="space-y-2">
-				{clients.slice(0, 10).map((item, idx) => (
-					<div key={idx} className="flex items-center justify-between text-sm">
-						<span className="truncate font-medium flex-1" title={item.ip}>{item.ip}</span>
-						<span className="text-xs text-muted-foreground">{formatNumber(item.count)}</span>
-					</div>
-				))}
-			</div>
-		</Card>
-	);
+  const maxCount = Math.max(...clients.map(c => c.count), 1);
+  const topClients = clients.slice(0, 10);
+
+  return (
+    <Card title="Top Client IPs" icon={<Users className="w-5 h-5 text-indigo-600" />}>
+      <div className="space-y-3">
+        {topClients.map((client, idx) => (
+          <div key={idx} className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-mono text-xs font-medium truncate" title={client.ip}>
+                {client.ip}
+              </span>
+              <span className="text-xs text-muted-foreground font-medium ml-2">
+                {formatNumber(client.count)}
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-500 transition-all duration-500 ease-out"
+                style={{ width: `${(client.count / maxCount) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }
-
-
