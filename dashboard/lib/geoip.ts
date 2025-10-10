@@ -39,11 +39,11 @@ const MIN_DELAY_BETWEEN_REQUESTS = Math.ceil((60 * 1000) / MAX_REQUESTS_PER_MINU
 const REQUEST_TIMEOUT = 10000; // 10 seconds timeout
 
 // Request queue management
-let requestQueue: Array<{
+const requestQueue: Array<{
   ips: string[];
   resolve: (value: Map<string, CachedGeoData>) => void;
   reject: (reason: any) => void;
-}> = [];
+}> = []; 
 
 let isProcessingQueue = false;
 let lastRequestTime = 0;
