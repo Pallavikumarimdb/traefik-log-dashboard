@@ -25,7 +25,6 @@ export default function ResponseTimeCard({ metrics }: Props) {
 
   const percentiles = [
     { label: 'Average', value: metrics.average, description: 'Mean response time' },
-    { label: 'P50 (Median)', value: metrics.p50, description: '50% of requests' },
     { label: 'P95', value: metrics.p95, description: '95% of requests' },
     { label: 'P99', value: metrics.p99, description: '99% of requests' }
   ];
