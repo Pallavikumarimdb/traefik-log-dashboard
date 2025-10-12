@@ -164,15 +164,16 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
   const status5xx = statusCodes.filter(s => s >= 500).length;
   const errorRate = total > 0 ? ((status4xx + status5xx) / total) * 100 : 0;
 
-  // Routes
+// Top routes
   const routeGroups = groupBy(logs.filter(l => l.RequestPath), 'RequestPath');
-  const routes = Object.entries(routeGroups)
+  const topRoutes = Object.entries(routeGroups)
     .map(([path, routeLogs]) => ({
       path,
-      requests: routeLogs.length,
+      count: routeLogs.length,
       avgDuration: calculateAverage(routeLogs.map(l => l.Duration / 1000000)),
+      method: routeLogs[0]?.RequestMethod || 'GET',
     }))
-    .sort((a, b) => b.requests - a.requests)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
   // Backend services
@@ -283,7 +284,7 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
       status5xx,
       errorRate,
     },
-    routes,
+    topRoutes,
     backends,
     routers,
     topRequestAddresses,
@@ -362,7 +363,7 @@ function getEmptyMetrics(): DashboardMetrics {
     requests: { total: 0, perSecond: 0, change: 0 },
     responseTime: { average: 0, p95: 0, p99: 0, change: 0 },
     statusCodes: { status2xx: 0, status3xx: 0, status4xx: 0, status5xx: 0, errorRate: 0 },
-    routes: [],
+    topRoutes: [],
     backends: [],
     routers: [],
     topRequestAddresses: [],

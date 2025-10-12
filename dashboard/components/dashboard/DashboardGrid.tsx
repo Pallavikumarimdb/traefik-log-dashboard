@@ -84,7 +84,7 @@ export default function DashboardGrid({ metrics, systemStats, demoMode = false }
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <TopRoutesCard routes={metrics.routes} />
+        <TopRoutesCard routes={metrics.topRoutes} />
         <TopServicesCard services={metrics.backends} />
         <RoutersCard routers={metrics.routers} />
       </div>
