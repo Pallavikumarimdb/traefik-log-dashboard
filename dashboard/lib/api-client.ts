@@ -139,6 +139,37 @@ export class APIClient {
   setBaseURL(url: string) {
     this.baseURL = url;
   }
+
+  /**
+ * Lookup locations for IP addresses
+ */
+async lookupLocations(ips: string[]): Promise<{
+  locations: Array<{
+    ipAddress: string;
+    country: string;
+    city?: string;
+    latitude?: number;
+    longitude?: number;
+  }>;
+  count: number;
+}> {
+  return this.fetch('/api/location/lookup', {
+    method: 'POST',
+    body: JSON.stringify({ ips }),
+  });
+}
+
+/**
+ * Get location service status
+ */
+async getLocationStatus(): Promise<{
+  enabled: boolean;
+  available: boolean;
+  city_db: string;
+  country_db: string;
+}> {
+  return this.fetch('/api/location/status');
+}
 }
 
 // Default client instance

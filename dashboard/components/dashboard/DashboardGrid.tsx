@@ -22,13 +22,15 @@ import ResponseTimeCard from './cards/ResponseTimeCard';
 import RequestsCard from './cards/RequestsCard';
 import BackendsCard from './cards/BackendsCard';
 import InteractiveGeoMap from './cards/InteractiveGeoMap';
+import { CPUCard, MemoryCard, DiskCard } from './cards/SystemInfoCards';
 
 interface DashboardGridProps {
   metrics: DashboardMetrics;
+  systemStats?: any; // System stats from agent
   demoMode?: boolean;
 }
 
-export default function DashboardGrid({ metrics, demoMode = false }: DashboardGridProps) {
+export default function DashboardGrid({ metrics, systemStats, demoMode = false }: DashboardGridProps) {
   return (
     <div className="w-full space-y-6">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -40,7 +42,7 @@ export default function DashboardGrid({ metrics, demoMode = false }: DashboardGr
         />
         <StatCard
           title="Response Time"
-          value={`${metrics.responseTime.average.toFixed(0)}ms`}
+          value={`${metrics.responseTime.avg.toFixed(0)}ms`}
           description={`P99: ${metrics.responseTime.p99.toFixed(0)}ms`}
           icon={<Clock className="h-5 w-5 text-red-600" />}
         />
@@ -58,6 +60,15 @@ export default function DashboardGrid({ metrics, demoMode = false }: DashboardGr
         />
       </div>
 
+      {/* System Info Cards */}
+      {systemStats && (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <CPUCard stats={systemStats} />
+          <MemoryCard stats={systemStats} />
+          <DiskCard stats={systemStats} />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <RequestsCard metrics={metrics.requests} />
         <ResponseTimeCard metrics={metrics.responseTime} />
@@ -73,7 +84,7 @@ export default function DashboardGrid({ metrics, demoMode = false }: DashboardGr
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <TopRoutesCard routes={metrics.topRoutes} />
+        <TopRoutesCard routes={metrics.routes} />
         <TopServicesCard services={metrics.backends} />
         <RoutersCard routers={metrics.routers} />
       </div>
