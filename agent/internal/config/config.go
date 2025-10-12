@@ -1,8 +1,7 @@
 package config
 
 import (
-	"os"
-	"strconv"
+	"github.com/hhftechnology/traefik-log-dashboard/agent/internal/env"
 )
 
 // Config holds the application configuration
@@ -13,48 +12,28 @@ type Config struct {
 	SystemMonitoring bool
 	MonitorInterval  int
 	Port             string
+	LogFormat        string
+	GeoIPEnabled     bool
+	GeoIPCityDB      string
+	GeoIPCountryDB   string
 }
 
-// Load reads configuration from environment variables
+// Load reads configuration from environment variables using the env package
 func Load() *Config {
+	e := env.LoadEnv()
+
 	cfg := &Config{
-		AccessPath:       getEnv("TRAEFIK_LOG_DASHBOARD_ACCESS_PATH", "/var/log/traefik/access.log"),
-		ErrorPath:        getEnv("TRAEFIK_LOG_DASHBOARD_ERROR_PATH", "/var/log/traefik/traefik.log"),
-		AuthToken:        getEnv("TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN", ""),
-		SystemMonitoring: getEnvBool("TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING", true),
-		MonitorInterval:  getEnvInt("TRAEFIK_LOG_DASHBOARD_MONITOR_INTERVAL", 2000),
-		Port:             getEnv("PORT", "5000"),
+		AccessPath:       e.AccessPath,
+		ErrorPath:        e.ErrorPath,
+		AuthToken:        e.AuthToken,
+		SystemMonitoring: e.SystemMonitoring,
+		MonitorInterval:  2000, // Keep default for now
+		Port:             e.Port,
+		LogFormat:        e.LogFormat,
+		GeoIPEnabled:     e.GeoIPEnabled,
+		GeoIPCityDB:      e.GeoIPCityDB,
+		GeoIPCountryDB:   e.GeoIPCountryDB,
 	}
 
 	return cfg
-}
-
-// getEnv retrieves an environment variable or returns a default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// getEnvBool retrieves a boolean environment variable or returns a default value
-func getEnvBool(key string, defaultValue bool) bool {
-	if value := os.Getenv(key); value != "" {
-		boolValue, err := strconv.ParseBool(value)
-		if err == nil {
-			return boolValue
-		}
-	}
-	return defaultValue
-}
-
-// getEnvInt retrieves an integer environment variable or returns a default value
-func getEnvInt(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		intValue, err := strconv.Atoi(value)
-		if err == nil {
-			return intValue
-		}
-	}
-	return defaultValue
 }
