@@ -250,8 +250,12 @@ func getCPUInfoWindows() (CPUInfo, error) {
 		return info, err
 	}
 
-	lines := strings.SplitSeq(string(output), "\n")
-	for line := range lines {
+	// Corrected line: Use strings.Split instead of strings.SplitSeq
+	lines := strings.Split(string(output), "\n")
+
+
+	// Corrected loop:
+	for _, line := range lines {
 		if strings.Contains(line, ",") && !strings.Contains(line, "Node") {
 			parts := strings.Split(line, ",")
 			if len(parts) >= 4 {
