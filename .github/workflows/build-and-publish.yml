@@ -25,7 +25,7 @@ on:
 env:
   REGISTRY_GHCR: ghcr.io
   REGISTRY_DOCKERHUB: docker.io
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.23'
   NODE_VERSION: '18'
 
 jobs:
