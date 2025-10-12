@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAgents } from '@/lib/contexts/AgentContext';
 import { Agent } from '@/lib/types/agent';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,8 @@ import {
   Activity,
   Upload,
   Download,
+  ChevronLeft,
+  Home,
 } from 'lucide-react';
 import AgentFormModal from '@/components/AgentFormModal';
 import AgentBulkOperations from '@/components/AgentBulkOperations';
@@ -67,9 +70,9 @@ export default function AgentSettingsPage() {
 
   const getLocationIcon = (location: Agent['location']) => {
     return location === 'on-site' ? (
-      <Server className="w-4 h-4 text-blue-600" />
+      <Server className="w-4 h-4 text-red-600" />
     ) : (
-      <MapPin className="w-4 h-4 text-purple-600" />
+      <MapPin className="w-4 h-4 text-red-700" />
     );
   };
 
@@ -80,20 +83,32 @@ export default function AgentSettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Agent Settings
-          </h1>
-          <p className="text-muted-foreground">
+          <div className="flex items-center gap-4 mb-2">
+            <Button
+              asChild
+              variant="outline"
+              size="icon"
+              className="border-red-300 text-red-700 hover:bg-red-50"
+            >
+              <Link href="/dashboard">
+                <ChevronLeft className="w-5 h-5" />
+              </Link>
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Agent Settings
+            </h1>
+          </div>
+          <p className="text-gray-600 ml-14">
             Configure and monitor your Traefik log dashboard agents
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200 dark:border-white/10">
+        <div className="mb-6 border-b border-red-200">
           <nav className="flex gap-4">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -103,14 +118,14 @@ export default function AgentSettingsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
                     activeTab === tab.id
-                      ? 'border-black dark:border-white text-black dark:text-white font-medium'
-                      : 'border-transparent text-muted-foreground hover:text-gray-900 dark:hover:text-gray-100'
+                      ? 'border-red-600 text-red-600 font-medium'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-red-300'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.count !== undefined && (
-                    <Badge variant="secondary" className="ml-1">
+                    <Badge variant="secondary" className="ml-1 bg-red-50 text-red-700 border-red-200">
                       {tab.count}
                     </Badge>
                   )}
@@ -125,38 +140,38 @@ export default function AgentSettingsPage() {
           <div className="space-y-6">
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6">
+              <div className="bg-white border border-red-200 rounded-lg p-6 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <Server className="w-10 h-10 text-black dark:text-white" />
+                  <Server className="w-10 h-10 text-red-600" />
                   <div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-2xl font-bold text-gray-900">
                       {agents.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Agents</div>
+                    <div className="text-sm text-gray-600">Total Agents</div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6">
+              <div className="bg-white border border-red-200 rounded-lg p-6 shadow-sm">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-10 h-10 text-green-500" />
                   <div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-2xl font-bold text-gray-900">
                       {agents.filter(a => a.status === 'online').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Online</div>
+                    <div className="text-sm text-gray-600">Online</div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6">
+              <div className="bg-white border border-red-200 rounded-lg p-6 shadow-sm">
                 <div className="flex items-center gap-3">
                   <XCircle className="w-10 h-10 text-red-500" />
                   <div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-2xl font-bold text-gray-900">
                       {agents.filter(a => a.status === 'offline').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Offline</div>
+                    <div className="text-sm text-gray-600">Offline</div>
                   </div>
                 </div>
               </div>
@@ -164,14 +179,14 @@ export default function AgentSettingsPage() {
 
             {/* Actions Bar */}
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-gray-900">
                 Your Agents
               </h2>
               <div className="flex gap-2">
                 <Button
                   onClick={handleCheckAllStatus}
                   variant="outline"
-                  className="gap-2"
+                  className="gap-2 border-red-300 text-red-700 hover:bg-red-50"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Check All
@@ -181,7 +196,7 @@ export default function AgentSettingsPage() {
                     setEditingAgent(null);
                     setShowAddModal(true);
                   }}
-                  className="gap-2"
+                  className="gap-2 bg-red-600 hover:bg-red-700 text-white"
                 >
                   <Plus className="w-4 h-4" />
                   Add Agent
@@ -192,12 +207,12 @@ export default function AgentSettingsPage() {
             {/* Agent List */}
             <div className="space-y-4">
               {agents.length === 0 ? (
-                <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-12 text-center">
-                  <Server className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                <div className="bg-white border border-red-200 rounded-lg p-12 text-center shadow-sm">
+                  <Server className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     No Agents Configured
                   </h3>
-                  <p className="text-muted-foreground mb-6">
+                  <p className="text-gray-600 mb-6">
                     Get started by adding your first agent to monitor Traefik logs
                   </p>
                   <Button
@@ -205,7 +220,7 @@ export default function AgentSettingsPage() {
                       setEditingAgent(null);
                       setShowAddModal(true);
                     }}
-                    className="gap-2"
+                    className="gap-2 bg-red-600 hover:bg-red-700 text-white"
                   >
                     <Plus className="w-4 h-4" />
                     Add Your First Agent
@@ -215,10 +230,10 @@ export default function AgentSettingsPage() {
                 agents.map((agent) => (
                   <div
                     key={agent.id}
-                    className={`bg-white dark:bg-black border-2 rounded-lg p-6 transition-all ${
+                    className={`bg-white border-2 rounded-lg p-6 transition-all shadow-sm ${
                       selectedAgent?.id === agent.id
-                        ? 'border-black dark:border-white'
-                        : 'border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20'
+                        ? 'border-red-600'
+                        : 'border-red-200 hover:border-red-300'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -227,24 +242,24 @@ export default function AgentSettingsPage() {
                           {getStatusIcon(checkingStatus[agent.id] ? 'checking' : agent.status)}
                           
                           <div className="flex items-center gap-2">
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            <h3 className="text-xl font-semibold text-gray-900">
                               Agent #{agent.number}
                             </h3>
                             <span className="text-gray-400">·</span>
-                            <span className="text-lg text-gray-900 dark:text-white">
+                            <span className="text-lg text-gray-900">
                               {agent.name}
                             </span>
                           </div>
 
                           {selectedAgent?.id === agent.id && (
-                            <Badge variant="default" className="bg-black dark:bg-white text-white dark:text-black">
+                            <Badge variant="default" className="bg-red-600 text-white hover:bg-red-700">
                               Active
                             </Badge>
                           )}
                         </div>
 
                         <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2 text-muted-foreground">
+                          <div className="flex items-center gap-2 text-gray-600">
                             {getLocationIcon(agent.location)}
                             <span className="capitalize">{agent.location}</span>
                             {agent.tags && agent.tags.length > 0 && (
@@ -252,7 +267,7 @@ export default function AgentSettingsPage() {
                                 <span>·</span>
                                 <div className="flex gap-1 flex-wrap">
                                   {agent.tags.map(tag => (
-                                    <Badge key={tag} variant="secondary" className="text-xs">
+                                    <Badge key={tag} variant="secondary" className="text-xs bg-red-50 text-red-700 border-red-200">
                                       {tag}
                                     </Badge>
                                   ))}
@@ -261,16 +276,16 @@ export default function AgentSettingsPage() {
                             )}
                           </div>
 
-                          <div className="text-muted-foreground">
+                          <div className="text-gray-600">
                             <span className="font-mono text-xs">{agent.url}</span>
                           </div>
 
                           {agent.description && (
-                            <div className="text-muted-foreground">{agent.description}</div>
+                            <div className="text-gray-600">{agent.description}</div>
                           )}
 
                           {agent.lastSeen && (
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-gray-500">
                               Last seen: {agent.lastSeen.toLocaleString()}
                             </div>
                           )}
@@ -283,6 +298,7 @@ export default function AgentSettingsPage() {
                             onClick={() => selectAgent(agent.id)}
                             variant="outline"
                             size="sm"
+                            className="border-red-300 text-red-700 hover:bg-red-50"
                           >
                             Select
                           </Button>
@@ -293,6 +309,7 @@ export default function AgentSettingsPage() {
                           variant="outline"
                           size="sm"
                           disabled={checkingStatus[agent.id]}
+                          className="border-red-300 text-red-700 hover:bg-red-50"
                         >
                           <RefreshCw
                             className={`w-4 h-4 ${checkingStatus[agent.id] ? 'animate-spin' : ''}`}
@@ -306,6 +323,7 @@ export default function AgentSettingsPage() {
                           }}
                           variant="outline"
                           size="sm"
+                          className="border-red-300 text-red-700 hover:bg-red-50"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -314,7 +332,7 @@ export default function AgentSettingsPage() {
                           onClick={() => handleDelete(agent.id)}
                           variant="outline"
                           size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                          className="border-red-300 text-red-600 hover:bg-red-50"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -326,11 +344,11 @@ export default function AgentSettingsPage() {
             </div>
 
             {/* Setup Guide */}
-            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <h4 className="font-semibold text-red-900 mb-3">
                 Quick Setup Guide
               </h4>
-              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-2 list-disc list-inside">
+              <ul className="text-sm text-red-800 space-y-2 list-disc list-inside">
                 <li>Deploy agents on servers where Traefik logs are located</li>
                 <li>Configure unique authentication tokens for secure communication</li>
                 <li>On-site agents: Running on the same network as the dashboard</li>
@@ -348,7 +366,7 @@ export default function AgentSettingsPage() {
         )}
 
         {activeTab === 'bulk' && (
-          <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg p-6">
+          <div className="bg-white border border-red-200 rounded-lg p-6 shadow-sm">
             <AgentBulkOperations />
           </div>
         )}
