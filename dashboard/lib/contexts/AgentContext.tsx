@@ -21,10 +21,12 @@ const AgentContext = createContext<AgentContextType | undefined>(undefined);
 export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load agents on mount
   useEffect(() => {
     refreshAgents();
+    setIsInitialized(true);
   }, []);
 
   // Update selected agent when agents or selection changes
@@ -33,6 +35,20 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       AgentConfigManager.setSelectedAgentId(selectedAgentId);
     }
   }, [selectedAgentId]);
+
+  // Check status of all agents on initial load
+  useEffect(() => {
+    if (isInitialized && agents.length > 0) {
+      // Check status of all agents after a short delay
+      const timer = setTimeout(() => {
+        agents.forEach(agent => {
+          checkAgentStatus(agent.id);
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialized, agents.length]);
 
   const refreshAgents = useCallback(() => {
     const loadedAgents = AgentConfigManager.getAgents();
@@ -71,6 +87,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     const agent = agents.find(a => a.id === id);
     if (!agent) return false;
 
+    // Set status to checking
+    AgentConfigManager.updateAgent(id, { status: 'checking' });
+    setAgents(AgentConfigManager.getAgents());
+
     try {
       const response = await fetch('/api/agents/check-status', {
         method: 'POST',
@@ -82,15 +102,15 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       const isOnline = response.ok && data.online;
 
       AgentConfigManager.updateAgentStatus(id, isOnline);
-      refreshAgents();
+      setAgents(AgentConfigManager.getAgents());
 
       return isOnline;
     } catch (error) {
       AgentConfigManager.updateAgentStatus(id, false, String(error));
-      refreshAgents();
+      setAgents(AgentConfigManager.getAgents());
       return false;
     }
-  }, [agents, refreshAgents]);
+  }, [agents]);
 
   const selectedAgent = agents.find(a => a.id === selectedAgentId) || agents[0] || null;
 

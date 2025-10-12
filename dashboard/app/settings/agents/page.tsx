@@ -19,10 +19,7 @@ import {
   Circle,
   Settings as SettingsIcon,
   Activity,
-  Upload,
-  Download,
   ChevronLeft,
-  Home,
 } from 'lucide-react';
 import AgentFormModal from '@/components/AgentFormModal';
 import AgentBulkOperations from '@/components/AgentBulkOperations';
@@ -92,17 +89,17 @@ export default function AgentSettingsPage() {
               asChild
               variant="outline"
               size="icon"
-              className="border-red-300 text-red-700 hover:bg-red-50"
+              className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
             >
               <Link href="/dashboard">
                 <ChevronLeft className="w-5 h-5" />
               </Link>
             </Button>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Agent Settings
             </h1>
           </div>
-          <p className="text-gray-600 ml-14">
+          <p className="text-gray-600 dark:text-gray-400 ml-14">
             Configure and monitor your Traefik log dashboard agents
           </p>
         </div>
@@ -240,76 +237,45 @@ export default function AgentSettingsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-3">
                           {getStatusIcon(checkingStatus[agent.id] ? 'checking' : agent.status)}
-                          
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {agent.name}
+                          </h3>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              agent.status === 'online'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : agent.status === 'offline'
+                                ? 'bg-red-100 text-red-800 border-red-200'
+                                : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                            }
+                          >
+                            {agent.status === 'online' ? 'Active' : agent.status === 'checking' ? 'Checking' : 'Default Agent'}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-xl font-semibold text-gray-900">
-                              Agent #{agent.number}
-                            </h3>
-                            <span className="text-gray-400">·</span>
-                            <span className="text-lg text-gray-900">
-                              {agent.name}
+                            {getLocationIcon(agent.location)}
+                            <span className="text-gray-600 capitalize">
+                              {agent.location.replace('-', ' ')}
                             </span>
                           </div>
-
-                          {selectedAgent?.id === agent.id && (
-                            <Badge variant="default" className="bg-red-600 text-white hover:bg-red-700">
-                              Active
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            {getLocationIcon(agent.location)}
-                            <span className="capitalize">{agent.location}</span>
-                            {agent.tags && agent.tags.length > 0 && (
-                              <>
-                                <span>·</span>
-                                <div className="flex gap-1 flex-wrap">
-                                  {agent.tags.map(tag => (
-                                    <Badge key={tag} variant="secondary" className="text-xs bg-red-50 text-red-700 border-red-200">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-
                           <div className="text-gray-600">
-                            <span className="font-mono text-xs">{agent.url}</span>
+                            <span className="font-medium">Agent #</span> {agent.number}
                           </div>
-
-                          {agent.description && (
-                            <div className="text-gray-600">{agent.description}</div>
-                          )}
-
-                          {agent.lastSeen && (
-                            <div className="text-xs text-gray-500">
-                              Last seen: {agent.lastSeen.toLocaleString()}
-                            </div>
-                          )}
+                          <div className="col-span-2 flex items-center gap-2 text-gray-600 font-mono text-xs">
+                            <Server className="w-3 h-3" />
+                            {agent.url}
+                          </div>
                         </div>
                       </div>
-
-                      <div className="flex gap-2">
-                        {selectedAgent?.id !== agent.id && (
-                          <Button
-                            onClick={() => selectAgent(agent.id)}
-                            variant="outline"
-                            size="sm"
-                            className="border-red-300 text-red-700 hover:bg-red-50"
-                          >
-                            Select
-                          </Button>
-                        )}
-                        
+                      <div className="flex items-center gap-2">
                         <Button
                           onClick={() => handleCheckStatus(agent.id)}
                           variant="outline"
                           size="sm"
-                          disabled={checkingStatus[agent.id]}
                           className="border-red-300 text-red-700 hover:bg-red-50"
+                          disabled={checkingStatus[agent.id]}
                         >
                           <RefreshCw
                             className={`w-4 h-4 ${checkingStatus[agent.id] ? 'animate-spin' : ''}`}
