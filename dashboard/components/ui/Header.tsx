@@ -1,26 +1,39 @@
+// dashboard/components/ui/Header.tsx
 'use client';
 
 import Link from 'next/link';
-import { Activity, Home, Github } from 'lucide-react';
+import { Activity, Home, Github, Settings } from 'lucide-react';
 import { Button } from './button';
 import { Badge } from './badge';
+import AgentSelector from './AgentSelector';
+import { useAgents } from '@/lib/contexts/AgentContext';
 
 interface HeaderProps {
   title: string;
   connected?: boolean;
   demoMode?: boolean;
   lastUpdate?: Date;
+  showAgentSelector?: boolean;
 }
 
-export default function Header({ title, connected = false, demoMode = false, lastUpdate }: HeaderProps) {
+export default function Header({ 
+  title, 
+  connected = false, 
+  demoMode = false, 
+  lastUpdate,
+  showAgentSelector = true 
+}: HeaderProps) {
+  const { selectedAgent } = useAgents();
+
   return (
     <header className="bg-white border-b border-red-200 sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Activity className="w-8 h-8 text-red-600" />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+        <div className="flex items-center justify-between gap-4">
+          {/* Left Section: Logo and Title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Activity className="w-8 h-8 text-red-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-gray-900 truncate">{title}</h1>
               {demoMode && (
                 <Badge variant="secondary" className="mt-0.5 bg-red-100 text-red-700 border-red-300">
                   Demo Mode - Simulated Data
@@ -29,22 +42,44 @@ export default function Header({ title, connected = false, demoMode = false, las
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {connected !== undefined && (
-              <div className="flex items-center gap-2">
+          {/* Center Section: Agent Selector */}
+          {showAgentSelector && !demoMode && (
+            <div className="hidden lg:flex items-center flex-1 justify-center max-w-md">
+              <AgentSelector />
+            </div>
+          )}
+
+          {/* Right Section: Status and Actions */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {/* Connection Status */}
+            {!demoMode && connected !== undefined && (
+              <div className="hidden md:flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${connected ? 'bg-red-600' : 'bg-gray-400'} animate-pulse`} />
                 <span className="text-sm text-gray-600">
-                  {connected ? 'Connected' : 'Disconnected'}
+                  {connected ? (
+                    <>
+                      Connected
+                      {selectedAgent && (
+                        <span className="ml-1 text-xs text-gray-500">
+                          (Agent #{selectedAgent.number})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    'Disconnected'
+                  )}
                 </span>
               </div>
             )}
-            
+
+            {/* Last Update */}
             {lastUpdate && (
-              <div className="text-xs text-gray-500">
+              <div className="hidden xl:block text-xs text-gray-500">
                 Last update: {lastUpdate.toLocaleTimeString()}
               </div>
             )}
 
+            {/* Action Links */}
             <a
               href="https://github.com/hhftechnology/traefik-log-dashboard"
               target="_blank"
@@ -75,8 +110,30 @@ export default function Header({ title, connected = false, demoMode = false, las
                 <span className="hidden sm:inline">Home</span>
               </Link>
             </Button>
+
+            {/* Settings Button (visible only when not in demo mode) */}
+            {!demoMode && showAgentSelector && (
+              <Button
+                asChild
+                variant="secondary"
+                size="icon"
+                className="border-red-300 text-red-700 hover:bg-red-50"
+                title="Agent Settings"
+              >
+                <Link href="/settings/agents">
+                  <Settings className="w-4 h-4" />
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Mobile Agent Selector */}
+        {showAgentSelector && !demoMode && (
+          <div className="lg:hidden mt-3">
+            <AgentSelector className="w-full" />
+          </div>
+        )}
       </div>
     </header>
   );
