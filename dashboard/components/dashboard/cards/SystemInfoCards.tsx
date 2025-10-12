@@ -58,7 +58,7 @@ function ProgressBar({ percent }: { percent: number }) {
 }
 
 export function CPUCard({ stats }: Props) {
-  if (!stats) {
+  if (!stats || !stats.cpu) {
     return (
       <Card title="CPU" icon={<Cpu className="w-5 h-5 text-blue-600" />}>
         <div className="text-center text-gray-500 py-4">
@@ -96,7 +96,7 @@ export function CPUCard({ stats }: Props) {
 }
 
 export function MemoryCard({ stats }: Props) {
-  if (!stats) {
+  if (!stats || !stats.memory) {
     return (
       <Card title="Memory" icon={<MemoryStick className="w-5 h-5 text-purple-600" />}>
         <div className="text-center text-gray-500 py-4">
@@ -138,7 +138,7 @@ export function MemoryCard({ stats }: Props) {
 }
 
 export function DiskCard({ stats }: Props) {
-  if (!stats) {
+  if (!stats || !stats.disk) {
     return (
       <Card title="Disk" icon={<HardDrive className="w-5 h-5 text-indigo-600" />}>
         <div className="text-center text-gray-500 py-4">
