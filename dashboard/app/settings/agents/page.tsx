@@ -95,7 +95,7 @@ export default function AgentSettingsPage() {
                 <ChevronLeft className="w-5 h-5" />
               </Link>
             </Button>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-xl font-bold text-gray-900 truncate">
               Agent Settings
             </h1>
           </div>
