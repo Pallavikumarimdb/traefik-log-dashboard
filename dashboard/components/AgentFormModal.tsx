@@ -41,7 +41,7 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
     } else {
       setFormData({
         name: '',
-        url: 'http://localhost:5000',
+        url: 'http://traefik-agent:5000',
         token: '',
         location: 'on-site',
         description: '',
@@ -96,10 +96,10 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white border border-gray-200 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/10">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">
             {agent ? 'Edit Agent' : 'Add New Agent'}
           </h2>
           <Button
@@ -116,14 +116,14 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Errors */}
           {errors.length > 0 && (
-            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex gap-2">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-red-900 dark:text-red-100 mb-1">
+                  <h4 className="font-semibold text-red-900 mb-1">
                     Please fix the following errors:
                   </h4>
-                  <ul className="text-sm text-red-800 dark:text-red-200 list-disc list-inside space-y-1">
+                  <ul className="text-sm text-red-800 list-disc list-inside space-y-1">
                     {errors.map((error, index) => (
                       <li key={index}>{error}</li>
                     ))}
@@ -135,7 +135,7 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
 
           {/* Agent Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Agent Name *
             </label>
             <input
@@ -143,35 +143,35 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Production Server"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent"
               required
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-gray-600">
               A friendly name to identify this agent
             </p>
           </div>
 
           {/* Agent URL */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Agent URL *
             </label>
             <input
               type="url"
               value={formData.url}
               onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-              placeholder="http://192.168.1.100:5000"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-mono text-sm"
+              placeholder="http://traefik-agent:5000"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
               required
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-gray-600">
               The base URL where the agent is running (include http:// or https://)
             </p>
           </div>
 
           {/* Authentication Token */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Authentication Token *
             </label>
             <input
@@ -179,17 +179,17 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
               value={formData.token}
               onChange={(e) => setFormData({ ...formData, token: e.target.value })}
               placeholder="your-secret-token"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent font-mono text-sm"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
               required
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-gray-600">
               The TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN configured on the agent
             </p>
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Location *
             </label>
             <div className="flex gap-4">
@@ -201,7 +201,7 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
                   onChange={(e) => setFormData({ ...formData, location: e.target.value as Agent['location'] })}
                   className="w-4 h-4"
                 />
-                <span className="text-sm text-gray-900 dark:text-white">On-site</span>
+                <span className="text-sm text-gray-900">On-site</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -211,17 +211,17 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
                   onChange={(e) => setFormData({ ...formData, location: e.target.value as Agent['location'] })}
                   className="w-4 h-4"
                 />
-                <span className="text-sm text-gray-900 dark:text-white">Off-site</span>
+                <span className="text-sm text-gray-900">Off-site</span>
               </label>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-gray-600">
               On-site: Same network · Off-site: Remote server or cloud
             </p>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Description (optional)
             </label>
             <textarea
@@ -229,13 +229,13 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Monitoring production Traefik logs on AWS EC2"
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
               Tags (optional)
             </label>
             <input
@@ -243,17 +243,17 @@ export default function AgentFormModal({ isOpen, onClose, agent }: AgentFormModa
               value={formData.tags}
               onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
               placeholder="production, us-east-1, aws"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-gray-600">
               Comma-separated tags to help organize agents
             </p>
           </div>
 
           {/* Agent Number Preview */}
           {!agent && (
-            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
                 This agent will be automatically assigned the next sequential number
               </p>
             </div>

@@ -33,12 +33,15 @@ export class AgentConfigManager {
 
   /**
    * Get default agents from environment variables
+   * FIX: Use traefik-agent:5000 as default for Docker compatibility
    */
   private static getDefaultAgents(): Agent[] {
     const defaultAgent: Agent = {
       id: 'agent-001',
       name: 'Default Agent',
-      url: process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:5000',
+      // FIX: Use traefik-agent:5000 for Docker internal network
+      // This matches the service name in docker-compose.yml
+      url: process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://traefik-agent:5000',
       token: process.env.NEXT_PUBLIC_AGENT_API_TOKEN || '',
       location: 'on-site',
       number: 1,

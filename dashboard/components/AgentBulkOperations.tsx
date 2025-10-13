@@ -11,7 +11,6 @@ import {
   Upload,
   Copy,
   Clipboard,
-  Trash2,
   RefreshCw,
   CheckCircle2,
   AlertCircle,
@@ -78,7 +77,6 @@ export default function AgentBulkOperations({ onClose }: BulkOperationsProps) {
     setResult(null);
 
     try {
-      // Validate first
       const validation = await AgentImportExport.validateImportFile(file);
       if (!validation.valid) {
         setResult({
@@ -90,7 +88,6 @@ export default function AgentBulkOperations({ onClose }: BulkOperationsProps) {
         return;
       }
 
-      // Import
       const importResult = await AgentImportExport.importFromFile(file, {
         mergeMode: 'merge',
       });
@@ -117,7 +114,6 @@ export default function AgentBulkOperations({ onClose }: BulkOperationsProps) {
       });
     } finally {
       setIsProcessing(false);
-      // Reset file input
       event.target.value = '';
     }
   };
@@ -204,14 +200,14 @@ export default function AgentBulkOperations({ onClose }: BulkOperationsProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 bg-white rounded-lg">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-gray-900">
             Bulk Operations
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-600 mt-1">
             Manage multiple agents at once
           </p>
         </div>
@@ -227,43 +223,43 @@ export default function AgentBulkOperations({ onClose }: BulkOperationsProps) {
         <div
           className={`p-4 rounded-lg border ${
             result.type === 'success'
-              ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+              ? 'bg-green-50 border-green-200'
               : result.type === 'error'
-              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
-              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+              ? 'bg-red-50 border-red-200'
+              : 'bg-blue-50 border-blue-200'
           }`}
         >
           <div className="flex gap-3">
             {result.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             ) : result.type === 'error' ? (
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             )}
             <div className="flex-1">
               <p
                 className={`font-medium ${
                   result.type === 'success'
-                    ? 'text-green-900 dark:text-green-100'
+                    ? 'text-green-900'
                     : result.type === 'error'
-                    ? 'text-red-900 dark:text-red-100'
-                    : 'text-blue-900 dark:text-blue-100'
+                    ? 'text-red-900'
+                    : 'text-blue-900'
                 }`}
               >
                 {result.message}
               </p>
-              {result.details && (
+              {result.details && result.details.length > 0 && (
                 <ul className="mt-2 text-sm space-y-1">
                   {result.details.map((detail, index) => (
                     <li
                       key={index}
                       className={
                         result.type === 'success'
-                          ? 'text-green-800 dark:text-green-200'
+                          ? 'text-green-800'
                           : result.type === 'error'
-                          ? 'text-red-800 dark:text-red-200'
-                          : 'text-blue-800 dark:text-blue-200'
+                          ? 'text-red-800'
+                          : 'text-blue-800'
                       }
                     >
                       • {detail}
@@ -277,89 +273,93 @@ export default function AgentBulkOperations({ onClose }: BulkOperationsProps) {
       )}
 
       {/* Operations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Export Operations */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <Download className="w-4 h-4" />
             Export Configuration
           </h4>
           
-          <Button
-            onClick={handleExport}
-            variant="outline"
-            className="w-full justify-start"
-            disabled={isProcessing || agents.length === 0}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Download as JSON
-          </Button>
+          <div className="space-y-2">
+            <Button
+              onClick={handleExport}
+              variant="outline"
+              className="w-full justify-start"
+              disabled={isProcessing || agents.length === 0}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download as JSON
+            </Button>
 
-          <Button
-            onClick={handleCopyToClipboard}
-            variant="outline"
-            className="w-full justify-start"
-            disabled={isProcessing || agents.length === 0}
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            Copy to Clipboard
-          </Button>
+            <Button
+              onClick={handleCopyToClipboard}
+              variant="outline"
+              className="w-full justify-start"
+              disabled={isProcessing || agents.length === 0}
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy to Clipboard
+            </Button>
 
-          <Button
-            onClick={handleCreateBackup}
-            variant="outline"
-            className="w-full justify-start"
-            disabled={isProcessing || agents.length === 0}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Create Backup
-          </Button>
+            <Button
+              onClick={handleCreateBackup}
+              variant="outline"
+              className="w-full justify-start"
+              disabled={isProcessing || agents.length === 0}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Create Backup
+            </Button>
+          </div>
         </div>
 
         {/* Import Operations */}
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <Upload className="w-4 h-4" />
             Import Configuration
           </h4>
 
-          <label className="block">
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportFile}
-              className="hidden"
-              disabled={isProcessing}
-            />
+          <div className="space-y-2">
+            <label className="block">
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImportFile}
+                className="hidden"
+                disabled={isProcessing}
+              />
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                disabled={isProcessing}
+                onClick={(e) => {
+                  const input = e.currentTarget.parentElement?.querySelector('input');
+                  input?.click();
+                }}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import from File
+              </Button>
+            </label>
+
             <Button
+              onClick={handleImportFromClipboard}
               variant="outline"
               className="w-full justify-start"
               disabled={isProcessing}
-              onClick={(e) => {
-                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                input?.click();
-              }}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Import from File
+              <Clipboard className="w-4 h-4 mr-2" />
+              Import from Clipboard
             </Button>
-          </label>
-
-          <Button
-            onClick={handleImportFromClipboard}
-            variant="outline"
-            className="w-full justify-start"
-            disabled={isProcessing}
-          >
-            <Clipboard className="w-4 h-4 mr-2" />
-            Import from Clipboard
-          </Button>
+          </div>
         </div>
       </div>
 
       {/* Status Operations */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+      <div className="space-y-3 pt-4 border-t border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
           <RefreshCw className="w-4 h-4" />
           Status Operations
         </h4>
@@ -375,18 +375,21 @@ export default function AgentBulkOperations({ onClose }: BulkOperationsProps) {
         </Button>
       </div>
 
-      {/* Info */}
-      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm">
+      {/* Import Modes Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h5 className="font-semibold text-blue-900 mb-2 text-sm">
           Import Modes
         </h5>
-        <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-          <li>• <strong>Merge:</strong> Adds new agents, updates existing ones</li>
-          <li>• <strong>Replace:</strong> Removes all agents and imports new ones</li>
-          <li>• <strong>Skip Existing:</strong> Only adds new agents, keeps existing ones unchanged</li>
+        <ul className="text-xs text-blue-800 space-y-1">
+          <li><strong>Merge:</strong> Adds new agents, updates existing ones</li>
+          <li><strong>Replace:</strong> Removes all agents and imports new ones</li>
+          <li><strong>Skip Existing:</strong> Only adds new agents, keeps existing ones unchanged</li>
         </ul>
-        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-          Currently using: <Badge variant="secondary" className="ml-1">Merge Mode</Badge>
+        <p className="text-xs text-blue-700 mt-3 flex items-center gap-2">
+          Currently using: 
+          <Badge variant="secondary" className="text-xs">
+            Merge Mode
+          </Badge>
         </p>
       </div>
     </div>
