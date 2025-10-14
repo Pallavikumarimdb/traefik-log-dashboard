@@ -1,7 +1,7 @@
 // dashboard/app/settings/filters/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useFilters } from '@/lib/contexts/FilterContext';
 import { FilterCondition } from '@/lib/types/filter';
@@ -223,7 +223,7 @@ export default function FilterSettingsPage() {
                   <input
                     type="checkbox"
                     checked={settings.excludeUnknownIPs}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       updateSettings({ excludeUnknownIPs: e.target.checked });
                       showSavedIndicator();
                     }}
@@ -238,7 +238,7 @@ export default function FilterSettingsPage() {
                   <input
                     type="checkbox"
                     checked={settings.excludePrivateIPs}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       updateSettings({ excludePrivateIPs: e.target.checked });
                       showSavedIndicator();
                     }}
@@ -256,8 +256,8 @@ export default function FilterSettingsPage() {
                   <input
                     type="text"
                     value={newIP}
-                    onChange={(e) => setNewIP(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddIP()}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setNewIP(e.target.value)}
+                    onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleAddIP()}
                     placeholder="Enter IP address (e.g., 192.168.1.1)"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
@@ -316,7 +316,7 @@ export default function FilterSettingsPage() {
                   <input
                     type="checkbox"
                     checked={settings.proxySettings.enableCFHeaders}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       updateSettings({
                         proxySettings: {
                           ...settings.proxySettings,
@@ -339,7 +339,7 @@ export default function FilterSettingsPage() {
                   <input
                     type="checkbox"
                     checked={settings.proxySettings.enableXForwardedFor}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       updateSettings({
                         proxySettings: {
                           ...settings.proxySettings,
@@ -362,7 +362,7 @@ export default function FilterSettingsPage() {
                   <input
                     type="checkbox"
                     checked={settings.proxySettings.enableXRealIP}
-                    onChange={(e) => {
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       updateSettings({
                         proxySettings: {
                           ...settings.proxySettings,
@@ -385,8 +385,8 @@ export default function FilterSettingsPage() {
                   <input
                     type="text"
                     value={newCustomHeader}
-                    onChange={(e) => setNewCustomHeader(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddCustomHeader()}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setNewCustomHeader(e.target.value)}
+                    onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleAddCustomHeader()}
                     placeholder="Header name (e.g., X-Custom-IP)"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
@@ -432,8 +432,8 @@ export default function FilterSettingsPage() {
                 <input
                   type="number"
                   value={newStatusCode}
-                  onChange={(e) => setNewStatusCode(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddStatusCode()}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setNewStatusCode(e.target.value)}
+                  onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleAddStatusCode()}
                   placeholder="Status code (e.g., 404)"
                   min="100"
                   max="599"
@@ -494,7 +494,7 @@ export default function FilterSettingsPage() {
                 <input
                   type="checkbox"
                   checked={settings.excludeBots}
-                  onChange={(e) => {
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     updateSettings({ excludeBots: e.target.checked });
                     showSavedIndicator();
                   }}
@@ -510,8 +510,8 @@ export default function FilterSettingsPage() {
                   <input
                     type="text"
                     value={newPath}
-                    onChange={(e) => setNewPath(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddPath()}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPath(e.target.value)}
+                    onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleAddPath()}
                     placeholder="Path to exclude (e.g., /health)"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
@@ -584,7 +584,7 @@ export default function FilterSettingsPage() {
                       <input
                         type="text"
                         value={customCondition.name}
-                        onChange={(e) => setCustomCondition({ ...customCondition, name: e.target.value })}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomCondition({ ...customCondition, name: e.target.value })}
                         placeholder="e.g., Exclude Health Checks"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
@@ -595,7 +595,7 @@ export default function FilterSettingsPage() {
                       </label>
                       <select
                         value={customCondition.field}
-                        onChange={(e) => setCustomCondition({ ...customCondition, field: e.target.value })}
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setCustomCondition({ ...customCondition, field: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       >
                         <option value="RequestPath">Request Path</option>
@@ -614,7 +614,7 @@ export default function FilterSettingsPage() {
                       </label>
                       <select
                         value={customCondition.operator}
-                        onChange={(e) => setCustomCondition({ ...customCondition, operator: e.target.value as any })}
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setCustomCondition({ ...customCondition, operator: e.target.value as FilterCondition['operator'] })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       >
                         <option value="equals">Equals</option>
@@ -634,7 +634,7 @@ export default function FilterSettingsPage() {
                       <input
                         type="text"
                         value={customCondition.value}
-                        onChange={(e) => setCustomCondition({ ...customCondition, value: e.target.value })}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomCondition({ ...customCondition, value: e.target.value })}
                         placeholder="e.g., /health"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
@@ -646,7 +646,7 @@ export default function FilterSettingsPage() {
                       <input
                         type="text"
                         value={customCondition.description}
-                        onChange={(e) => setCustomCondition({ ...customCondition, description: e.target.value })}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomCondition({ ...customCondition, description: e.target.value })}
                         placeholder="Brief description of this filter"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
@@ -697,7 +697,7 @@ export default function FilterSettingsPage() {
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-600 font-mono">
-                            {condition.field} {condition.operator.replace(/_/g, ' ')} "{condition.value}"
+                            {condition.field} {condition.operator.replace(/_/g, ' ')} &quot;{condition.value}&quot;
                           </p>
                           {condition.description && (
                             <p className="text-xs text-gray-500 mt-1">
@@ -710,7 +710,7 @@ export default function FilterSettingsPage() {
                             <input
                               type="checkbox"
                               checked={condition.enabled}
-                              onChange={(e) => {
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => {
                                 updateCustomCondition(condition.id, {
                                   enabled: e.target.checked,
                                 });
