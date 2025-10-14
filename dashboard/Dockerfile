@@ -1,43 +1,62 @@
-# Stage 1: Build
-FROM node:18-alpine AS builder
+# ==============================================================================
+# Stage 1: Dependencies - Install only production dependencies
+# ==============================================================================
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
-# Install dependencies
-# Only copy package.json and package-lock.json (if available) first to leverage caching
-COPY package*.json ./
-RUN npm ci
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
 
-# Copy the rest of the source code
+# Use npm ci for faster, more reliable installs
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# ==============================================================================
+# Stage 2: Builder - Build the application
+# ==============================================================================
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the application
+# Install dev dependencies for build
+RUN npm ci && \
+    npm cache clean --force
+
+# Build Next.js application
+# This will generate the standalone output
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
 RUN npm run build
 
-# Stage 2: Production
-FROM node:18-alpine AS runner
+# ==============================================================================
+# Stage 3: Runner - Minimal production image using distroless
+# ==============================================================================
+FROM gcr.io/distroless/nodejs22-debian12:nonroot
 
 WORKDIR /app
 
+# Set production environment
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy only necessary files from builder
+# The standalone output includes all necessary dependencies
+COPY --from=builder --chown=nonroot:nonroot /app/.next/standalone ./
+COPY --from=builder --chown=nonroot:nonroot /app/.next/static ./.next/static
+COPY --from=builder --chown=nonroot:nonroot /app/public ./public
 
-# Copy the standalone output from the build stage
-COPY --from=builder /app/.next/standalone ./
-# Copy the static assets
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Copy public assets
-COPY --from=builder /app/public ./public
-
-
-USER nextjs
+# Distroless runs as nonroot user (uid 65532) by default
+# No USER directive needed
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"]
+# Distroless doesn't have shell, use exec form
+CMD ["server.js"]

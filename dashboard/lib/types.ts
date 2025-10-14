@@ -47,26 +47,31 @@ export interface SystemStats {
   cpu: CPUStats;
   memory: MemoryStats;
   disk: DiskStats;
+  uptime?: number;
+  timestamp?: string;
 }
 
 export interface CPUStats {
-  usage_percent: number;
+  model?: string;
   cores: number;
+  speed?: number;
+  usage_percent: number;  // Changed from usage
+  coreUsage?: number[];
 }
 
 export interface MemoryStats {
   total: number;
   available: number;
   used: number;
-  used_percent: number;
+  used_percent: number;  // Added percentage
   free: number;
 }
 
 export interface DiskStats {
-  total: number;
+  total: number;         // Changed from size
   used: number;
-  free: number;
-  used_percent: number;
+  free: number;          // Added free space
+  used_percent: number;  // Added percentage
 }
 
 export interface LogFileSize {

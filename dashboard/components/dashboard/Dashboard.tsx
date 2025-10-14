@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import DashboardGrid from './DashboardGrid';
 import { TraefikLog, DashboardMetrics, AddressMetric, HostMetric, ClientMetric, GeoLocation } from '@/lib/types';
 import {
@@ -19,7 +19,7 @@ interface DashboardProps {
 export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
   const [geoLocations, setGeoLocations] = useState<GeoLocation[]>([]);
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
-  const [geoProgress, setGeoProgress] = useState({ current: 0, total: 0 });
+  const [systemStats, setSystemStats] = useState<any>(null);
 
   // Debounce logs to prevent excessive API calls
   const [debouncedLogs, setDebouncedLogs] = useState(logs);
@@ -51,12 +51,7 @@ export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
     return calculateMetrics(sortedLogs, geoLocations);
   }, [logs, geoLocations]);
 
-  // Progress callback for GeoIP lookup
-  const handleProgress = useCallback((current: number, total: number) => {
-    setGeoProgress({ current, total });
-  }, []);
-
-  // Fetch GeoIP data asynchronously with rate limiting awareness
+  // Fetch GeoIP data from agent (simplified - no rate limiting needed)
   useEffect(() => {
     let isMounted = true;
 
@@ -67,7 +62,6 @@ export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
       }
 
       setIsLoadingGeo(true);
-      setGeoProgress({ current: 0, total: 0 });
       
       try {
         // Take latest 1000 logs for GeoIP lookup
@@ -81,12 +75,12 @@ export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
 
         console.log('Starting GeoIP lookup for', sortedLogs.length, 'logs');
         
-        const locations = await aggregateGeoLocations(sortedLogs, handleProgress);
+        // Agent handles all batching and rate limiting
+        const locations = await aggregateGeoLocations(sortedLogs);
         
         if (isMounted) {
           setGeoLocations(locations);
           setIsLoadingGeo(false);
-          setGeoProgress({ current: 0, total: 0 });
           console.log('GeoIP lookup complete:', locations.length, 'countries found');
         }
       } catch (error) {
@@ -94,7 +88,6 @@ export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
         if (isMounted) {
           setGeoLocations([]);
           setIsLoadingGeo(false);
-          setGeoProgress({ current: 0, total: 0 });
         }
       }
     }
@@ -104,24 +97,47 @@ export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
     return () => {
       isMounted = false;
     };
-  }, [debouncedLogs, handleProgress]);
+  }, [debouncedLogs]);
+
+  // Fetch system stats
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchSystemStats() {
+      if (demoMode) return; // Skip in demo mode
+
+      try {
+        const response = await fetch('/api/system/resources');
+        if (response.ok) {
+          const data = await response.json();
+          if (isMounted) {
+            setSystemStats(data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch system stats:', error);
+      }
+    }
+
+    fetchSystemStats();
+    
+    // Refresh every 5 seconds
+    const interval = setInterval(fetchSystemStats, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [demoMode]);
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <DashboardGrid metrics={metrics} demoMode={demoMode} />
+      <DashboardGrid metrics={metrics} systemStats={systemStats} demoMode={demoMode} />
       
       {isLoadingGeo && (
         <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground px-4 py-3 rounded-lg shadow-lg text-sm flex items-center gap-3 z-50">
           <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
-          <div className="flex flex-col">
-            <span className="font-medium">Loading location data...</span>
-            {geoProgress.total > 0 && (
-              <span className="text-xs opacity-90">
-                Batch {geoProgress.current} of {geoProgress.total}
-                {geoProgress.total > 1 && ' (rate limited to 45/min)'}
-              </span>
-            )}
-          </div>
+          <span className="font-medium">Loading location data...</span>
         </div>
       )}
     </div>
@@ -135,28 +151,20 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
   const perSecond = timeSpan > 0 ? total / timeSpan : 0;
 
   // Response time metrics
-  const durations = logs.map(log => log.Duration / 1000000);
+  const durations = logs.map(l => l.Duration / 1000000); // Convert to milliseconds
   const avgDuration = calculateAverage(durations);
-  const p95 = calculatePercentile(durations, 95);
-  const p99 = calculatePercentile(durations, 99);
+  const p95Duration = calculatePercentile(durations, 95);
+  const p99Duration = calculatePercentile(durations, 99);
 
   // Status code metrics
-  const statusGroups = groupBy(logs, 'DownstreamStatus');
-  const status2xx = Object.keys(statusGroups)
-    .filter(s => s.startsWith('2'))
-    .reduce((sum, s) => sum + statusGroups[s].length, 0);
-  const status3xx = Object.keys(statusGroups)
-    .filter(s => s.startsWith('3'))
-    .reduce((sum, s) => sum + statusGroups[s].length, 0);
-  const status4xx = Object.keys(statusGroups)
-    .filter(s => s.startsWith('4'))
-    .reduce((sum, s) => sum + statusGroups[s].length, 0);
-  const status5xx = Object.keys(statusGroups)
-    .filter(s => s.startsWith('5'))
-    .reduce((sum, s) => sum + statusGroups[s].length, 0);
+  const statusCodes = logs.map(l => l.DownstreamStatus);
+  const status2xx = statusCodes.filter(s => s >= 200 && s < 300).length;
+  const status3xx = statusCodes.filter(s => s >= 300 && s < 400).length;
+  const status4xx = statusCodes.filter(s => s >= 400 && s < 500).length;
+  const status5xx = statusCodes.filter(s => s >= 500).length;
   const errorRate = total > 0 ? ((status4xx + status5xx) / total) * 100 : 0;
 
-  // Top routes
+// Top routes
   const routeGroups = groupBy(logs.filter(l => l.RequestPath), 'RequestPath');
   const topRoutes = Object.entries(routeGroups)
     .map(([path, routeLogs]) => ({
@@ -168,7 +176,7 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // Backends/Services
+  // Backend services
   const backendGroups = groupBy(logs.filter(l => l.ServiceName), 'ServiceName');
   const backends = Object.entries(backendGroups)
     .map(([name, backendLogs]) => {
@@ -231,17 +239,17 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
     logs.filter(l => l.request_User_Agent),
     'request_User_Agent'
   );
-const userAgents = Object.entries(userAgentGroups)
-  .map(([ua, uaLogs]) => {
-    const parsed = parseUserAgent(ua);
-    return {
-      browser: typeof parsed === 'string' ? parsed : parsed.browser, // ✅ Extract browser string
-      count: uaLogs.length,
-      percentage: (uaLogs.length / total) * 100,
-    };
-  })
-  .sort((a, b) => b.count - a.count)
-  .slice(0, 12);
+  const userAgents = Object.entries(userAgentGroups)
+    .map(([ua, uaLogs]) => {
+      const parsed = parseUserAgent(ua);
+      return {
+        browser: typeof parsed === 'string' ? parsed : parsed.browser,
+        count: uaLogs.length,
+        percentage: (uaLogs.length / total) * 100,
+      };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12);
 
   // Timeline - keep latest data points
   const timeline = generateTimeline(logs);
@@ -249,11 +257,12 @@ const userAgents = Object.entries(userAgentGroups)
   // Recent errors - keep latest 50 errors
   const errors = logs
     .filter(l => l.DownstreamStatus >= 400)
-    .slice(0, 50) // Already sorted by most recent
+    .slice(0, 50)
     .map(l => ({
       timestamp: l.StartUTC || l.StartLocal,
       level: l.DownstreamStatus >= 500 ? 'error' : 'warning',
       message: `${l.RequestMethod} ${l.RequestPath} - ${l.DownstreamStatus}`,
+      status: l.DownstreamStatus,
     }));
 
   return {
@@ -264,8 +273,8 @@ const userAgents = Object.entries(userAgentGroups)
     },
     responseTime: {
       average: avgDuration,
-      p95,
-      p99,
+      p95: p95Duration,
+      p99: p99Duration,
       change: 0,
     },
     statusCodes: {
@@ -278,30 +287,29 @@ const userAgents = Object.entries(userAgentGroups)
     topRoutes,
     backends,
     routers,
-    geoLocations, // Use the async geo locations
-    userAgents,
-    timeline,
-    errors,
-    logs, // Pass sorted logs to table
     topRequestAddresses,
     topRequestHosts,
     topClientIPs,
+    userAgents,
+    timeline,
+    errors,
+    geoLocations,
+    logs, // Pass sorted logs to table
   };
 }
 
 function calculateTimeSpan(logs: TraefikLog[]): number {
-  if (logs.length === 0) return 0;
+  if (logs.length < 2) return 0;
 
   const timestamps = logs
     .map(l => new Date(l.StartUTC || l.StartLocal).getTime())
-    .filter(t => !isNaN(t));
+    .filter(t => !isNaN(t))
+    .sort((a, b) => a - b);
 
-  if (timestamps.length === 0) return 0;
+  if (timestamps.length < 2) return 0;
 
-  const min = Math.min(...timestamps);
-  const max = Math.max(...timestamps);
-
-  return (max - min) / 1000; // Convert to seconds
+  const span = (timestamps[timestamps.length - 1] - timestamps[0]) / 1000;
+  return span;
 }
 
 function generateTimeline(logs: TraefikLog[]): { timestamp: string; value: number; label: string }[] {
@@ -354,23 +362,17 @@ function getEmptyMetrics(): DashboardMetrics {
   return {
     requests: { total: 0, perSecond: 0, change: 0 },
     responseTime: { average: 0, p95: 0, p99: 0, change: 0 },
-    statusCodes: {
-      status2xx: 0,
-      status3xx: 0,
-      status4xx: 0,
-      status5xx: 0,
-      errorRate: 0,
-    },
+    statusCodes: { status2xx: 0, status3xx: 0, status4xx: 0, status5xx: 0, errorRate: 0 },
     topRoutes: [],
     backends: [],
     routers: [],
-    geoLocations: [],
-    userAgents: [],
-    timeline: [],
-    errors: [],
-    logs: [],
     topRequestAddresses: [],
     topRequestHosts: [],
     topClientIPs: [],
+    userAgents: [],
+    timeline: [],
+    errors: [],
+    geoLocations: [],
+    logs: [], // Include empty logs array
   };
 }

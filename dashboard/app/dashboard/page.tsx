@@ -1,11 +1,11 @@
+// dashboard/app/dashboard/page.tsx
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import Dashboard from '@/components/dashboard/Dashboard';
+import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters'; 
 import Header from '@/components/ui/Header';
 import { TraefikLog } from '@/lib/types';
 import { parseTraefikLogs } from '@/lib/traefik-parser';
-import { Activity } from 'lucide-react';
 
 export default function DashboardPage() {
   const [logs, setLogs] = useState<TraefikLog[]>([]);
@@ -20,8 +20,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
+        const position = positionRef.current ?? -1;
+        
         const response = await fetch(
-          `/api/logs/access?period=1h&position=${positionRef.current}`
+          `/api/logs/access?period=1h&position=${position}`
         );
 
         if (!response.ok) {
@@ -33,7 +35,7 @@ export default function DashboardPage() {
         if (data.logs && data.logs.length > 0) {
           const parsedLogs = parseTraefikLogs(data.logs);
 
-          setLogs(prevLogs => {
+          setLogs((prevLogs: TraefikLog[]) => {
             if (isFirstFetch.current) {
               isFirstFetch.current = false;
               return parsedLogs;
@@ -42,7 +44,7 @@ export default function DashboardPage() {
           });
         }
 
-        if (data.positions && data.positions.length > 0) {
+        if (data.positions && data.positions.length > 0 && typeof data.positions[0].Position === 'number') {
           positionRef.current = data.positions[0].Position;
         }
 
@@ -59,42 +61,49 @@ export default function DashboardPage() {
     };
 
     fetchLogs();
-    const interval = setInterval(fetchLogs, 3000);
+    const interval = setInterval(fetchLogs, 5000);
+
     return () => clearInterval(interval);
   }, []);
 
-  if (loading && logs.length === 0) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
+        <Header
+          title="TRAEFIK LOG DASHBOARD"
+          connected={false}
+        />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Connecting to agent...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error && logs.length === 0) {
+  if (error && !connected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
-        <Header title="TRAEFIK LOG DASHBOARD" connected={false} demoMode={false} />
-        <div className="flex items-center justify-center py-20">
-          <div className="max-w-md w-full bg-white border border-red-200 rounded-lg p-8 text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Activity className="w-6 h-6 text-red-600" />
+        <Header
+          title="TRAEFIK LOG DASHBOARD"
+          connected={false}
+        />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="text-red-600 text-6xl mb-4">⚠</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Connection Error
+              </h2>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <p className="text-sm text-gray-500">
+                Make sure the agent is running and accessible
+              </p>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Connection Error</h3>
-            <p className="text-gray-600 mb-4">
-              {error.includes('404')
-                ? 'The agent is connected but no logs are available yet.'
-                : 'Please check that the agent is running and accessible.'}
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Retry
-            </button>
           </div>
         </div>
       </div>
@@ -106,8 +115,7 @@ export default function DashboardPage() {
       <Header
         title="TRAEFIK LOG DASHBOARD"
         connected={connected}
-        demoMode={false}
-        lastUpdate={lastUpdate || undefined}
+        lastUpdate={lastUpdate}
       />
       
       <div className="bg-white border-b border-red-200 px-4 py-3">
@@ -127,7 +135,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <Dashboard logs={logs} demoMode={false} />
+      <DashboardWithFilters logs={logs} demoMode={false} /> 
     </div>
   );
 }

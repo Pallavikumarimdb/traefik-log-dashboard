@@ -1,7 +1,8 @@
+// dashboard/app/dashboard/demo/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import Dashboard from '@/components/dashboard/Dashboard';
+import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters';
 import Header from '@/components/ui/Header';
 import { generateTimeSeriesLogs } from '@/lib/demo';
 import { TraefikLog } from '@/lib/types';
@@ -52,7 +53,7 @@ export default function DemoDashboardPage() {
         demoMode={true}
         lastUpdate={lastUpdate}
       />
-      <Dashboard logs={logs} demoMode={true} />
+      <DashboardWithFilters logs={logs} demoMode={true} /> 
     </div>
   );
 }

@@ -22,7 +22,7 @@ export default function InteractiveGeoMap({ locations }: Props) {
   }
 
   const validLocations = locations.filter(
-    loc => loc.country !== 'Unknown' && loc.country !== 'Private Network'
+    loc => loc.country !== 'Unknown' && loc.country !== 'Private' && loc.country !== 'Private Network'
   );
   
   const totalRequests = validLocations.reduce((sum, loc) => sum + loc.count, 0);
@@ -33,7 +33,14 @@ export default function InteractiveGeoMap({ locations }: Props) {
     ? validLocations.find(loc => loc.country === selectedCountry)
     : null;
 
+  // ✅ Fixed: If country is already a 2-letter code, return it; otherwise try to map it
   const getCountryCode = (country: string): string => {
+    // If already a 2-letter ISO code, return as-is
+    if (country && country.length === 2) {
+      return country.toUpperCase();
+    }
+    
+    // Fallback mapping for full names (kept for backwards compatibility)
     const codes: { [key: string]: string } = {
       'United States': 'US',
       'United Kingdom': 'GB',
@@ -49,9 +56,12 @@ export default function InteractiveGeoMap({ locations }: Props) {
       'South Korea': 'KR',
       'Spain': 'ES',
       'Italy': 'IT',
-      'Netherlands': 'NL'
+      'Netherlands': 'NL',
+      'Taiwan': 'TW',
+      'Singapore': 'SG',
+      'Hong Kong': 'HK',
     };
-    return codes[country] || 'XX';
+    return codes[country] || country.substring(0, 2).toUpperCase();
   };
 
   const getHeatColor = (count: number): string => {
@@ -109,62 +119,53 @@ export default function InteractiveGeoMap({ locations }: Props) {
                   <div className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>
                     {(percentage).toFixed(0)}%
                   </div>
-                  <div className={`text-xs ${isSelected ? 'text-red-100' : 'text-gray-600'}`}>
+                  <div className={`text-xs ${isSelected ? 'text-white opacity-90' : 'text-gray-600'}`}>
                     {formatNumber(location.count)}
                   </div>
-                  
-                  <div className="absolute inset-0 bg-red-600 opacity-0 group-hover:opacity-10 rounded-lg transition-opacity" />
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-4 flex items-center gap-2 text-xs">
-            <span className="text-gray-600">Heat:</span>
-            <div className="flex items-center gap-1 flex-1">
-              <div className="w-full h-2 bg-gradient-to-r from-red-300 via-red-500 to-red-600 rounded-full" />
-            </div>
-            <span className="text-gray-600">Low → High</span>
+          <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+            <span>Heat: </span>
+            <div className="flex-1 mx-3 h-2 rounded-full bg-gradient-to-r from-red-300 via-red-500 to-red-600"></div>
+            <span>Low → High</span>
           </div>
         </div>
 
         {selectedLocation && (
-          <div className="bg-red-50 rounded-lg p-4 border-2 border-red-600 animate-in fade-in slide-in-from-top-2">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="text-lg font-bold text-gray-900 mb-1">
-                  {selectedLocation.country}
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <div className="text-xs text-gray-600">Requests</div>
-                    <div className="text-xl font-bold text-red-600">
-                      {formatNumber(selectedLocation.count)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600">Percentage</div>
-                    <div className="text-xl font-bold text-red-600">
-                      {((selectedLocation.count / totalRequests) * 100).toFixed(2)}%
-                    </div>
-                  </div>
-                </div>
-                {selectedLocation.latitude && selectedLocation.longitude && (
-                  <div className="mt-2 text-xs text-gray-600">
-                    <span className="font-mono">
-                      {selectedLocation.latitude.toFixed(4)}°, {selectedLocation.longitude.toFixed(4)}°
-                    </span>
-                  </div>
+          <div className="bg-white rounded-lg p-4 border-2 border-red-600 shadow-md">
+            <div className="flex items-center gap-3 mb-3">
+              <MapPin className="w-5 h-5 text-red-600" />
+              <div>
+                <div className="text-lg font-bold text-gray-900">{selectedLocation.country}</div>
+                {selectedLocation.city && (
+                  <div className="text-sm text-gray-600">{selectedLocation.city}</div>
                 )}
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-gray-600">Requests</div>
+                <div className="text-2xl font-bold text-gray-900">{formatNumber(selectedLocation.count)}</div>
+              </div>
+              <div>
+                <div className="text-gray-600">Percentage</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {((selectedLocation.count / totalRequests) * 100).toFixed(2)}%
+                </div>
+              </div>
+            </div>
+            {selectedLocation.latitude && selectedLocation.longitude && (
+              <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
+                📍 {selectedLocation.latitude.toFixed(4)}°, {selectedLocation.longitude.toFixed(4)}°
+              </div>
+            )}
           </div>
         )}
 
-        <div className="space-y-2 max-h-64 overflow-y-auto">
+        <div className="space-y-2">
           {topLocations.map((location, idx) => {
             const percentage = (location.count / totalRequests) * 100;
             const isSelected = selectedCountry === location.country;
@@ -191,6 +192,9 @@ export default function InteractiveGeoMap({ locations }: Props) {
                     <span className={`font-semibold ${isSelected ? 'text-red-600' : 'text-gray-900'}`}>
                       {location.country}
                     </span>
+                    {location.city && (
+                      <span className="text-sm text-gray-500">• {location.city}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-gray-600">{formatNumber(location.count)}</span>
