@@ -2,11 +2,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Activity, Home, Github, Settings } from 'lucide-react';
+import { Activity, Home, Github, Settings, Filter } from 'lucide-react';
 import { Button } from './button';
 import { Badge } from './badge';
 import AgentSelector from './AgentSelector';
 import { useAgents } from '@/lib/contexts/AgentContext';
+
 
 interface HeaderProps {
   title: string;                // Required
