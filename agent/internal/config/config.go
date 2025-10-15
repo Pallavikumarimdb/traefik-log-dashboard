@@ -16,6 +16,7 @@ type Config struct {
 	GeoIPEnabled     bool
 	GeoIPCityDB      string
 	GeoIPCountryDB   string
+	PositionFile     string
 }
 
 // Load reads configuration from environment variables using the env package
@@ -33,6 +34,7 @@ func Load() *Config {
 		GeoIPEnabled:     e.GeoIPEnabled,
 		GeoIPCityDB:      e.GeoIPCityDB,
 		GeoIPCountryDB:   e.GeoIPCountryDB,
+		PositionFile:     e.PositionFile,
 	}
 
 	return cfg

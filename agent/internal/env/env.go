@@ -18,6 +18,7 @@ type Env struct {
 	GeoIPEnabled     bool
 	GeoIPCityDB      string
 	GeoIPCountryDB   string
+	PositionFile     string
 }
 
 // LoadEnv loads environment variables from .env file if present
@@ -38,6 +39,7 @@ func LoadEnv() Env {
 		GeoIPEnabled:     getEnvBool("TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED", true),
 		GeoIPCityDB:      getEnv("TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB", "GeoLite2-City.mmdb"),
 		GeoIPCountryDB:   getEnv("TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB", "GeoLite2-Country.mmdb"),
+		PositionFile:     getEnv("POSITION_FILE", "/data/.position"),
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/logs"
 	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/system"
 	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/location"
+	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/logger" 
 )
 
 // Handler manages HTTP routes and dependencies
@@ -24,10 +25,88 @@ type Handler struct {
 
 // NewHandler creates a new Handler with the given configuration
 func NewHandler(cfg *config.Config) *Handler {
-	return &Handler{
+	h := &Handler{
 		config:    cfg,
 		positions: make(map[string]int64),
 	}
+	
+	// ADDED: Load positions from file on startup
+	if err := h.loadPositions(); err != nil {
+		logger.Log.Printf("Warning: Could not load positions from file: %v", err)
+	}
+	
+	return h
+}
+
+// ADDED: loadPositions loads position data from the position file
+func (h *Handler) loadPositions() error {
+	if h.config.PositionFile == "" {
+		return nil
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(h.config.PositionFile); os.IsNotExist(err) {
+		logger.Log.Printf("Position file does not exist yet: %s", h.config.PositionFile)
+		return nil
+	}
+
+	// Read file
+	data, err := os.ReadFile(h.config.PositionFile)
+	if err != nil {
+		return err
+	}
+
+	// Parse JSON
+	var positions map[string]int64
+	if err := json.Unmarshal(data, &positions); err != nil {
+		return err
+	}
+
+	h.positionMutex.Lock()
+	h.positions = positions
+	h.positionMutex.Unlock()
+
+	logger.Log.Printf("Loaded %d position(s) from %s", len(positions), h.config.PositionFile)
+	return nil
+}
+
+// ADDED: savePositions persists position data to the position file
+func (h *Handler) savePositions() error {
+	if h.config.PositionFile == "" {
+		return nil
+	}
+
+	h.positionMutex.RLock()
+	positions := make(map[string]int64, len(h.positions))
+	for k, v := range h.positions {
+		positions[k] = v
+	}
+	h.positionMutex.RUnlock()
+
+	// Marshal to JSON
+	data, err := json.MarshalIndent(positions, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// Ensure directory exists
+	dir := filepath.Dir(h.config.PositionFile)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	// Write to file atomically (write to temp file, then rename)
+	tmpFile := h.config.PositionFile + ".tmp"
+	if err := os.WriteFile(tmpFile, data, 0644); err != nil {
+		return err
+	}
+
+	if err := os.Rename(tmpFile, h.config.PositionFile); err != nil {
+		os.Remove(tmpFile) // Clean up temp file on error
+		return err
+	}
+
+	return nil
 }
 
 // getFilePosition gets the tracked position for a file
@@ -43,8 +122,15 @@ func (h *Handler) getFilePosition(path string) int64 {
 // setFilePosition updates the tracked position for a file
 func (h *Handler) setFilePosition(path string, position int64) {
 	h.positionMutex.Lock()
-	defer h.positionMutex.Unlock()
 	h.positions[path] = position
+	h.positionMutex.Unlock()
+	
+	// ADDED: Save to disk asynchronously to avoid blocking
+	go func() {
+		if err := h.savePositions(); err != nil {
+			logger.Log.Printf("Error saving positions to file: %v", err)
+		}
+	}()
 }
 
 // HandleAccessLogs handles requests for access logs
