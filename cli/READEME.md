@@ -1,4 +1,4 @@
-# Traefik Log Dashboard CLI
+# Traefik Log Dashboard CLI (Experimental)
 
 A beautiful terminal-based dashboard for analyzing Traefik access logs in real-time. Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) for an interactive TUI experience.
 
