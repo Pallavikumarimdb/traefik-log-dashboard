@@ -1,245 +1,416 @@
-name: Build and Push Docker Images
+name: Build and Release
 
 on:
   push:
     branches:
-      - main
-      - master
       - dev
     paths:
-      - 'backend/**'
-      - 'frontend/**'
+      - 'agent/**'
+      - 'dashboard/**'
+      - 'cli/**'
       - '.github/workflows/**'
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - dev
   workflow_dispatch:
+    inputs:
+      release_cli:
+        description: 'Release CLI binaries'
+        required: false
+        type: boolean
+        default: false
 
 env:
-  DOCKERHUB_USERNAME_VAR: ${{ secrets.DOCKERHUB_USERNAME }}
+  REGISTRY_GHCR: ghcr.io
+  REGISTRY_DOCKERHUB: docker.io
+  GO_VERSION: '1.23'
+  NODE_VERSION: '20'
 
 jobs:
-  build-backend:
+  # Build and push Agent Docker image
+  build-agent:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         
-      - name: Debug trigger
-        run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Ref name: ${{ github.ref_name }}"
-          echo "Ref type: ${{ github.ref_type }}"
-          echo "Service: backend"
-          
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
+          registry: ${{ env.REGISTRY_DOCKERHUB }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-        
-      - name: Prepare Docker tags
-        id: docker_tags
-        run: |
-          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}-backend"
-          TAGS=""
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/traefik-log-dashboard-agent
+            docker.io/hhftechnology/traefik-log-dashboard-agent
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD'}}-{{sha}}
           
-          echo "Processing ref_type: ${{ github.ref_type }}"
-          echo "Processing ref: ${{ github.ref }}"
-          echo "Processing ref_name: ${{ github.ref_name }}"
-          
-          # Handle tagged releases first
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "Processing tag release"
-            VERSION="${{ github.ref_name }}"
-            
-            # Remove 'v' prefix if present for clean version tag
-            if [[ $VERSION == v* ]]; then
-              CLEAN_VERSION=${VERSION#v}
-              TAGS="$IMAGE_NAME:$CLEAN_VERSION,$IMAGE_NAME:$VERSION"
-            else
-              TAGS="$IMAGE_NAME:$VERSION"
-            fi
-            
-            # Always tag latest for version releases
-            TAGS="$TAGS,$IMAGE_NAME:latest"
-            
-            echo "Version tags: $TAGS"
-            
-          # Handle branch pushes
-          elif [[ "${{ github.ref_type }}" == "branch" ]]; then
-            echo "Processing branch release"
-            
-            # Add branch-specific tags
-            if [[ "${{ github.ref_name }}" == "main" || "${{ github.ref_name }}" == "master" ]]; then
-              TAGS="$IMAGE_NAME:latest,$IMAGE_NAME:main"
-            elif [[ "${{ github.ref_name }}" == "dev" ]]; then
-              TAGS="$IMAGE_NAME:dev"
-            else
-              # For other branches, use branch name (sanitized)
-              BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-              TAGS="$IMAGE_NAME:$BRANCH_NAME"
-            fi
-            
-            # Add SHA tag for branches
-            TAGS="$TAGS,$IMAGE_NAME:sha-${GITHUB_SHA::7}"
-          fi
-          
-          # Add date tag for all builds
-          TAGS="$TAGS,$IMAGE_NAME:${{ steps.date.outputs.date }}"
-          
-          # Clean up any leading commas
-          TAGS=$(echo "$TAGS" | sed 's/^,*//')
-          
-          echo "Final tags: $TAGS"
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-          
-      - name: Build and push backend
+      - name: Build and push Agent
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          push: true
+          context: ./agent
+          file: ./agent/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          tags: ${{ steps.docker_tags.outputs.tags }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=agent
+          cache-to: type=gha,mode=max,scope=agent
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
 
-  build-frontend:
+  # Build and push Dashboard Docker image
+  build-dashboard:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         
-      - name: Debug trigger
-        run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Ref name: ${{ github.ref_name }}"
-          echo "Ref type: ${{ github.ref_type }}"
-          echo "Service: frontend"
-          
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
+          registry: ${{ env.REGISTRY_DOCKERHUB }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-        
-      - name: Prepare Docker tags
-        id: docker_tags
-        run: |
-          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}-frontend"
-          TAGS=""
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/traefik-log-dashboard
+            docker.io/hhftechnology/traefik-log-dashboard
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD'}}-{{sha}}
           
-          echo "Processing ref_type: ${{ github.ref_type }}"
-          echo "Processing ref: ${{ github.ref }}"
-          echo "Processing ref_name: ${{ github.ref_name }}"
-          
-          # Handle tagged releases first
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "Processing tag release"
-            VERSION="${{ github.ref_name }}"
-            
-            # Remove 'v' prefix if present for clean version tag
-            if [[ $VERSION == v* ]]; then
-              CLEAN_VERSION=${VERSION#v}
-              TAGS="$IMAGE_NAME:$CLEAN_VERSION,$IMAGE_NAME:$VERSION"
-            else
-              TAGS="$IMAGE_NAME:$VERSION"
-            fi
-            
-            # Always tag latest for version releases
-            TAGS="$TAGS,$IMAGE_NAME:latest"
-            
-            echo "Version tags: $TAGS"
-            
-          # Handle branch pushes
-          elif [[ "${{ github.ref_type }}" == "branch" ]]; then
-            echo "Processing branch release"
-            
-            # Add branch-specific tags
-            if [[ "${{ github.ref_name }}" == "main" || "${{ github.ref_name }}" == "master" ]]; then
-              TAGS="$IMAGE_NAME:latest,$IMAGE_NAME:main"
-            elif [[ "${{ github.ref_name }}" == "dev" ]]; then
-              TAGS="$IMAGE_NAME:dev"
-            else
-              # For other branches, use branch name (sanitized)
-              BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-              TAGS="$IMAGE_NAME:$BRANCH_NAME"
-            fi
-            
-            # Add SHA tag for branches
-            TAGS="$TAGS,$IMAGE_NAME:sha-${GITHUB_SHA::7}"
-          fi
-          
-          # Add date tag for all builds
-          TAGS="$TAGS,$IMAGE_NAME:${{ steps.date.outputs.date }}"
-          
-          # Clean up any leading commas
-          TAGS=$(echo "$TAGS" | sed 's/^,*//')
-          
-          echo "Final tags: $TAGS"
-          echo "tags=$TAGS" >> $GITHUB_OUTPUT
-          
-      - name: Build and push frontend
+      - name: Build and push Dashboard
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          push: true
+          context: ./dashboard
+          file: ./dashboard/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-          tags: ${{ steps.docker_tags.outputs.tags }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=dashboard
+          cache-to: type=gha,mode=max,scope=dashboard
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api
 
+  # Build CLI binaries for multiple platforms
+  build-cli-binaries:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          # Linux builds
+          - goos: linux
+            goarch: amd64
+            suffix: ""
+          - goos: linux
+            goarch: arm64
+            suffix: ""
+          - goos: linux
+            goarch: arm
+            goarm: "7"
+            suffix: ""
+          - goos: linux
+            goarch: "386"
+            suffix: ""
+          
+          # macOS builds
+          - goos: darwin
+            goarch: amd64
+            suffix: ""
+          - goos: darwin
+            goarch: arm64
+            suffix: ""
+          
+          # Windows builds
+          - goos: windows
+            goarch: amd64
+            suffix: ".exe"
+          - goos: windows
+            goarch: arm64
+            suffix: ".exe"
+          - goos: windows
+            goarch: "386"
+            suffix: ".exe"
+          
+          # FreeBSD builds
+          - goos: freebsd
+            goarch: amd64
+            suffix: ""
+          - goos: freebsd
+            goarch: arm64
+            suffix: ""
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: cli/go.sum
+        
+      - name: Get version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="${{ github.ref_name }}-$(echo ${{ github.sha }} | cut -c1-8)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+        
+      - name: Build CLI binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: 0
+        run: |
+          cd cli
+          VERSION="${{ steps.version.outputs.version }}"
+          BINARY_NAME="traefik-log-dashboard-cli"
+          OUTPUT_NAME="${BINARY_NAME}-${VERSION}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          
+          # Add ARM version to filename if applicable
+          if [ -n "${{ matrix.goarm }}" ]; then
+            OUTPUT_NAME="${OUTPUT_NAME}v${{ matrix.goarm }}"
+          fi
+          
+          OUTPUT_NAME="${OUTPUT_NAME}${{ matrix.suffix }}"
+          
+          echo "Building ${OUTPUT_NAME}..."
+          
+          go build -v \
+            -ldflags="-X 'main.Version=${VERSION}' -X 'main.Commit=${{ github.sha }}' -X 'main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)' -s -w" \
+            -o "../dist/${OUTPUT_NAME}" \
+            ./cmd/traefik-log-dashboard
+          
+          # Create checksum
+          cd ../dist
+          sha256sum "${OUTPUT_NAME}" > "${OUTPUT_NAME}.sha256"
+          
+      - name: Upload CLI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarm }}
+          path: dist/*
+          retention-days: 7
+
+  # Create GitHub Release with all binaries
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-agent, build-dashboard, build-cli-binaries]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_cli == true
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Download all CLI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: cli-*
+          merge-multiple: true
+          
+      - name: List artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -la dist/
+          
+      - name: Create Release Notes
+        id: release_notes
+        run: |
+          VERSION="${{ github.ref_name }}"
+          cat > release_notes.md << EOF
+          # Traefik Log Dashboard ${VERSION}
+          
+          ## 🐳 Docker Images
+          
+          ### Agent
+          - \`docker pull hhftechnology/traefik-log-dashboard-agent:${VERSION}\`
+          - \`docker pull ghcr.io/${{ github.repository_owner }}/traefik-log-dashboard-agent:${VERSION}\`
+          
+          ### Dashboard
+          - \`docker pull hhftechnology/traefik-log-dashboard:${VERSION}\`
+          - \`docker pull ghcr.io/${{ github.repository_owner }}/traefik-log-dashboard:${VERSION}\`
+          
+          ## 💻 CLI Binaries
+          
+          Download the appropriate binary for your platform from the assets below.
+          
+          ### Installation
+          
+          \`\`\`bash
+          # Linux/macOS
+          wget https://github.com/${{ github.repository }}/releases/download/${VERSION}/traefik-log-dashboard-cli-${VERSION}-linux-amd64
+          chmod +x traefik-log-dashboard-cli-${VERSION}-linux-amd64
+          sudo mv traefik-log-dashboard-cli-${VERSION}-linux-amd64 /usr/local/bin/traefik-log-dashboard
+          
+          # Windows
+          # Download the .exe file and add to PATH
+          \`\`\`
+          
+          ## 📋 Changelog
+          
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          
+          ## 🔧 Docker Compose
+          
+          \`\`\`yaml
+          services:
+            traefik-agent:
+              image: hhftechnology/traefik-log-dashboard-agent:${VERSION}
+              volumes:
+                - /var/log/traefik:/logs:ro
+              ports:
+                - "8080:8080"
+          
+            traefik-dashboard:
+              image: hhftechnology/traefik-log-dashboard:${VERSION}
+              environment:
+                - NEXT_PUBLIC_API_URL=http://traefik-agent:8080
+              ports:
+                - "3000:3000"
+              depends_on:
+                - traefik-agent
+          \`\`\`
+          EOF
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          name: "Release ${{ github.ref_name }}"
+          body_path: release_notes.md
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build Summary
   build-summary:
     runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend]
+    needs: [build-agent, build-dashboard, build-cli-binaries]
     if: always()
     steps:
       - name: Build Summary
         run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch/Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Ref Type:** ${{ github.ref_type }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Build Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Images pushed:**" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}-backend\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}-frontend\`" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Agent Docker | ${{ needs.build-agent.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dashboard Docker | ${{ needs.build-dashboard.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| CLI Binaries | ${{ needs.build-cli-binaries.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Platforms:** linux/amd64, linux/arm64, linux/arm/v7" >> $GITHUB_STEP_SUMMARY
           
-          # Show tag information
+          echo "### 📦 Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "**Release Type:** Version Tag (${{ github.ref_name }})" >> $GITHUB_STEP_SUMMARY
+            VERSION="${{ github.ref_name }}"
+            echo "**Version:** ${VERSION}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Docker Hub" >> $GITHUB_STEP_SUMMARY
+            echo "- \`docker pull hhftechnology/traefik-log-dashboard-agent:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`docker pull hhftechnology/traefik-log-dashboard:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### GitHub Container Registry" >> $GITHUB_STEP_SUMMARY
+            echo "- \`docker pull ghcr.io/${{ github.repository_owner }}/traefik-log-dashboard-agent:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`docker pull ghcr.io/${{ github.repository_owner }}/traefik-log-dashboard:${VERSION}\`" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**Release Type:** Branch Build (${{ github.ref_name }})" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Latest Images" >> $GITHUB_STEP_SUMMARY
+            echo "- \`docker pull hhftechnology/traefik-log-dashboard-agent:${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`docker pull hhftechnology/traefik-log-dashboard:${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔨 CLI Binaries" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "CLI binaries built for:" >> $GITHUB_STEP_SUMMARY
+          echo "- Linux (amd64, arm64, arm/v7, 386)" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS (amd64, arm64)" >> $GITHUB_STEP_SUMMARY
+          echo "- Windows (amd64, arm64, 386)" >> $GITHUB_STEP_SUMMARY
+          echo "- FreeBSD (amd64, arm64)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ needs.build-backend.result }}" == "success" ] && [ "${{ needs.build-frontend.result }}" == "success" ]; then
-            echo "✅ All builds completed successfully!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Some builds failed. Check the logs above." >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Docker Hub - Agent](https://hub.docker.com/r/hhftechnology/traefik-log-dashboard-agent)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Docker Hub - Dashboard](https://hub.docker.com/r/hhftechnology/traefik-log-dashboard)" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Packages](https://github.com/${{ github.repository }}/pkgs/container)" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "- [Release Page](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})" >> $GITHUB_STEP_SUMMARY
           fi
