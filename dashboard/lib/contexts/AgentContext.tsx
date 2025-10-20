@@ -1,17 +1,17 @@
+// dashboard/lib/contexts/AgentContext.tsx
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Agent } from '../types/agent';
-import { AgentConfigManager } from '../agent-config-manager';
 
 interface AgentContextType {
   agents: Agent[];
   selectedAgent: Agent | null;
-  selectAgent: (id: string) => void;
-  addAgent: (agent: Omit<Agent, 'id' | 'number'>) => Agent;
-  updateAgent: (id: string, updates: Partial<Agent>) => void;
-  deleteAgent: (id: string) => void;
-  refreshAgents: () => void;
+  selectAgent: (id: string) => Promise<void>;
+  addAgent: (agent: Omit<Agent, 'id' | 'number'>) => Promise<Agent>;
+  updateAgent: (id: string, updates: Partial<Agent>) => Promise<void>;
+  deleteAgent: (id: string) => Promise<void>;
+  refreshAgents: () => Promise<void>;
   checkAgentStatus: (id: string) => Promise<boolean>;
 }
 
@@ -19,76 +19,145 @@ const AgentContext = createContext<AgentContextType | undefined>(undefined);
 
 export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load agents on mount
-  useEffect(() => {
-    refreshAgents();
-    setIsInitialized(true);
+  // Fetch agents from API
+  const fetchAgents = useCallback(async () => {
+    try {
+      const response = await fetch('/api/agents');
+      if (!response.ok) throw new Error('Failed to fetch agents');
+      
+      const data = await response.json();
+      setAgents(data.agents || []);
+    } catch (error) {
+      console.error('Failed to fetch agents:', error);
+    }
   }, []);
 
-  // Update selected agent when agents or selection changes
-  useEffect(() => {
-    if (selectedAgentId) {
-      AgentConfigManager.setSelectedAgentId(selectedAgentId);
+  // Fetch selected agent from API
+  const fetchSelectedAgent = useCallback(async () => {
+    try {
+      const response = await fetch('/api/agents/selected');
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedAgent(data.agent);
+      } else {
+        // No selected agent, use first available
+        if (agents.length > 0) {
+          await selectAgent(agents[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch selected agent:', error);
     }
-  }, [selectedAgentId]);
+  }, [agents]);
 
-  // Check status of all agents on initial load
+  // Load agents and selected agent on mount
+  useEffect(() => {
+    const init = async () => {
+      await fetchAgents();
+      setIsInitialized(true);
+    };
+    init();
+  }, [fetchAgents]);
+
+  // Fetch selected agent after agents are loaded
   useEffect(() => {
     if (isInitialized && agents.length > 0) {
-      // Check status of all agents after a short delay
-      const timer = setTimeout(() => {
-        agents.forEach(agent => {
-          checkAgentStatus(agent.id);
-        });
-      }, 500);
-
-      return () => clearTimeout(timer);
+      fetchSelectedAgent();
     }
-  }, [isInitialized, agents.length]);
+  }, [isInitialized, agents, fetchSelectedAgent]);
 
-  const refreshAgents = useCallback(() => {
-    const loadedAgents = AgentConfigManager.getAgents();
-    setAgents(loadedAgents);
-    
-    const selectedId = AgentConfigManager.getSelectedAgentId();
-    if (selectedId && loadedAgents.find(a => a.id === selectedId)) {
-      setSelectedAgentId(selectedId);
-    } else if (loadedAgents.length > 0) {
-      setSelectedAgentId(loadedAgents[0].id);
+  // Refresh agents
+  const refreshAgents = useCallback(async () => {
+    await fetchAgents();
+    await fetchSelectedAgent();
+  }, [fetchAgents, fetchSelectedAgent]);
+
+  // Select agent
+  const selectAgent = useCallback(async (id: string) => {
+    try {
+      const response = await fetch('/api/agents/selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId: id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to select agent');
+      
+      const data = await response.json();
+      setSelectedAgent(data.agent);
+    } catch (error) {
+      console.error('Failed to select agent:', error);
+      throw error;
     }
   }, []);
 
-  const selectAgent = useCallback((id: string) => {
-    setSelectedAgentId(id);
-    AgentConfigManager.setSelectedAgentId(id);
-  }, []);
+  // Add agent
+  const addAgent = useCallback(async (agent: Omit<Agent, 'id' | 'number'>): Promise<Agent> => {
+    try {
+      const response = await fetch('/api/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(agent),
+      });
 
-  const addAgent = useCallback((agent: Omit<Agent, 'id' | 'number'>) => {
-    const newAgent = AgentConfigManager.addAgent(agent);
-    refreshAgents();
-    return newAgent;
+      if (!response.ok) throw new Error('Failed to add agent');
+      
+      const data = await response.json();
+      await refreshAgents();
+      return data.agent;
+    } catch (error) {
+      console.error('Failed to add agent:', error);
+      throw error;
+    }
   }, [refreshAgents]);
 
-  const updateAgent = useCallback((id: string, updates: Partial<Agent>) => {
-    AgentConfigManager.updateAgent(id, updates);
-    refreshAgents();
+  // Update agent
+  const updateAgent = useCallback(async (id: string, updates: Partial<Agent>) => {
+    try {
+      const response = await fetch('/api/agents', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update agent');
+      
+      await refreshAgents();
+    } catch (error) {
+      console.error('Failed to update agent:', error);
+      throw error;
+    }
   }, [refreshAgents]);
 
-  const deleteAgent = useCallback((id: string) => {
-    AgentConfigManager.deleteAgent(id);
-    refreshAgents();
+  // Delete agent
+  const deleteAgent = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/agents?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete agent');
+      }
+      
+      await refreshAgents();
+    } catch (error) {
+      console.error('Failed to delete agent:', error);
+      throw error;
+    }
   }, [refreshAgents]);
 
+  // Check agent status
   const checkAgentStatus = useCallback(async (id: string): Promise<boolean> => {
     const agent = agents.find(a => a.id === id);
     if (!agent) return false;
 
-    // Set status to checking
-    AgentConfigManager.updateAgent(id, { status: 'checking' });
-    setAgents(AgentConfigManager.getAgents());
+    // Update status to checking
+    await updateAgent(id, { status: 'checking' });
 
     try {
       const response = await fetch('/api/agents/check-status', {
@@ -100,18 +169,17 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       const isOnline = response.ok && data.online;
 
-      AgentConfigManager.updateAgentStatus(id, isOnline);
-      setAgents(AgentConfigManager.getAgents());
+      await updateAgent(id, {
+        status: isOnline ? 'online' : 'offline',
+        lastSeen: isOnline ? new Date() : undefined,
+      });
 
       return isOnline;
     } catch (error) {
-      AgentConfigManager.updateAgentStatus(id, false, String(error));
-      setAgents(AgentConfigManager.getAgents());
+      await updateAgent(id, { status: 'offline' });
       return false;
     }
-  }, [agents]);
-
-  const selectedAgent = agents.find(a => a.id === selectedAgentId) || agents[0] || null;
+  }, [agents, updateAgent]);
 
   return (
     <AgentContext.Provider
