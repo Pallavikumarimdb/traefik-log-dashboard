@@ -1,6 +1,7 @@
 // dashboard/lib/db/database.ts
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { Agent } from '../types/agent';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'agents.db');
@@ -14,7 +15,6 @@ export function initDatabase(): Database.Database {
   if (db) return db;
 
   // Ensure data directory exists
-  const fs = require('fs');
   const dir = path.dirname(DB_PATH);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
