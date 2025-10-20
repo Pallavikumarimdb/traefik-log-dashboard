@@ -45,7 +45,7 @@ RUN npm run build
 # ==============================================================================
 # Stage 3: Runner - Use slim debian instead of distroless for better-sqlite3
 # ==============================================================================
-FROM node:22-slim AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
