@@ -2,7 +2,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { Agent } from '../types/agent';
+import { Agent, AgentUpdate } from '../types/agent';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'agents.db');
 
@@ -65,12 +65,10 @@ export function getDatabase(): Database.Database {
 
 /**
  * Sync environment variable agents to database
- * This ensures env-defined agents are always available
  */
 export function syncEnvAgents(): void {
   const db = getDatabase();
   
-  // Check if env variables are defined
   const envUrl = process.env.AGENT_API_URL;
   const envToken = process.env.AGENT_API_TOKEN;
   
@@ -79,7 +77,6 @@ export function syncEnvAgents(): void {
     return;
   }
 
-  // Check if env agent already exists
   const existing = db.prepare(`
     SELECT id FROM agents WHERE source = 'env' LIMIT 1
   `).get();
@@ -95,7 +92,6 @@ export function syncEnvAgents(): void {
   };
 
   if (existing) {
-    // Update existing env agent
     db.prepare(`
       UPDATE agents 
       SET name = ?, url = ?, token = ?, updated_at = CURRENT_TIMESTAMP
@@ -104,7 +100,6 @@ export function syncEnvAgents(): void {
     
     console.log('Updated environment agent in database');
   } else {
-    // Insert new env agent
     db.prepare(`
       INSERT INTO agents (id, name, url, token, location, number, status, source)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'env')
@@ -176,7 +171,6 @@ export function getAgentById(id: string): Agent | null {
 export function addAgent(agent: Omit<Agent, 'id' | 'number'>): Agent {
   const db = getDatabase();
   
-  // Get next number
   const result = db.prepare(`
     SELECT COALESCE(MAX(number), 0) + 1 as next_number FROM agents
   `).get() as { next_number: number };
@@ -209,8 +203,9 @@ export function addAgent(agent: Omit<Agent, 'id' | 'number'>): Agent {
 
 /**
  * Update agent in database
+ * FIX: Handle lastSeen as both Date objects and ISO strings
  */
-export function updateAgent(id: string, updates: Partial<Agent>): void {
+export function updateAgent(id: string, updates: AgentUpdate): void {
   const db = getDatabase();
   
   const sets: string[] = [];
@@ -238,7 +233,14 @@ export function updateAgent(id: string, updates: Partial<Agent>): void {
   }
   if (updates.lastSeen !== undefined) {
     sets.push('last_seen = ?');
-    values.push(updates.lastSeen.toISOString());
+    // FIX: Handle both Date objects and ISO strings
+    if (updates.lastSeen instanceof Date) {
+      values.push(updates.lastSeen.toISOString());
+    } else if (typeof updates.lastSeen === 'string') {
+      values.push(updates.lastSeen);
+    } else if (updates.lastSeen === null) {
+      values.push(null);
+    }
   }
   if (updates.description !== undefined) {
     sets.push('description = ?');
@@ -265,7 +267,6 @@ export function updateAgent(id: string, updates: Partial<Agent>): void {
 export function deleteAgent(id: string): void {
   const db = getDatabase();
   
-  // Don't allow deletion of env agents
   const agent = db.prepare(`SELECT source FROM agents WHERE id = ?`).get(id) as any;
   if (agent?.source === 'env') {
     throw new Error('Cannot delete environment-sourced agents');
@@ -312,7 +313,6 @@ export function getSelectedAgent(): Agent | null {
     if (agent) return agent;
   }
 
-  // Fallback to first agent
   const agents = getAllAgents();
   if (agents.length > 0) {
     setSelectedAgentId(agents[0].id);
