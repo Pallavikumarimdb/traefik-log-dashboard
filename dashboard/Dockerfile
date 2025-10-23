@@ -1,93 +1,74 @@
 # ==============================================================================
-# Stage 1: Dependencies - Install production dependencies with build tools
+# Stage 1: Dependencies
 # ==============================================================================
 FROM node:22-slim AS deps
 
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-
-# Use npm ci for faster, more reliable installs
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN npm ci --only=production && npm cache clean --force
 
 # ==============================================================================
-# Stage 2: Builder - Build the application
+# Stage 2: Builder
 # ==============================================================================
 FROM node:22-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Install dev dependencies for build
-RUN npm ci && \
-    npm cache clean --force
+RUN npm ci && npm cache clean --force
 
-# Build Next.js application
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-
 RUN npm run build
 
 # ==============================================================================
-# Stage 3: Runner - Use Debian slim for better-sqlite3 compatibility
+# Stage 3: Runner
 # ==============================================================================
 FROM node:22-slim AS runner
 
 WORKDIR /app
 
-# Set production environment
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Install runtime dependencies for better-sqlite3
+# Install runtime dependencies including gosu for privilege dropping
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user (Debian commands)
+# Create nodejs user
 RUN groupadd -g 1001 nodejs && \
-    useradd -u 1001 -g nodejs nodejs
+    useradd -u 1001 -g nodejs -m nodejs
 
-# Create data directory BEFORE copying files
-RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
-
-# Copy only necessary files from builder
+# Copy built application
 COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
-
-# Copy node_modules with better-sqlite3 native bindings
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
-# Ensure data directory has correct permissions after copy
-RUN chown -R nodejs:nodejs /app/data
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-USER nodejs
+# Create data directory
+RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 
 EXPOSE 3000
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]
