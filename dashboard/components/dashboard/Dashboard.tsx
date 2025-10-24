@@ -241,11 +241,11 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
 
   // First pass: Extract identifiers and group the original user agents
   logs.filter(l => l.request_User_Agent).forEach(log => {
-    const identifier = extractUserAgentIdentifier(log.request_User_Agent);
+    const identifier = extractUserAgentIdentifier(log.request_User_Agent || '');
     if (!userAgentIdentifierGroups[identifier]) {
       userAgentIdentifierGroups[identifier] = [];
     }
-    userAgentIdentifierGroups[identifier].push(log.request_User_Agent);
+    userAgentIdentifierGroups[identifier].push(log.request_User_Agent || '');
   });
 
   // Convert to array and sort by count
