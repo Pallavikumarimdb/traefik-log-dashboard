@@ -3,10 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  output: 'standalone', // Required for Docker deployment
+  output: 'standalone',
   
-  // REMOVED: env section - this bakes values at build time!
-  // API routes will read process.env directly at runtime instead
+  experimental: {
+    serverComponentsExternalPackages: ['better-sqlite3'],
+  },
   
   async headers() {
     return [
@@ -21,8 +22,13 @@ const nextConfig = {
     ];
   },
 
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
+    
+    if (isServer) {
+      config.externals.push('better-sqlite3');
+    }
+    
     return config;
   },
 };

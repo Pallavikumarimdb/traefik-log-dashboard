@@ -1,25 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { agentConfig } from '@/lib/agent-config';
+import { getSelectedAgent, getAgentById } from '@/lib/db/database';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const position = searchParams.get('position') || '0';
     const lines = searchParams.get('lines') || '100';
+    const agentId = searchParams.get('agentId');
 
-    const AGENT_API_URL = agentConfig.url;
-    const AGENT_API_TOKEN = agentConfig.token;
+    let agent;
+    if (agentId) {
+      agent = getAgentById(agentId);
+      if (!agent) {
+        return NextResponse.json(
+          { error: `Agent with ID ${agentId} not found` },
+          { status: 404 }
+        );
+      }
+    } else {
+      agent = getSelectedAgent();
+      if (!agent) {
+        return NextResponse.json(
+          { error: 'No agent selected or available' },
+          { status: 404 }
+        );
+      }
+    }
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
-    if (AGENT_API_TOKEN) {
-      headers['Authorization'] = `Bearer ${AGENT_API_TOKEN}`;
+    if (agent.token) {
+      headers['Authorization'] = `Bearer ${agent.token}`;
     }
 
     const response = await fetch(
-      `${AGENT_API_URL}/api/logs/error?position=${position}&lines=${lines}`,
+      `${agent.url}/api/logs/error?position=${position}&lines=${lines}`,
       { headers }
     );
 
