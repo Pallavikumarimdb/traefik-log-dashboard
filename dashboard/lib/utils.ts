@@ -1,22 +1,26 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-/**
- * Merge Tailwind CSS classes
- */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /**
- * Format bytes to human-readable string
+ * Format numbers with commas
  */
-export function formatBytes(bytes: number, decimals: number = 2): string {
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat('en-US').format(num);
+}
+
+/**
+ * Format bytes to human readable
+ */
+export function formatBytes(bytes: number, decimals = 2): string {
   if (bytes === 0) return '0 Bytes';
 
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
@@ -31,13 +35,6 @@ export function formatDuration(nanoseconds: number): string {
   if (nanoseconds < 1000000) return `${(nanoseconds / 1000).toFixed(2)}μs`;
   if (nanoseconds < 1000000000) return `${(nanoseconds / 1000000).toFixed(2)}ms`;
   return `${(nanoseconds / 1000000000).toFixed(2)}s`;
-}
-
-/**
- * Format number with thousand separators
- */
-export function formatNumber(num: number): string {
-  return new Intl.NumberFormat('en-US').format(num);
 }
 
 /**
@@ -116,6 +113,41 @@ export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
 export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength - 3) + '...';
+}
+
+/**
+ * Extract main user agent identifier (up to '/' or ' ')
+ * Examples:
+ *   "osquery/5.19.0" => "osquery"
+ *   "MinIO (linux; amd64) minio-go/v7.0.70" => "MinIO"
+ *   "curl/7.81.0" => "curl"
+ *   "Mozilla/5.0 (Windows...)" => "Mozilla"
+ *   "Go-http-client/1.1" => "Go-http-client"
+ *   "Prometheus/2.45.0" => "Prometheus"
+ */
+export function extractUserAgentIdentifier(userAgent: string): string {
+  if (!userAgent) return 'Unknown';
+
+  const trimmed = userAgent.trim();
+  
+  const slashIndex = trimmed.indexOf('/');
+  const spaceIndex = trimmed.indexOf(' ');
+  
+  let endIndex = -1;
+  
+  if (slashIndex !== -1 && spaceIndex !== -1) {
+    endIndex = Math.min(slashIndex, spaceIndex);
+  } else if (slashIndex !== -1) {
+    endIndex = slashIndex;
+  } else if (spaceIndex !== -1) {
+    endIndex = spaceIndex;
+  }
+  
+  if (endIndex > 0) {
+    return trimmed.substring(0, endIndex);
+  }
+  
+  return trimmed.substring(0, Math.min(50, trimmed.length));
 }
 
 /**
