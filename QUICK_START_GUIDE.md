@@ -379,19 +379,6 @@ Traefik Log Dashboard
 
 ---
 
-## 12. Next Steps
-
-After setting up the basic alerting and historical storage:
-
-1. **Implement Alert Evaluation Engine** - Currently alerts need to be triggered manually
-2. **Implement Archival Service** - Background job to automatically archive metrics
-3. **Create Form Modals** - UI for adding/editing webhooks and alerts
-4. **Add Data Visualization** - Charts for historical data trends
-
-See [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) for detailed implementation guide.
-
----
-
 ## Support
 
 For issues or questions:
