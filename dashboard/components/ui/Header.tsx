@@ -136,7 +136,7 @@ export default function Header({
                 className="border-red-300 text-red-700 hover:bg-red-50"
                 title="Agent Settings"
               >
-                <Link href="/settings/agents">
+                <Link href="/settings">
                   <Settings className="w-4 h-4" />
                 </Link>
               </Button>

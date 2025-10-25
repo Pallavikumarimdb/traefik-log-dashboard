@@ -149,20 +149,19 @@ export default function HistoricalSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header */}
-      <div className="mb-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Dashboard
-        </Link>
-        <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <Link
+            href="/settings"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Database className="w-8 h-8" />
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Database className="w-8 h-8 text-red-600" />
               Historical Data Storage
             </h1>
             <p className="text-gray-600 mt-1">
@@ -170,10 +169,9 @@ export default function HistoricalSettingsPage() {
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Configuration Card */}
-      <div className="bg-white border rounded-lg p-6 mb-6">
+        {/* Configuration Card */}
+        <div className="bg-white border-2 border-red-200 rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Configuration</h2>
 
         {/* Enable Toggle */}
@@ -246,7 +244,7 @@ export default function HistoricalSettingsPage() {
         </div>
 
         {/* Save Button */}
-        <Button onClick={handleSave} disabled={saving} className="w-full">
+        <Button onClick={handleSave} disabled={saving} className="w-full bg-red-600 hover:bg-red-700">
           <Save className="w-4 h-4 mr-2" />
           {saving ? 'Saving...' : 'Save Configuration'}
         </Button>
@@ -254,7 +252,7 @@ export default function HistoricalSettingsPage() {
 
       {/* Statistics Card */}
       {stats && (
-        <div className="bg-white border rounded-lg p-6 mb-6">
+        <div className="bg-white border-2 border-red-200 rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Storage Statistics</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -292,7 +290,7 @@ export default function HistoricalSettingsPage() {
       )}
 
       {/* Actions Card */}
-      <div className="bg-white border rounded-lg p-6">
+      <div className="bg-white border-2 border-red-200 rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-4">Data Management</h2>
 
         <div className="space-y-3">

@@ -119,15 +119,15 @@ export default function WebhookFormModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-red-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">
             {webhook ? 'Edit Webhook' : 'Add New Webhook'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-red-600 transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -145,8 +145,8 @@ export default function WebhookFormModal({
               value={formData.name}
               onChange={e => handleInputChange('name', e.target.value)}
               placeholder="e.g., Production Alerts"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border-2 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 ${
+                errors.name ? 'border-red-500' : 'border-red-200'
               }`}
             />
             {errors.name && (
@@ -197,8 +197,8 @@ export default function WebhookFormModal({
                   ? 'https://discord.com/api/webhooks/...'
                   : 'https://api.telegram.org/bot<TOKEN>/sendMessage?chat_id=<CHAT_ID>'
               }
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
-                errors.url ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 border-2 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 font-mono text-sm ${
+                errors.url ? 'border-red-500' : 'border-red-200'
               }`}
             />
             {errors.url && (
@@ -227,7 +227,7 @@ export default function WebhookFormModal({
               onChange={e => handleInputChange('description', e.target.value)}
               placeholder="e.g., Sends alerts to #production-alerts channel"
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border-2 border-red-200 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
 
@@ -238,7 +238,7 @@ export default function WebhookFormModal({
               id="enabled"
               checked={formData.enabled}
               onChange={e => handleInputChange('enabled', e.target.checked)}
-              className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="mr-2 h-4 w-4 text-red-600 border-red-300 rounded focus:ring-red-500"
             />
             <label htmlFor="enabled" className="text-sm font-medium text-gray-700">
               Enable webhook immediately
@@ -246,20 +246,20 @@ export default function WebhookFormModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={saving}
-              className="flex-1"
+              className="flex-1 border-2 border-red-200 hover:border-red-500"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={saving}
-              className="flex-1"
+              className="flex-1 bg-red-600 hover:bg-red-700"
             >
               {saving ? 'Saving...' : webhook ? 'Update Webhook' : 'Create Webhook'}
             </Button>

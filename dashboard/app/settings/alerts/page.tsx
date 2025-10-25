@@ -246,20 +246,19 @@ export default function AlertsSettingsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
-      <div className="mb-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Dashboard
-        </Link>
-        <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <Link
+            href="/settings"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Bell className="w-8 h-8" />
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Bell className="w-8 h-8 text-red-600" />
               Alert Configuration
             </h1>
             <p className="text-gray-600 mt-1">
@@ -267,35 +266,36 @@ export default function AlertsSettingsPage() {
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex space-x-8">
+        {/* Tabs */}
+        <div className="flex items-center gap-2 mb-6 border-b border-gray-200">
           <button
             onClick={() => setActiveTab('webhooks')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === 'webhooks'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'text-red-600 border-b-2 border-red-600'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <WebhookIcon className="w-4 h-4 inline mr-2" />
-            Webhooks ({webhooks.length})
+            <div className="flex items-center gap-2">
+              <WebhookIcon className="w-4 h-4" />
+              Webhooks ({webhooks.length})
+            </div>
           </button>
           <button
             onClick={() => setActiveTab('alerts')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors ${
               activeTab === 'alerts'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'text-red-600 border-b-2 border-red-600'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <AlertTriangle className="w-4 h-4 inline mr-2" />
-            Alert Rules ({alerts.length})
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Alert Rules ({alerts.length})
+            </div>
           </button>
-        </nav>
-      </div>
+        </div>
 
       {/* Webhooks Tab */}
       {activeTab === 'webhooks' && (
@@ -313,11 +313,11 @@ export default function AlertsSettingsPage() {
           {loading ? (
             <div className="text-center py-12 text-gray-500">Loading...</div>
           ) : webhooks.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+            <div className="text-center py-12 border-2 border-dashed border-red-200 rounded-lg bg-white">
               <WebhookIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No webhooks configured</h3>
               <p className="text-gray-500 mb-4">Add a webhook to start receiving notifications</p>
-              <Button onClick={handleAddWebhook}>
+              <Button onClick={handleAddWebhook} className="bg-red-600 hover:bg-red-700">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Your First Webhook
               </Button>
@@ -327,7 +327,7 @@ export default function AlertsSettingsPage() {
               {webhooks.map((webhook) => (
                 <div
                   key={webhook.id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="border-2 border-red-200 rounded-lg p-4 hover:border-red-500 transition-all bg-white hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -405,11 +405,11 @@ export default function AlertsSettingsPage() {
           {loading ? (
             <div className="text-center py-12 text-gray-500">Loading...</div>
           ) : alerts.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+            <div className="text-center py-12 border-2 border-dashed border-red-200 rounded-lg bg-white">
               <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No alert rules configured</h3>
               <p className="text-gray-500 mb-4">Create an alert rule to start monitoring your traffic</p>
-              <Button onClick={handleAddAlert}>
+              <Button onClick={handleAddAlert} className="bg-red-600 hover:bg-red-700">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Your First Alert Rule
               </Button>
@@ -419,7 +419,7 @@ export default function AlertsSettingsPage() {
               {alerts.map((alert) => (
                 <div
                   key={alert.id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="border-2 border-red-200 rounded-lg p-4 hover:border-red-500 transition-all bg-white hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
