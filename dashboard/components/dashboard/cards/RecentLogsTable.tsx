@@ -21,6 +21,8 @@ const defaultColumns = [
 ];
 
 const optionalColumns = [
+  { id: 'geoCountry', header: 'Country' },
+  { id: 'geoCity', header: 'City' },
   { id: 'RequestHost', header: 'Host' },
   { id: 'RequestAddr', header: 'Request Addr' },
   { id: 'ClientPort', header: 'Client Port' },
@@ -33,6 +35,9 @@ const optionalColumns = [
 
 export default function RecentLogsTable({ logs }: Props) {
   const [visibleOptionalColumns, setVisibleOptionalColumns] = useState<Set<string>>(new Set());
+
+  // Get display limit from environment variable (default 500)
+  const maxLogsDisplay = parseInt(process.env.NEXT_PUBLIC_MAX_LOGS_DISPLAY || '500', 10);
 
   const toggleColumn = (id: string) => {
     setVisibleOptionalColumns(prev => {
@@ -191,7 +196,7 @@ export default function RecentLogsTable({ logs }: Props) {
             </tr>
           </thead>
           <tbody>
-            {sortedLogs.slice(0, 100).map((log, idx) => (
+            {sortedLogs.slice(0, maxLogsDisplay).map((log, idx) => (
               <tr
                 key={`${log.StartUTC}-${idx}`}
                 className="border-b border-red-100 hover:bg-red-50/30 transition-colors"
@@ -212,7 +217,7 @@ export default function RecentLogsTable({ logs }: Props) {
       
       <div className="mt-4 pt-4 border-t border-red-100 flex items-center justify-between text-xs text-gray-500">
         <span>
-          Showing {Math.min(100, sortedLogs.length)} of {sortedLogs.length} logs 
+          Showing {Math.min(maxLogsDisplay, sortedLogs.length)} of {sortedLogs.length} logs
           {sortedLogs.length === 1000 && ' (max 1000)'}
         </span>
         <span className="flex items-center gap-2">

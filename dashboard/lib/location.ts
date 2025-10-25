@@ -266,3 +266,61 @@ export function getTopCountries(locations: GeoLocation[], limit: number = 10): G
     .filter(loc => loc.country !== 'Unknown' && loc.country !== 'Private')
     .slice(0, limit);
 }
+
+/**
+ * Enrich logs with geolocation data (country and city)
+ * This adds geoCountry and geoCity fields to each log
+ */
+export async function enrichLogsWithGeoLocation(logs: TraefikLog[]): Promise<TraefikLog[]> {
+  // Extract unique IPs from logs
+  const uniqueIPs = new Set<string>();
+
+  for (const log of logs) {
+    const clientAddr = log.ClientHost || log.ClientAddr || '';
+    if (!clientAddr) continue;
+
+    const ip = extractIP(clientAddr);
+    if (ip && !isPrivateIP(ip)) {
+      uniqueIPs.add(ip);
+    }
+  }
+
+  // If no valid IPs, return logs as-is
+  if (uniqueIPs.size === 0) {
+    return logs;
+  }
+
+  // Lookup locations from agent API
+  const locationMap = await lookupLocationsFromAgent(Array.from(uniqueIPs));
+
+  // Enrich logs with geolocation data
+  return logs.map(log => {
+    const clientAddr = log.ClientHost || log.ClientAddr || '';
+    if (!clientAddr) return log;
+
+    const ip = extractIP(clientAddr);
+
+    if (isPrivateIP(ip)) {
+      return {
+        ...log,
+        geoCountry: 'Private',
+        geoCity: undefined,
+      };
+    }
+
+    const geoData = locationMap.get(ip);
+    if (!geoData) {
+      return {
+        ...log,
+        geoCountry: 'Unknown',
+        geoCity: undefined,
+      };
+    }
+
+    return {
+      ...log,
+      geoCountry: geoData.country || 'Unknown',
+      geoCity: geoData.city,
+    };
+  });
+}

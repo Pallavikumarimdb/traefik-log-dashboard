@@ -30,6 +30,9 @@ export interface TraefikLog {
   entryPointName: string;
   request_Referer?: string;
   request_User_Agent?: string;
+  // GeoIP fields (added by enrichment)
+  geoCountry?: string;
+  geoCity?: string;
 }
 
 // API Response Types

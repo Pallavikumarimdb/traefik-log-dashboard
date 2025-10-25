@@ -2,10 +2,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters'; 
+import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters';
 import Header from '@/components/ui/Header';
 import { TraefikLog } from '@/lib/types';
 import { parseTraefikLogs } from '@/lib/traefik-parser';
+import { enrichLogsWithGeoLocation } from '@/lib/location';
 import { Button } from '@/components/ui/button';
 import { Pause, Play } from 'lucide-react';
 
@@ -45,30 +46,33 @@ export default function DashboardPage() {
 
         if (data.logs && data.logs.length > 0) {
           const parsedLogs = parseTraefikLogs(data.logs);
-          
+
           // FIX: Deduplicate logs using composite unique key
           // Using StartUTC + RequestCount + RequestPath + ClientHost for uniqueness
           const newUniqueLogs = parsedLogs.filter(log => {
             // Create a composite key from multiple fields to ensure uniqueness
             const logKey = `${log.StartUTC || log.StartLocal}-${log.RequestCount}-${log.RequestPath}-${log.ClientHost}`;
-            
+
             if (seenLogsRef.current.has(logKey)) {
               return false; // Skip duplicate
             }
-            
+
             seenLogsRef.current.add(logKey);
             return true;
           });
 
           // Only update state if we have new unique logs
           if (newUniqueLogs.length > 0) {
+            // Enrich logs with geolocation data
+            const enrichedLogs = await enrichLogsWithGeoLocation(newUniqueLogs);
+
             setLogs((prevLogs: TraefikLog[]) => {
               if (isFirstFetch.current) {
                 isFirstFetch.current = false;
-                return newUniqueLogs;
+                return enrichedLogs;
               }
               // Append only new unique logs and keep last 1000
-              return [...prevLogs, ...newUniqueLogs].slice(-1000);
+              return [...prevLogs, ...enrichedLogs].slice(-1000);
             });
           }
         }

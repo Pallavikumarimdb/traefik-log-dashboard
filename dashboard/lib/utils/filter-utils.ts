@@ -161,8 +161,21 @@ export function applyFilters(logs: TraefikLog[], settings: FilterSettings): Trae
       }
     }
 
-    // Apply custom conditions (all must match for exclusion)
-    for (const condition of settings.customConditions) {
+    // Apply custom conditions with mode support
+    // First check if any INCLUDE filters are active
+    const includeFilters = settings.customConditions.filter(c => c.enabled && c.mode === 'include');
+    const excludeFilters = settings.customConditions.filter(c => c.enabled && (!c.mode || c.mode === 'exclude'));
+
+    // If there are active INCLUDE filters, log must match at least one of them
+    if (includeFilters.length > 0) {
+      const matchesAnyInclude = includeFilters.some(condition => matchesCondition(log, condition));
+      if (!matchesAnyInclude) {
+        return false; // Log doesn't match any include filter, so exclude it
+      }
+    }
+
+    // Then check EXCLUDE filters - if any match, exclude the log
+    for (const condition of excludeFilters) {
       if (matchesCondition(log, condition)) {
         return false;
       }

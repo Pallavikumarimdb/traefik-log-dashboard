@@ -149,175 +149,183 @@ export default function HistoricalSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <Link
-            href="/settings"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Database className="w-8 h-8 text-red-600" />
-              Historical Data Storage
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Configure long-term data retention and archival
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
+      {/* Header */}
+      <div className="bg-white border-b border-red-200">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="icon">
+                <Link href="/settings">
+                  <ChevronLeft className="w-5 h-5" />
+                </Link>
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Database className="w-6 h-6 text-red-600" />
+                  Historical Data Storage(Experimantal)
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Configure long-term data retention and archival
+                </p>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Configuration Card */}
-        <div className="bg-white border-2 border-red-200 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Configuration</h2>
+      <div className="container mx-auto px-4 py-8">
 
-        {/* Enable Toggle */}
-        <div className="mb-6 pb-6 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <label className="font-medium text-gray-900 flex items-center gap-2">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Configuration Card */}
+          <div className="bg-white border-2 border-red-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Configuration</h2>
+
+            {/* Enable Toggle */}
+            <div className="mb-6 pb-6 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="font-medium text-gray-900 flex items-center gap-2">
                 {config.enabled ? (
                   <ToggleRight className="w-6 h-6 text-green-500" />
                 ) : (
                   <ToggleLeft className="w-6 h-6 text-gray-400" />
                 )}
                 Historical Data Storage
+                  </label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {config.enabled
+                      ? 'Automatically archiving metrics to separate database'
+                      : 'Historical data storage is disabled'}
+                  </p>
+                </div>
+                <Button
+                  variant={config.enabled ? 'destructive' : 'default'}
+                  onClick={() => setConfig({ ...config, enabled: !config.enabled })}
+                >
+                  {config.enabled ? 'Disable' : 'Enable'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Retention Days */}
+            <div className="mb-4">
+              <label className="block font-medium text-gray-900 mb-2 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Retention Period (days)
               </label>
+              <input
+                type="number"
+                min="1"
+                max="3650"
+                value={config.retention_days}
+                onChange={(e) =>
+                  setConfig({ ...config, retention_days: parseInt(e.target.value) || 90 })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
               <p className="text-sm text-gray-600 mt-1">
-                {config.enabled
-                  ? 'Automatically archiving metrics to separate database'
-                  : 'Historical data storage is disabled'}
+                Data older than this will be automatically deleted
               </p>
             </div>
-            <Button
-              variant={config.enabled ? 'destructive' : 'default'}
-              onClick={() => setConfig({ ...config, enabled: !config.enabled })}
-            >
-              {config.enabled ? 'Disable' : 'Enable'}
+
+            {/* Archive Interval */}
+            <div className="mb-6">
+              <label className="block font-medium text-gray-900 mb-2 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Archive Interval (minutes)
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="1440"
+                value={config.archive_interval}
+                onChange={(e) =>
+                  setConfig({ ...config, archive_interval: parseInt(e.target.value) || 60 })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-sm text-gray-600 mt-1">
+                How often to snapshot current metrics (minimum: 1 minute)
+              </p>
+            </div>
+
+            {/* Save Button */}
+            <Button onClick={handleSave} disabled={saving} className="w-full bg-red-600 hover:bg-red-700">
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Saving...' : 'Save Configuration'}
             </Button>
           </div>
-        </div>
 
-        {/* Retention Days */}
-        <div className="mb-4">
-          <label className="block font-medium text-gray-900 mb-2 flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Retention Period (days)
-          </label>
-          <input
-            type="number"
-            min="1"
-            max="3650"
-            value={config.retention_days}
-            onChange={(e) =>
-              setConfig({ ...config, retention_days: parseInt(e.target.value) || 90 })
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-sm text-gray-600 mt-1">
-            Data older than this will be automatically deleted
-          </p>
-        </div>
+          {/* Statistics Card */}
+          {stats && (
+            <div className="bg-white border-2 border-red-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Storage Statistics</h2>
 
-        {/* Archive Interval */}
-        <div className="mb-6">
-          <label className="block font-medium text-gray-900 mb-2 flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Archive Interval (minutes)
-          </label>
-          <input
-            type="number"
-            min="1"
-            max="1440"
-            value={config.archive_interval}
-            onChange={(e) =>
-              setConfig({ ...config, archive_interval: parseInt(e.target.value) || 60 })
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-sm text-gray-600 mt-1">
-            How often to snapshot current metrics (minimum: 1 minute)
-          </p>
-        </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">{stats.total_entries}</div>
+                  <div className="text-sm text-gray-600">Total Entries</div>
+                </div>
 
-        {/* Save Button */}
-        <Button onClick={handleSave} disabled={saving} className="w-full bg-red-600 hover:bg-red-700">
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Configuration'}
-        </Button>
-      </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {formatBytes(stats.db_size_bytes)}
+                  </div>
+                  <div className="text-sm text-gray-600">Database Size</div>
+                </div>
 
-      {/* Statistics Card */}
-      {stats && (
-        <div className="bg-white border-2 border-red-200 rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Storage Statistics</h2>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-xs font-mono text-gray-900">
+                    {stats.oldest_entry
+                      ? new Date(stats.oldest_entry).toLocaleDateString()
+                      : 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-600">Oldest Entry</div>
+                </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">{stats.total_entries}</div>
-              <div className="text-sm text-gray-600">Total Entries</div>
-            </div>
-
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
-                {formatBytes(stats.db_size_bytes)}
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-xs font-mono text-gray-900">
+                    {stats.newest_entry
+                      ? new Date(stats.newest_entry).toLocaleDateString()
+                      : 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-600">Newest Entry</div>
+                </div>
               </div>
-              <div className="text-sm text-gray-600">Database Size</div>
+            </div>
+          )}
+
+          {/* Actions Card */}
+          <div className="bg-white border-2 border-red-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Data Management</h2>
+
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className="w-full justify-start"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Historical Data (JSON)
+              </Button>
+
+              <Button
+                variant="destructive"
+                onClick={handleCleanup}
+                disabled={cleaning}
+                className="w-full justify-start"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {cleaning ? 'Cleaning up...' : 'Cleanup Old Data'}
+              </Button>
             </div>
 
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-xs font-mono text-gray-900">
-                {stats.oldest_entry
-                  ? new Date(stats.oldest_entry).toLocaleDateString()
-                  : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600">Oldest Entry</div>
-            </div>
-
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-xs font-mono text-gray-900">
-                {stats.newest_entry
-                  ? new Date(stats.newest_entry).toLocaleDateString()
-                  : 'N/A'}
-              </div>
-              <div className="text-sm text-gray-600">Newest Entry</div>
-            </div>
+            <p className="text-xs text-gray-500 mt-4">
+              Note: Historical data is stored in a separate SQLite database for better performance
+              and data management.
+            </p>
           </div>
-        </div>
-      )}
-
-      {/* Actions Card */}
-      <div className="bg-white border-2 border-red-200 rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Data Management</h2>
-
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            onClick={handleExport}
-            className="w-full justify-start"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Historical Data (JSON)
-          </Button>
-
-          <Button
-            variant="destructive"
-            onClick={handleCleanup}
-            disabled={cleaning}
-            className="w-full justify-start"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            {cleaning ? 'Cleaning up...' : 'Cleanup Old Data'}
-          </Button>
-        </div>
-
-        <p className="text-xs text-gray-500 mt-4">
-          Note: Historical data is stored in a separate SQLite database for better performance
-          and data management.
-        </p>
         </div>
       </div>
     </div>
