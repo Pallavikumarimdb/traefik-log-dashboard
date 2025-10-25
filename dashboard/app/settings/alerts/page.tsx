@@ -495,6 +495,7 @@ export default function AlertsSettingsPage() {
         webhooks={webhooks}
         agents={agents}
       />
+      </div>
     </div>
   );
 }

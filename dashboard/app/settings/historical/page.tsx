@@ -318,6 +318,7 @@ export default function HistoricalSettingsPage() {
           Note: Historical data is stored in a separate SQLite database for better performance
           and data management.
         </p>
+        </div>
       </div>
     </div>
   );
