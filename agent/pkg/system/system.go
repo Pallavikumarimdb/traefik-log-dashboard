@@ -1,7 +1,9 @@
 package system
 
 import (
+	"context"
 	"fmt"
+	"math"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -14,11 +16,13 @@ import (
 	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/logger"
 )
 
+const commandTimeout = 5 * time.Second
+
 // SystemInfo represents system information for the API response
 type SystemInfo struct {
-	Uptime    int64      `json:"uptime"`
-	Timestamp string     `json:"timestamp"`
-	CPU       CPUStats   `json:"cpu"`
+	Uptime    int64       `json:"uptime"`
+	Timestamp string      `json:"timestamp"`
+	CPU       CPUStats    `json:"cpu"`
 	Memory    MemoryStats `json:"memory"`
 	Disk      DiskStats   `json:"disk"`
 }
@@ -28,7 +32,7 @@ type CPUStats struct {
 	Model        string    `json:"model"`
 	Cores        int       `json:"cores"`
 	Speed        float64   `json:"speed"`
-	UsagePercent float64   `json:"usage_percent"` // Changed from Usage to UsagePercent
+	UsagePercent float64   `json:"usage_percent"`
 	CoreUsage    []float64 `json:"coreUsage"`
 }
 
@@ -38,24 +42,15 @@ type MemoryStats struct {
 	Available   uint64  `json:"available"`
 	Used        uint64  `json:"used"`
 	Total       uint64  `json:"total"`
-	UsedPercent float64 `json:"used_percent"` // Added percentage calculation
+	UsedPercent float64 `json:"used_percent"`
 }
 
-// DiskStats represents aggregated disk statistics with percentage
+// DiskStats represents root disk statistics with percentage
 type DiskStats struct {
 	Total       uint64  `json:"total"`
 	Used        uint64  `json:"used"`
 	Free        uint64  `json:"free"`
-	UsedPercent float64 `json:"used_percent"` // Added percentage calculation
-}
-
-// DiskInfo represents individual disk information (internal use)
-type DiskInfo struct {
-	Filesystem string `json:"filesystem"`
-	Size       uint64 `json:"size"`
-	Used       uint64 `json:"used"`
-	Free       uint64 `json:"free"`
-	MountedOn  string `json:"mountedOn"`
+	UsedPercent float64 `json:"used_percent"`
 }
 
 func MeasureSystem() (SystemInfo, error) {
@@ -106,18 +101,24 @@ func getCPUStats() (CPUStats, error) {
 	cpuUsage, err := cpu.Percent(time.Second, true)
 	if err != nil {
 		logger.Log.Printf("Warning: Could not get CPU usage: %v", err)
-		cpuUsage = make([]float64, len(cpuInfo))
+		cpuUsage = make([]float64, runtime.NumCPU())
 	}
 
 	model := cpuInfo[0].ModelName
 	cores := len(cpuUsage)
+	
+	// FIX BUG #2: Ensure cores is never zero
 	if cores == 0 {
 		cores = runtime.NumCPU()
+		if cores == 0 {
+			cores = 1 // Absolute minimum fallback
+		}
 		cpuUsage = make([]float64, cores)
 	}
+	
 	speed := cpuInfo[0].Mhz
 
-	// Calculate average usage across all cores
+	// FIX BUG #2: Safe division - handle empty cpuUsage
 	var overallUsage float64
 	if len(cpuUsage) > 0 {
 		var total float64
@@ -125,6 +126,8 @@ func getCPUStats() (CPUStats, error) {
 			total += usage
 		}
 		overallUsage = total / float64(len(cpuUsage))
+	} else {
+		overallUsage = 0.0 // Safe default when no CPU usage available
 	}
 
 	return CPUStats{
@@ -149,9 +152,11 @@ func getCPUStatsFallback() (CPUStats, error) {
 
 func getCPUInfoMacOS() (CPUStats, error) {
 	var stats CPUStats
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
 
 	// Get CPU model
-	cmd := exec.Command("sysctl", "-n", "machdep.cpu.brand_string")
+	cmd := exec.CommandContext(ctx, "sysctl", "-n", "machdep.cpu.brand_string")
 	output, err := cmd.Output()
 	if err == nil {
 		stats.Model = strings.TrimSpace(string(output))
@@ -160,7 +165,7 @@ func getCPUInfoMacOS() (CPUStats, error) {
 	}
 
 	// Get CPU core count
-	cmd = exec.Command("sysctl", "-n", "hw.ncpu")
+	cmd = exec.CommandContext(ctx, "sysctl", "-n", "hw.ncpu")
 	output, err = cmd.Output()
 	if err == nil {
 		if cores, err := strconv.Atoi(strings.TrimSpace(string(output))); err == nil {
@@ -170,22 +175,29 @@ func getCPUInfoMacOS() (CPUStats, error) {
 		stats.Cores = runtime.NumCPU()
 	}
 
-	// Get CPU frequency
-	freqKeys := []string{"hw.cpufrequency_max", "hw.cpufrequency", "machdep.cpu.max_basic"}
-	for _, key := range freqKeys {
-		cmd = exec.Command("sysctl", "-n", key)
+	// FIX BUG #4: Improved CPU frequency detection for macOS
+	// Try hw.cpufrequency_max first (Intel Macs, in Hz)
+	cmd = exec.CommandContext(ctx, "sysctl", "-n", "hw.cpufrequency_max")
+	output, err = cmd.Output()
+	if err == nil {
+		if freq, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64); err == nil && freq > 0 {
+			stats.Speed = freq / 1000000 // Convert Hz to MHz
+		}
+	}
+
+	// If still zero, try hw.cpufrequency (alternative, also in Hz)
+	if stats.Speed == 0 {
+		cmd = exec.CommandContext(ctx, "sysctl", "-n", "hw.cpufrequency")
 		output, err = cmd.Output()
 		if err == nil {
-			if freq, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64); err == nil {
-				if freq > 1000000 {
-					stats.Speed = freq / 1000000
-				} else {
-					stats.Speed = freq
-				}
-				break
+			if freq, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64); err == nil && freq > 0 {
+				stats.Speed = freq / 1000000 // Convert Hz to MHz
 			}
 		}
 	}
+
+	// For Apple Silicon, frequency is not directly available - leave at 0
+	// The brand string (stats.Model) will indicate M1/M2/M3 etc.
 
 	// Get CPU usage
 	cpuUsage, err := cpu.Percent(time.Second, false)
@@ -198,8 +210,10 @@ func getCPUInfoMacOS() (CPUStats, error) {
 
 func getCPUInfoWindows() (CPUStats, error) {
 	var stats CPUStats
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
 
-	cmd := exec.Command("wmic", "cpu", "get", "Name,NumberOfCores,MaxClockSpeed", "/format:csv")
+	cmd := exec.CommandContext(ctx, "wmic", "cpu", "get", "Name,NumberOfCores,MaxClockSpeed", "/format:csv")
 	output, err := cmd.Output()
 	if err != nil {
 		return stats, err
@@ -233,15 +247,20 @@ func getCPUInfoWindows() (CPUStats, error) {
 
 func getCPUInfoLinux() (CPUStats, error) {
 	var stats CPUStats
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
 
-	cmd := exec.Command("cat", "/proc/cpuinfo")
+	cmd := exec.CommandContext(ctx, "cat", "/proc/cpuinfo")
 	output, err := cmd.Output()
 	if err != nil {
 		return stats, err
 	}
 
 	lines := strings.Split(string(output), "\n")
-	coreCount := 0
+	logicalCores := 0
+	physicalCores := 0
+	
+	// FIX BUG #5: Correctly count physical cores vs logical processors
 	for _, line := range lines {
 		if strings.HasPrefix(line, "model name") {
 			parts := strings.Split(line, ":")
@@ -255,11 +274,32 @@ func getCPUInfoLinux() (CPUStats, error) {
 					stats.Speed = speed
 				}
 			}
+		} else if strings.HasPrefix(line, "cpu cores") {
+			// Physical cores (this is what we want!)
+			parts := strings.Split(line, ":")
+			if len(parts) >= 2 {
+				if cores, err := strconv.Atoi(strings.TrimSpace(parts[1])); err == nil {
+					physicalCores = cores
+				}
+			}
 		} else if strings.HasPrefix(line, "processor") {
-			coreCount++
+			logicalCores++ // Logical processors (includes hyperthreading)
 		}
 	}
-	stats.Cores = coreCount
+	
+	// Prefer physical cores, fallback to logical
+	if physicalCores > 0 {
+		stats.Cores = physicalCores
+	} else if logicalCores > 0 {
+		stats.Cores = logicalCores
+	} else {
+		stats.Cores = runtime.NumCPU()
+	}
+
+	// Final safety check
+	if stats.Cores == 0 {
+		stats.Cores = 1
+	}
 
 	// Get CPU usage
 	cpuUsage, err := cpu.Percent(time.Second, false)
@@ -291,88 +331,68 @@ func getMemoryStats() (MemoryStats, error) {
 	}, nil
 }
 
+// Updated to report only root (/) filesystem usage for consistent "Disk Usage" metric
 func getDiskStats() (DiskStats, error) {
-	disks, err := getDiskInfo()
+	usage, err := disk.Usage("/")
 	if err != nil {
-		return DiskStats{}, err
-	}
-
-	if len(disks) == 0 {
-		return DiskStats{}, fmt.Errorf("no disk information available")
-	}
-
-	// Aggregate all disk stats
-	var totalSize, totalUsed, totalFree uint64
-	for _, disk := range disks {
-		totalSize += disk.Size
-		totalUsed += disk.Used
-		totalFree += disk.Free
+		logger.Log.Printf("Error getting root disk usage: %v", err)
+		return DiskStats{}, fmt.Errorf("failed to get root disk usage: %w", err)
 	}
 
 	// Calculate used percentage
 	usedPercent := 0.0
-	if totalSize > 0 {
-		usedPercent = (float64(totalUsed) / float64(totalSize)) * 100.0
+	if usage.Total > 0 {
+		usedPercent = (float64(usage.Used) / float64(usage.Total)) * 100.0
 	}
 
+	logger.Log.Printf("Root disk stats: total=%.2f GB, used=%.2f GB, free=%.2f GB, percent=%.1f%%",
+		float64(usage.Total)/1024/1024/1024,
+		float64(usage.Used)/1024/1024/1024,
+		float64(usage.Free)/1024/1024/1024,
+		usedPercent)
+
 	return DiskStats{
-		Total:       totalSize,
-		Used:        totalUsed,
-		Free:        totalFree,
+		Total:       usage.Total,
+		Used:        usage.Used,
+		Free:        usage.Free,
 		UsedPercent: parseFloat(usedPercent, 1),
 	}, nil
 }
 
-func getDiskInfo() ([]DiskInfo, error) {
-	var disks []DiskInfo
-
-	partitions, err := disk.Partitions(false)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, partition := range partitions {
-		usage, err := disk.Usage(partition.Mountpoint)
-		if err != nil {
-			logger.Log.Printf("Error getting disk usage for %s: %v", partition.Mountpoint, err)
-			continue
-		}
-
-		disks = append(disks, DiskInfo{
-			Filesystem: partition.Device,
-			Size:       usage.Total,
-			Used:       usage.Used,
-			Free:       usage.Free,
-			MountedOn:  partition.Mountpoint,
-		})
-	}
-
-	return disks, nil
-}
-
 func getUptime() (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
+
 	switch runtime.GOOS {
 	case "windows":
-		cmd := exec.Command("systeminfo")
+		// FIX BUG #3: Use WMI for locale-independent parsing
+		cmd := exec.CommandContext(ctx, "wmic", "os", "get", "LastBootUpTime", "/value")
 		output, err := cmd.Output()
 		if err != nil {
 			return 0, err
 		}
+
+		// Parse: LastBootUpTime=20251024153045.500000+060
 		lines := strings.Split(string(output), "\n")
 		for _, line := range lines {
-			if strings.Contains(line, "System Boot Time") {
-				bootTimeStr := strings.TrimSpace(strings.Split(line, ":")[1])
-				bootTime, err := time.Parse("1/2/2006, 3:04:05 PM", bootTimeStr)
-				if err != nil {
-					return 0, err
+			if strings.HasPrefix(line, "LastBootUpTime=") {
+				timeStr := strings.TrimPrefix(line, "LastBootUpTime=")
+				timeStr = strings.TrimSpace(timeStr)
+				// Parse WMI datetime format: YYYYMMDDHHmmss.mmmmmm±UUU
+				if len(timeStr) >= 14 {
+					timeStr = timeStr[:14] // YYYYMMDDHHmmss
+					bootTime, err := time.Parse("20060102150405", timeStr)
+					if err != nil {
+						return 0, err
+					}
+					return int64(time.Since(bootTime).Seconds()), nil
 				}
-				return int64(time.Since(bootTime).Seconds()), nil
 			}
 		}
 		return 0, fmt.Errorf("could not determine system uptime")
 
 	case "darwin":
-		cmd := exec.Command("sysctl", "-n", "kern.boottime")
+		cmd := exec.CommandContext(ctx, "sysctl", "-n", "kern.boottime")
 		output, err := cmd.Output()
 		if err != nil {
 			return 0, err
@@ -394,7 +414,7 @@ func getUptime() (int64, error) {
 		return currentTime - bootTime, nil
 
 	default:
-		cmd := exec.Command("cat", "/proc/uptime")
+		cmd := exec.CommandContext(ctx, "cat", "/proc/uptime")
 		output, err := cmd.Output()
 		if err != nil {
 			return 0, err
@@ -410,9 +430,8 @@ func getUptime() (int64, error) {
 	}
 }
 
+// FIX BUG #6: More efficient parseFloat using math.Round
 func parseFloat(val float64, precision int) float64 {
-	format := fmt.Sprintf("%%.%df", precision)
-	formatted := fmt.Sprintf(format, val)
-	result, _ := strconv.ParseFloat(formatted, 64)
-	return result
+	multiplier := math.Pow(10, float64(precision))
+	return math.Round(val*multiplier) / multiplier
 }

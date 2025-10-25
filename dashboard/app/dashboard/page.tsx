@@ -6,6 +6,8 @@ import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters';
 import Header from '@/components/ui/Header';
 import { TraefikLog } from '@/lib/types';
 import { parseTraefikLogs } from '@/lib/traefik-parser';
+import { Button } from '@/components/ui/button';
+import { Pause, Play } from 'lucide-react';
 
 export default function DashboardPage() {
   const [logs, setLogs] = useState<TraefikLog[]>([]);
@@ -13,17 +15,26 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   const positionRef = useRef<number>(-1);
   const isFirstFetch = useRef(true);
+  
+  // ADDED: Track seen log entries by unique ID to prevent duplicates
+  const seenLogsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchLogs = async () => {
+      // Don't fetch if paused
+      if (isPaused) return;
+      
       try {
         const position = positionRef.current ?? -1;
         
+        // FIX: Remove period parameter to use position-based incremental reading only
+        // This prevents conflicts between period filtering and position tracking
         const response = await fetch(
-          `/api/logs/access?period=1h&position=${position}`
+          `/api/logs/access?position=${position}&lines=1000`
         );
 
         if (!response.ok) {
@@ -34,16 +45,35 @@ export default function DashboardPage() {
 
         if (data.logs && data.logs.length > 0) {
           const parsedLogs = parseTraefikLogs(data.logs);
-
-          setLogs((prevLogs: TraefikLog[]) => {
-            if (isFirstFetch.current) {
-              isFirstFetch.current = false;
-              return parsedLogs;
+          
+          // FIX: Deduplicate logs using composite unique key
+          // Using StartUTC + RequestCount + RequestPath + ClientHost for uniqueness
+          const newUniqueLogs = parsedLogs.filter(log => {
+            // Create a composite key from multiple fields to ensure uniqueness
+            const logKey = `${log.StartUTC || log.StartLocal}-${log.RequestCount}-${log.RequestPath}-${log.ClientHost}`;
+            
+            if (seenLogsRef.current.has(logKey)) {
+              return false; // Skip duplicate
             }
-            return [...prevLogs, ...parsedLogs].slice(-1000);
+            
+            seenLogsRef.current.add(logKey);
+            return true;
           });
+
+          // Only update state if we have new unique logs
+          if (newUniqueLogs.length > 0) {
+            setLogs((prevLogs: TraefikLog[]) => {
+              if (isFirstFetch.current) {
+                isFirstFetch.current = false;
+                return newUniqueLogs;
+              }
+              // Append only new unique logs and keep last 1000
+              return [...prevLogs, ...newUniqueLogs].slice(-1000);
+            });
+          }
         }
 
+        // Update position for next incremental read
         if (data.positions && data.positions.length > 0 && typeof data.positions[0].Position === 'number') {
           positionRef.current = data.positions[0].Position;
         }
@@ -60,11 +90,15 @@ export default function DashboardPage() {
       }
     };
 
+    // Initial fetch
     fetchLogs();
+    
+    // Set up interval for auto-refresh
     const interval = setInterval(fetchLogs, 5000);
 
+    // Cleanup interval on unmount
     return () => clearInterval(interval);
-  }, []);
+  }, [isPaused]); // Re-run effect when isPaused changes
 
   if (loading) {
     return (
@@ -127,9 +161,36 @@ export default function DashboardPage() {
             {lastUpdate && (
               <span>Last update: {lastUpdate.toLocaleTimeString()}</span>
             )}
+            <Button
+              onClick={() => setIsPaused(!isPaused)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              {isPaused ? (
+                <>
+                  <Play className="w-4 h-4" />
+                  Resume
+                </>
+              ) : (
+                <>
+                  <Pause className="w-4 h-4" />
+                  Pause
+                </>
+              )}
+            </Button>
             <span className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-              Auto-refreshing every 3s
+              {isPaused ? (
+                <>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  Auto-refresh paused
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                  Auto-refreshing every 5s
+                </>
+              )}
             </span>
           </div>
         </div>

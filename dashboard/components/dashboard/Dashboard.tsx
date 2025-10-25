@@ -8,6 +8,7 @@ import {
   calculatePercentile,
   groupBy,
   parseUserAgent,
+  extractUserAgentIdentifier,
 } from '@/lib/utils';
 import { aggregateGeoLocations } from '@/lib/location';
 
@@ -164,7 +165,7 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
   const status5xx = statusCodes.filter(s => s >= 500).length;
   const errorRate = total > 0 ? ((status4xx + status5xx) / total) * 100 : 0;
 
-// Top routes
+  // Top routes
   const routeGroups = groupBy(logs.filter(l => l.RequestPath), 'RequestPath');
   const topRoutes = Object.entries(routeGroups)
     .map(([path, routeLogs]) => ({
@@ -185,7 +186,8 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
         name,
         requests: backendLogs.length,
         avgDuration: calculateAverage(backendLogs.map(l => l.Duration / 1000000)),
-        errorRate: backendLogs.length > 0 ? (errors / backendLogs.length) * 100 : 0,
+        errorRate: backendLogs.length > 0 ?
+          (errors / backendLogs.length) * 100 : 0,
         url: backendLogs[0]?.ServiceURL || '',
       };
     })
@@ -234,22 +236,46 @@ function calculateMetrics(logs: TraefikLog[], geoLocations: GeoLocation[]): Dash
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // User agents
-  const userAgentGroups = groupBy(
-    logs.filter(l => l.request_User_Agent),
-    'request_User_Agent'
-  );
-  const userAgents = Object.entries(userAgentGroups)
-    .map(([ua, uaLogs]) => {
-      const parsed = parseUserAgent(ua);
-      return {
-        browser: typeof parsed === 'string' ? parsed : parsed.browser,
-        count: uaLogs.length,
-        percentage: (uaLogs.length / total) * 100,
-      };
-    })
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 12);
+  // User agents - Extract identifier, group, show top 11 + Others
+  const userAgentIdentifierGroups: Record<string, string[]> = {};
+
+  // First pass: Extract identifiers and group the original user agents
+  logs.filter(l => l.request_User_Agent).forEach(log => {
+    const identifier = extractUserAgentIdentifier(log.request_User_Agent || '');
+    if (!userAgentIdentifierGroups[identifier]) {
+      userAgentIdentifierGroups[identifier] = [];
+    }
+    userAgentIdentifierGroups[identifier].push(log.request_User_Agent || '');
+  });
+
+  // Convert to array and sort by count
+  const sortedUserAgents = Object.entries(userAgentIdentifierGroups)
+    .map(([identifier, agents]) => ({
+      identifier,
+      count: agents.length,
+      percentage: (agents.length / total) * 100,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Take top 11, aggregate the rest as "Others"
+  const top11 = sortedUserAgents.slice(0, 11);
+  const othersCount = sortedUserAgents.slice(11).reduce((sum, ua) => sum + ua.count, 0);
+
+  // Build final userAgents array
+  const userAgents = top11.map(ua => ({
+    browser: ua.identifier,
+    count: ua.count,
+    percentage: ua.percentage,
+  }));
+
+  // Add "Others" if there are more than 11 unique identifiers
+  if (sortedUserAgents.length > 11) {
+    userAgents.push({
+      browser: 'Others',
+      count: othersCount,
+      percentage: (othersCount / total) * 100,
+    });
+  }
 
   // Timeline - keep latest data points
   const timeline = generateTimeline(logs);

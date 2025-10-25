@@ -1,23 +1,41 @@
-import { NextResponse } from 'next/server';
-import { agentConfig } from '@/lib/agent-config';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSelectedAgent, getAgentById } from '@/lib/db/database';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
   try {
-    const AGENT_API_URL = agentConfig.url;
-    const AGENT_API_TOKEN = agentConfig.token;
+    const { searchParams } = new URL(request.url);
+    const agentId = searchParams.get('agentId');
+
+    let agent;
+    if (agentId) {
+      agent = getAgentById(agentId);
+      if (!agent) {
+        return NextResponse.json(
+          { error: `Agent with ID ${agentId} not found` },
+          { status: 404 }
+        );
+      }
+    } else {
+      agent = getSelectedAgent();
+      if (!agent) {
+        return NextResponse.json(
+          { error: 'No agent selected or available' },
+          { status: 404 }
+        );
+      }
+    }
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
-    if (AGENT_API_TOKEN) {
-      headers['Authorization'] = `Bearer ${AGENT_API_TOKEN}`;
+    if (agent.token) {
+      headers['Authorization'] = `Bearer ${agent.token}`;
     }
 
-    const response = await fetch(
-      `${AGENT_API_URL}/api/system/logs`,
-      { headers }
-    );
+    const response = await fetch(`${agent.url}/api/system/logs`, { headers });
 
     if (!response.ok) {
       const error = await response.text();

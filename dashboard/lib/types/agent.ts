@@ -11,6 +11,11 @@ export interface Agent {
   tags?: string[]; // Optional tags (e.g., ["production", "us-east-1"])
 }
 
+// Flexible type for updates that accepts both Date and string for lastSeen
+export type AgentUpdate = Omit<Partial<Agent>, 'lastSeen'> & {
+  lastSeen?: Date | string | null;
+};
+
 export interface AgentStore {
   agents: Agent[];
   selectedAgentId: string | null;

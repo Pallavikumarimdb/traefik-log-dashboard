@@ -1,20 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { agentConfig } from '@/lib/agent-config';
+import { getSelectedAgent, getAgentById } from '@/lib/db/database';
 
-export const dynamic = 'force-dynamic'; // Prevent Next.js from caching
-export const revalidate = 0; // No caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const position = searchParams.get('position') || '-2'; // Default to tracked position
+    const position = searchParams.get('position') || '-2';
     const lines = searchParams.get('lines') || '1000';
     const tail = searchParams.get('tail') || 'false';
+    const agentId = searchParams.get('agentId');
 
-    const AGENT_API_URL = agentConfig.url;
-    const AGENT_API_TOKEN = agentConfig.token;
+    let agent;
+    if (agentId) {
+      agent = getAgentById(agentId);
+      if (!agent) {
+        return NextResponse.json(
+          { error: `Agent with ID ${agentId} not found` },
+          { status: 404 }
+        );
+      }
+    } else {
+      agent = getSelectedAgent();
+      if (!agent) {
+        return NextResponse.json(
+          { error: 'No agent selected or available. Please configure an agent.' },
+          { status: 404 }
+        );
+      }
+    }
 
-    console.log('Fetching from agent:', `${AGENT_API_URL}/api/logs/access?position=${position}&lines=${lines}&tail=${tail}`);
+    console.log(`Fetching from agent [${agent.name}]:`, `${agent.url}/api/logs/access?position=${position}&lines=${lines}&tail=${tail}`);
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -22,22 +39,21 @@ export async function GET(request: NextRequest) {
       'Pragma': 'no-cache',
     };
 
-    if (AGENT_API_TOKEN) {
-      headers['Authorization'] = `Bearer ${AGENT_API_TOKEN}`;
+    if (agent.token) {
+      headers['Authorization'] = `Bearer ${agent.token}`;
     }
 
-    // Build URL with all parameters
-    const agentUrl = `${AGENT_API_URL}/api/logs/access?position=${position}&lines=${lines}&tail=${tail}`;
+    const agentUrl = `${agent.url}/api/logs/access?position=${position}&lines=${lines}&tail=${tail}`;
 
     const response = await fetch(agentUrl, { 
       headers,
-      cache: 'no-store', // Prevent fetch caching
-      next: { revalidate: 0 } // Next.js specific - no caching
+      cache: 'no-store',
+      next: { revalidate: 0 }
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('Agent error:', error);
+      console.error(`Agent [${agent.name}] error:`, error);
       return NextResponse.json(
         { error: `Agent error: ${error}` },
         { status: response.status }
@@ -46,9 +62,8 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    console.log('Agent returned', data.logs?.length || 0, 'logs');
+    console.log(`Agent [${agent.name}] returned`, data.logs?.length || 0, 'logs');
     
-    // Add no-cache headers to response
     const res = NextResponse.json(data);
     res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.headers.set('Pragma', 'no-cache');
