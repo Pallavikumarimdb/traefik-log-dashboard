@@ -15,7 +15,6 @@ A comprehensive analytics platform for Traefik access logs with three deployment
 
 ---
 
-
 ##  Table of Contents
 
 - [Overview](#overview)
@@ -23,6 +22,7 @@ A comprehensive analytics platform for Traefik access logs with three deployment
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Multi-Agent Setup](#multi-agent-setup)
+- [Agent Database Management](#agent-database-management)
 - [GeoIP Database Setup](#geoip-database-setup)
 - [Dashboard Cards Explained](#dashboard-cards-explained)
 - [Filter Logs & API Usage](#filter-logs--api-usage)
@@ -32,7 +32,9 @@ A comprehensive analytics platform for Traefik access logs with three deployment
 
 ---
 
-## **MIGRATION GUIDE from V1 to V2**: [./docs/MigrationV1toV2.md](./docs/MigrationV1toV2.md)
+## ** MIGRATION GUIDE from V1 to V2**: [./docs/MigrationV1toV2.md](./docs/MigrationV1toV2.md)
+
+---
 
 ##  Overview
 
@@ -42,21 +44,17 @@ Traefik Log Dashboard is a powerful analytics platform that provides real-time i
 2. **Dashboard** - Next.js web UI with interactive charts and real-time updates
 3. **CLI** - Beautiful terminal-based dashboard (optional)
 
----
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7eb3bd6f-f195-4fbb-babc-140e4a37451f" />
----
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/cb97cf90-a670-4afc-8e92-17b39fb03c7b" />
----
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/1c534efa-bfaf-4603-9b87-d69a736a8a67" />
----
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7e659846-db62-4825-bfe3-218081c66450" />
----
-<img width="1735" height="1532" alt="image" src="https://github.com/user-attachments/assets/29a0df2a-3ff3-4204-ba06-7bc34f39f7c6" />
----
-<img width="1735" height="810" alt="image" src="https://github.com/user-attachments/assets/94059cb8-dec7-49cc-9531-51270f314ba7" />
+### What's New in v2.x
 
-<img width="1877" height="7800" alt="image" src="https://github.com/user-attachments/assets/ba81077f-95b0-4a73-82ab-bb9e75d4c04a" />
+- ✅ **Multi-Agent Architecture** - Manage multiple Traefik instances from a single dashboard
+- ✅ **Persistent Agent Database** - SQLite-based storage for agent configurations
+- ✅ **Environment-Protected Agents** - Agents defined in docker-compose.yml cannot be deleted from UI
+- ✅ **Enhanced Error Handling** - Better error messages and user feedback
+- ✅ **Improved Performance** - Parallel fetching and optimized state management
+- ✅ **Fixed Date Handling** - Proper ISO string and Date object conversion
+- ✅ **Better Agent Status Tracking** - lastSeen timestamp with proper persistence
 
+---
 
 ##  Architecture
 
@@ -66,128 +64,109 @@ The platform supports a **multi-agent architecture** where you can deploy multip
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Traefik Instances                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ Traefik #1   │  │ Traefik #2   │  │ Traefik #3   │       │
-│  │ (Production) │  │ (Staging)    │  │ (Development)│       │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
-│         │ Logs            │ Logs            │ Logs          │
-└─────────┼─────────────────┼─────────────────┼───────────────┘
-          │                 │                 │
-          ▼                 ▼                 ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Agent Layer                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ Agent #1     │  │ Agent #2     │  │ Agent #3     │       │
-│  │ Port: 5000   │  │ Port: 5001   │  │ Port: 5002   │       │
-│  │ • Log Parser │  │ • Log Parser │  │ • Log Parser │       │
-│  │ • GeoIP      │  │ • GeoIP      │  │ • GeoIP      │       │
-│  │ • Metrics    │  │ • Metrics    │  │ • Metrics    │       │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
-└─────────┼─────────────────┼─────────────────┼───────────────┘
-          │ REST API        │ REST API        │ REST API
-          └─────────────────┴─────────────────┴──────┐
-                                                     │
-                                                     ▼
-                                          ┌─────────────────────┐
-                                          │  Dashboard Web UI   │
-                                          │                     │
-                                          │  • Multi-agent mgmt │
-                                          │  • Aggregated views │
-                                          │  • Real-time charts │
-                                          │  • Geographic maps  │
-                                          └─────────────────────┘
+│                    Dashboard (Next.js)                       │
+│           SQLite DB for Agent Configuration                  │
+└─────────────────────────────────────────────────────────────┘
+                    │
+                    │ HTTP + Token Auth
+                    │
+        ┌───────────┴───────────┬──────────────┬──────────────┐
+        │                       │              │              │
+        ▼                       ▼              ▼              ▼
+┌──────────────┐        ┌──────────────┐  ┌──────────────┐ ┌──────────────┐
+│  Agent #1    │        │  Agent #2    │  │  Agent #3    │ │  Agent #N    │
+│ (Datacenter) │        │ (Cloud)      │  │ (Edge)       │ │ ...          │
+└──────────────┘        └──────────────┘  └──────────────┘ └──────────────┘
+        │                       │              │              │
+        ▼                       ▼              ▼              ▼
+┌──────────────┐        ┌──────────────┐  ┌──────────────┐ ┌──────────────┐
+│   Traefik    │        │   Traefik    │  │   Traefik    │ │   Traefik    │
+│ access.log   │        │ access.log   │  │ access.log   │ │ access.log   │
+└──────────────┘        └──────────────┘  └──────────────┘ └──────────────┘
 ```
 
-### Component Breakdown
+**Key Architectural Components:**
 
-**Agent (Go)**
-- Parses Traefik logs (JSON/CLF format)
-- Exposes REST API endpoints
-- Performs GeoIP lookups
-- Monitors system resources
-- Supports incremental log reading
-
-**Dashboard (Next.js)**
-- Connects to multiple agents
-- Displays 15+ interactive cards
-- Real-time data visualization
-- Demo mode for testing
-- Responsive design
-
-**CLI (Optional)**
-- Terminal-based dashboard
-- Direct log file reading
-- Agent API integration
-- Bubble Tea TUI
+1. **Dashboard** - Centralized web UI that communicates with multiple agents
+2. **Agents** - Deployed alongside each Traefik instance to parse local logs
+3. **SQLite Database** - Stores agent configurations, status, and metadata
+4. **Token Authentication** - Secures communication between dashboard and agents
 
 ---
 
 ##  Features
 
-### Core Features
+### Dashboard Features
+-  Real-time analytics and metrics visualization
+-  GeoIP integration with country and city mapping
+-  Request rate, response time, and error tracking
+-  Advanced filtering by status code, method, service, router
+-  Responsive design for desktop and mobile
+-  Modern UI with dark mode support
+-  Auto-refresh with configurable intervals
+-  Persistent agent configuration with SQLite
 
--  **Real-time Monitoring** - Live request tracking with auto-refresh
--  **Comprehensive Metrics** - Request rates, response times, status codes, error rates
--  **Geographic Analytics** - Request distribution with GeoIP support
--  **Interactive Charts** - Chart.js and D3.js powered visualizations
--  **System Monitoring** - CPU, memory, and disk usage tracking
--  **Multi-Agent Support** - Manage and monitor multiple Traefik instances
--  **Beautiful UI** - Modern responsive design with Tailwind CSS 4
--  **Advanced Filtering** - Filter logs by status code, time period, and more
--  **Multiple Log Formats** - JSON and Common Log Format (CLF) support
--  **Gzip Support** - Compressed log file handling
--  **Bearer Token Auth** - Secure API access
+### Multi-Agent Capabilities
+-  Manage unlimited agent connections
+-  Organize agents by location (on-site/off-site)
+-  Real-time status monitoring with health checks
+-  Tag and categorize agents
+-  Individual authentication tokens per agent
+-  Aggregate or individual agent views
+-  Protected environment agents (cannot delete from UI)
+
+### Agent Features
+-  High-performance Go-based log parser
+-  JSON and Common Log Format support
+-  Position tracking for efficient log reading
+-  MaxMind GeoIP database integration
+-  System resource monitoring
+-  Bearer token authentication
+-  RESTful API with comprehensive endpoints
 
 ---
 
 ##  Quick Start
 
-### Using Docker Compose (Recommended)
+### Prerequisites
+
+- Docker and Docker Compose
+- Traefik configured with JSON access logs
+- (Optional) MaxMind GeoIP databases for geolocation
+
+### Single Agent Setup
+
+1. **Create directory structure:**
 
 ```bash
-# Clone the repository
-git clone https://github.com/hhftechnology/traefik-log-dashboard.git
-cd traefik-log-dashboard
-
-# Create data directories for GeoIP
-mkdir -p ./data/geoip
-mkdir -p ./data/positions
-
-# Start services
-docker-compose up -d
-
-# Access the dashboard
-open http://localhost:3000
+mkdir -p traefik-dashboard/{data/{logs,geoip,positions,dashboard}}
+cd traefik-dashboard
 ```
 
-### Docker Compose Configuration
+2. **Create `docker-compose.yml`:**
 
 ```yaml
 services:
-  # Backend Agent - Parses logs and exposes API
+  # Traefik Log Dashboard Agent
   traefik-agent:
-    image: hhftechnology/traefik-log-dashboard-agent:latest
+    image: hhftechnology/traefik-log-dashboard-agent:dev-dashboard
     container_name: traefik-log-dashboard-agent
     restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
-      # Mount your Traefik log directory (read-only)
-      - /root/config/traefik/logs:/logs:ro
-      # Mount GeoIP databases (read-only)
-      - ./data/geoip:/geoip:ro
-      # Position tracking for incremental reads
+      - ./data/logs:/logs:ro
+      - ./data/geoip:/geoip:ro  # MaxMind GeoIP databases
       - ./data/positions:/data
     environment:
-      # Log file paths
+      # Log Paths
       - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
       - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
       
-      # Authentication (change this!)
+      # Authentication
       - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=d41d8cd98f00b204e9800998ecf8427e
       
-      # Enable system monitoring
+      # System Monitoring
       - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
       
       # GeoIP Configuration
@@ -195,10 +174,10 @@ services:
       - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
       - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
       
-      # Log format (json or clf)
+      # Log Format
       - TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json
       
-      # Server port
+      # Server Port
       - PORT=5000
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/logs/status"]
@@ -207,827 +186,407 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - pangolin
+      - traefik-network
 
-  # Frontend Dashboard - Web UI
+  # Traefik Log Dashboard - Next.js web UI
   traefik-dashboard:
-    image: hhftechnology/traefik-log-dashboard:latest
+    image: hhftechnology/traefik-log-dashboard:dev-dashboard
     container_name: traefik-log-dashboard
     restart: unless-stopped
+    user: "1001:1001"
     ports:
       - "3000:3000"
+    volumes:
+      - ./data/dashboard:/app/data
     environment:
-      # Agent connection
+      # Agent Configuration (Default/Environment Agent)
       - AGENT_API_URL=http://traefik-agent:5000
       - AGENT_API_TOKEN=d41d8cd98f00b204e9800998ecf8427e
+      - AGENT_NAME=Default Agent  # Optional: Name for environment agent
       
-      # Node environment
+      # Node Environment
       - NODE_ENV=production
       - PORT=3000
     depends_on:
       traefik-agent:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     networks:
-      - pangolin
+      - traefik-network
 
 networks:
-  pangolin:
+  traefik-network:
     external: true
 ```
+
+3. **Generate secure authentication token:**
+
+```bash
+# Generate a strong token
+openssl rand -hex 32
+
+# Update both TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN and AGENT_API_TOKEN with this value
+```
+
+4. **Start the services:**
+
+```bash
+docker compose up -d
+```
+
+5. **Access the dashboard:**
+
+Open your browser to http://localhost:3000
 
 ---
 
 ##  Multi-Agent Setup
 
-### Adding Multiple Agents
+To monitor multiple Traefik instances, deploy additional agents and register them in the dashboard.
 
-The dashboard supports managing multiple agent instances. Here's how to set up a multi-agent environment:
+### Option 1: Additional Environment Agents
 
-#### 1. Deploy Multiple Agents
-
-Create a `docker-compose.multi-agent.yml`:
+Add more agent services to your docker-compose.yml:
 
 ```yaml
 services:
-  # Production Agent
-  traefik-agent-prod:
-    image: hhftechnology/traefik-log-dashboard-agent:latest
-    container_name: traefik-agent-prod
-    ports:
-      - "5000:5000"
-    volumes:
-      - /var/log/traefik/prod:/logs:ro
-      - ./data/geoip:/geoip:ro
-      - ./data/positions-prod:/data
-    environment:
-      - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
-      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=prod_token_here
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
-
-  # Staging Agent
-  traefik-agent-staging:
-    image: hhftechnology/traefik-log-dashboard-agent:latest
-    container_name: traefik-agent-staging
+  traefik-agent-2:
+    image: hhftechnology/traefik-log-dashboard-agent:dev-dashboard
+    container_name: traefik-log-dashboard-agent-2
+    restart: unless-stopped
     ports:
       - "5001:5000"
     volumes:
-      - /var/log/traefik/staging:/logs:ro
+      - ./data/logs2:/logs:ro
       - ./data/geoip:/geoip:ro
-      - ./data/positions-staging:/data
+      - ./data/positions2:/data
     environment:
       - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
-      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=staging_token_here
+      - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
+      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=your_token_for_agent_2
+      - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
       - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+      - TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json
+      - PORT=5000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/logs/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - traefik-network
 
-  # Development Agent
-  traefik-agent-dev:
-    image: hhftechnology/traefik-log-dashboard-agent:latest
-    container_name: traefik-agent-dev
+  traefik-agent-3:
+    image: hhftechnology/traefik-log-dashboard-agent:dev-dashboard
+    container_name: traefik-log-dashboard-agent-3
+    restart: unless-stopped
     ports:
       - "5002:5000"
     volumes:
-      - /var/log/traefik/dev:/logs:ro
+      - ./data/logs3:/logs:ro
       - ./data/geoip:/geoip:ro
-      - ./data/positions-dev:/data
+      - ./data/positions3:/data
     environment:
       - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
-      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=dev_token_here
-
-  # Single Dashboard
-  traefik-dashboard:
-    image: hhftechnology/traefik-log-dashboard:latest
-    container_name: traefik-dashboard
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    depends_on:
-      - traefik-agent-prod
-      - traefik-agent-staging
-      - traefik-agent-dev
+      - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
+      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=your_token_for_agent_3
+      - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+      - TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json
+      - PORT=5000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/logs/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - traefik-network
 ```
 
-#### 2. Configure Agents in Dashboard
+### Option 2: Register Agents via Dashboard UI
 
-Navigate to **Settings → Agents** in the dashboard and add your agents:
+1. Navigate to **Settings → Agents** in the dashboard
+2. Click **Add Agent**
+3. Fill in agent details:
+   - **Name**: Descriptive name (e.g., "Production Datacenter")
+   - **URL**: Agent API endpoint (e.g., "http://agent-host:5000")
+   - **Token**: Authentication token for this agent
+   - **Location**: on-site or off-site
+   - **Description**: Optional notes
+   - **Tags**: Optional labels for organization
 
-1. Click **"Add Agent"**
-2. Enter agent details:
-   - **Name**: Production
-   - **URL**: http://traefik-agent-prod:5000
-   - **Token**: prod_token_here
-3. Click **"Save"**
-4. Repeat for staging and development agents
+4. Click **Save** to register the agent
 
-#### 3. Switch Between Agents
+### Option 3: Remote Agents
 
-Use the agent selector dropdown in the dashboard header to switch between different agent views.
+Deploy agents on different servers:
+
+**On Remote Server:**
+```bash
+docker run -d \
+  --name traefik-agent \
+  -p 5000:5000 \
+  -v /path/to/traefik/logs:/logs:ro \
+  -v /path/to/geoip:/geoip:ro \
+  -v /path/to/positions:/data \
+  -e TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log \
+  -e TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=your_secure_token \
+  -e TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true \
+  -e TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb \
+  -e TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb \
+  hhftechnology/traefik-log-dashboard-agent:dev-dashboard
+```
+
+**Register in Dashboard:**
+- URL: `http://remote-server-ip:5000`
+- Token: `your_secure_token`
+
+---
+
+##  Agent Database Management
+
+### Database Schema
+
+The dashboard uses SQLite to persist agent configurations:
+
+```sql
+CREATE TABLE agents (
+  id TEXT PRIMARY KEY,              -- Auto-generated: agent-001, agent-002, etc.
+  name TEXT NOT NULL,               -- Display name
+  url TEXT NOT NULL,                -- Agent API URL
+  token TEXT NOT NULL,              -- Authentication token
+  location TEXT NOT NULL,           -- 'on-site' or 'off-site'
+  number INTEGER NOT NULL,          -- Sequential number
+  status TEXT,                      -- 'online', 'offline', 'checking'
+  last_seen TEXT,                   -- ISO timestamp of last successful check
+  description TEXT,                 -- Optional description
+  tags TEXT,                        -- JSON array of tags
+  source TEXT NOT NULL DEFAULT 'manual',  -- 'env' or 'manual'
+  created_at TEXT NOT NULL,         -- Creation timestamp
+  updated_at TEXT NOT NULL          -- Last update timestamp
+);
+
+CREATE TABLE selected_agent (
+  id INTEGER PRIMARY KEY CHECK(id = 1),  -- Singleton table
+  agent_id TEXT NOT NULL,                -- Currently selected agent
+  updated_at TEXT NOT NULL               -- Selection timestamp
+);
+```
+
+### Agent Sources
+
+**Environment Agents (`source='env'`):**
+- Automatically synced from docker-compose.yml environment variables
+- Cannot be deleted from the dashboard UI
+- Displayed with a 🔒 lock icon
+- Updated on dashboard restart if environment changes
+
+**Manual Agents (`source='manual'`):**
+- Added through the dashboard UI
+- Fully editable and deletable
+- Stored persistently in SQLite database
+
+### Environment Agent Configuration
+
+Define agents in docker-compose.yml:
+
+```yaml
+traefik-dashboard:
+  environment:
+    # This creates a protected environment agent
+    - AGENT_API_URL=http://traefik-agent:5000
+    - AGENT_API_TOKEN=your_secure_token
+    - AGENT_NAME=Production Agent  # Optional, defaults to "Environment Agent"
+```
+
+The dashboard will automatically:
+1. Create/update agent with ID `agent-env-001`
+2. Mark it as `source='env'`
+3. Protect it from UI deletion
+4. Sync changes on restart
+
+### Database Location
+
+By default: `./data/dashboard/agents.db`
+
+Custom path:
+```yaml
+traefik-dashboard:
+  environment:
+    - DATABASE_PATH=/custom/path/agents.db
+```
+
+### Backup and Restore
+
+**Backup:**
+```bash
+# Copy the database file
+cp ./data/dashboard/agents.db ./backups/agents-$(date +%Y%m%d).db
+```
+
+**Restore:**
+```bash
+# Stop dashboard
+docker compose stop traefik-dashboard
+
+# Restore database
+cp ./backups/agents-20250101.db ./data/dashboard/agents.db
+
+# Start dashboard
+docker compose start traefik-dashboard
+```
 
 ---
 
 ##  GeoIP Database Setup
 
-GeoIP functionality requires MaxMind GeoLite2 databases. Here's how to set them up:
-
-### Step 1: Download GeoLite2 Databases
+### Download MaxMind Databases
 
 1. **Sign up for MaxMind account** (free):
-   - Visit: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
-   - Create a free account
+   https://www.maxmind.com/en/geolite2/signup
 
-2. **Download databases**:
+2. **Generate license key**:
+   - Login → Account → Manage License Keys
+   - Create new license key
+
+3. **Download databases manually**:
    ```bash
-   # Create directory
-   mkdir -p ./data/geoip
+   cd data/geoip
    
-   # Download GeoLite2-City (recommended)
-   # Download GeoLite2-Country (fallback)
+   # Download GeoLite2-City
+   wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=YOUR_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
+   
+   # Download GeoLite2-Country
+   wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=YOUR_LICENSE_KEY&suffix=tar.gz" -O GeoLite2-Country.tar.gz
+   
+   # Extract
+   tar -xzf GeoLite2-City.tar.gz --strip-components=1
+   tar -xzf GeoLite2-Country.tar.gz --strip-components=1
+   
+   # Clean up
+   rm *.tar.gz
    ```
 
-3. **Extract databases**:
+4. **Automated Updates** (using geoipupdate):
    ```bash
-   # Extract .tar.gz files
-   tar -xzf GeoLite2-City.tar.gz
-   tar -xzf GeoLite2-Country.tar.gz
-   
-   # Copy .mmdb files to data directory
-   cp GeoLite2-City_*/GeoLite2-City.mmdb ./data/geoip/
-   cp GeoLite2-Country_*/GeoLite2-Country.mmdb ./data/geoip/
+   docker run -d \
+     --name geoipupdate \
+     -v ./data/geoip:/usr/share/GeoIP \
+     -e GEOIPUPDATE_ACCOUNT_ID=your_account_id \
+     -e GEOIPUPDATE_LICENSE_KEY=your_license_key \
+     -e GEOIPUPDATE_EDITION_IDS="GeoLite2-City GeoLite2-Country" \
+     -e GEOIPUPDATE_FREQUENCY=168  # Update weekly
+     maxmindinc/geoipupdate
    ```
 
-### Step 2: Configure Agent
-
-Update your agent environment variables:
-
-```yaml
-environment:
-  # Enable GeoIP
-  - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
-  
-  # Database paths (inside container)
-  - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
-  - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
-```
-
-### Step 3: Mount Volume
-
-Ensure the GeoIP directory is mounted:
-
-```yaml
-volumes:
-  - ./data/geoip:/geoip:ro
-```
-
-### Step 4: Verify GeoIP Status
-
-Check if GeoIP is working:
+### Verify GeoIP Setup
 
 ```bash
-# Check agent logs
-docker logs traefik-log-dashboard-agent
+# Check files exist
+ls -lh data/geoip/
 
-# You should see:
-# GeoIP: Enabled
-# GeoIP: Successfully initialized
-```
+# Should show:
+# GeoLite2-City.mmdb
+# GeoLite2-Country.mmdb
 
-### GeoIP Features
-
-Once configured, you'll get:
-
-- **Country-level geolocation** for all IP addresses
-- **City-level geolocation** (if using City database)
-- **Latitude/Longitude coordinates** for mapping
-- **Private IP detection** (shows as "Private")
-- **Geographic distribution card** showing top countries
-- **Interactive world map** with request heatmap
-
-### Updating GeoIP Databases
-
-MaxMind updates databases regularly. Update them periodically:
-
-```bash
-# Download latest versions
-# Extract new databases
-# Replace old .mmdb files
-# Restart agent
-docker restart traefik-log-dashboard-agent
+# Test agent GeoIP endpoint
+curl -H "Authorization: Bearer your_token" \
+  http://localhost:5000/api/location/status
 ```
 
 ---
 
 ##  Dashboard Cards Explained
 
-The dashboard displays 15+ interactive cards providing comprehensive insights:
-
-### 1. **Request Metrics Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Total number of requests processed
-- Requests per second rate
-- Trend indicator (increase/decrease %)
-- Sparkline showing request activity
-
-**Use cases:**
-- Monitor traffic volume
-- Identify traffic spikes
-- Track growth trends
-
-**Metrics:**
-```
-Total Requests: 125,847
-Rate: 42.3 req/s
-Change: +15.2% ↑
-```
-</details>
-
-### 2. **Response Time Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Average response time (mean)
-- P95 percentile (95% of requests faster than this)
-- P99 percentile (99% of requests faster than this)
-- Response time distribution histogram
-
-**Use cases:**
-- Identify performance issues
-- Track backend latency
-- Set SLA targets
-
-**Metrics:**
-```
-Average: 245ms
-P95: 580ms
-P99: 1,240ms
-```
-</details>
-
-### 3. **Status Codes Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Distribution of HTTP status codes
-- 2xx (Success) - Green
-- 3xx (Redirects) - Blue
-- 4xx (Client Errors) - Yellow
-- 5xx (Server Errors) - Red
-- Overall error rate percentage
-
-**Use cases:**
-- Monitor service health
-- Identify error patterns
-- Track success rate
-
-**Metrics:**
-```
-2xx: 98,234 (78.1%)
-3xx: 15,432 (12.3%)
-4xx: 8,945 (7.1%)
-5xx: 3,236 (2.5%)
-Error Rate: 9.6%
-```
-</details>
-
-### 4. **Status Code Distribution Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Visual pie chart of status code distribution
-- Percentage breakdown
-- Color-coded segments
-
-**Use cases:**
-- Quick visual health check
-- Identify anomalies
-- Report generation
-
-</details>
-
-### 5. **Request Timeline Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Time-series chart of request volume
-- Request activity over time (last N minutes/hours)
-- Peak request rate indicator
-- Interactive chart with hover details
-
-**Use cases:**
-- Identify traffic patterns
-- Spot unusual activity
-- Capacity planning
-
-**Features:**
-- 20+ data points
-- Smooth line chart
-- Peak/min indicators
-</details>
-
-### 6. **Top Routes Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Most frequently requested paths
-- Request count per route
-- Average response time per route
-- HTTP method (GET, POST, etc.)
-- Percentage of total traffic
-
-**Use cases:**
-- Identify popular endpoints
-- Optimize frequently used routes
-- Plan caching strategy
-
-**Example:**
-```
-#1 /api/users        15,234 (12.1%)  avg: 145ms  GET
-#2 /api/products     12,847 (10.2%)  avg: 234ms  GET
-#3 /auth/login        8,456 (6.7%)   avg: 456ms  POST
-```
-</details>
-
-### 7. **Backend Services Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- List of backend services receiving traffic
-- Request count per service
-- Average response time
-- Error rate per service
-- Health status (Healthy/Warning/Critical)
-- Service URL
-
-**Health indicators:**
-- 🟢 Healthy: Error rate < 5%
-- 🟡 Warning: Error rate 5-10%
-- 🔴 Critical: Error rate > 10%
-
-**Use cases:**
-- Monitor backend health
-- Identify problematic services
-- Balance traffic distribution
-
-**Example:**
-```
-Service: api-backend
-  Requests: 45,234 (36%)
-  Avg Time: 234ms
-  Error Rate: 2.3% 🟢
-  URL: http://backend:8080
-```
-</details>
-
-### 8. **Routers Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Traefik routers handling requests
-- Request count per router
-- Average response time
-- Associated service
-- Traffic distribution bars
-
-**Use cases:**
-- Monitor router performance
-- Identify routing issues
-- Optimize rule matching
-
-**Example:**
-```
-#1 api-router → api-service
-   15,234 requests  avg: 234ms
-   [████████████████░░░░] 78%
-```
-</details>
-
-### 9. **Top Client IPs Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Most active client IP addresses
-- Request count per IP
-- Percentage of total traffic
-- Geographic location (if GeoIP enabled)
-
-**Use cases:**
-- Identify heavy users
-- Detect potential DDoS
-- Analyze traffic sources
-
-**Example:**
-```
-#1 192.168.1.100  12,345 (9.8%)  🇺🇸 USA
-#2 10.0.0.50       8,234 (6.5%)  🇬🇧 UK
-#3 172.16.0.10     5,678 (4.5%)  🇩🇪 Germany
-```
-</details>
-
-### 10. **Top Request Hosts Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Most requested hostnames/domains
-- Request count per host
-- Percentage breakdown
-
-**Use cases:**
-- Multi-tenant monitoring
-- Virtual host analysis
-- Traffic segmentation
-
-**Example:**
-```
-#1 api.example.com     45,234 (36%)
-#2 www.example.com     32,145 (25.6%)
-#3 staging.example.com 15,234 (12.1%)
-```
-</details>
-
-### 11. **Top Request Addresses Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Full client addresses (IP:Port)
-- Request count
-- Connection patterns
-
-**Use cases:**
-- Detailed client analysis
-- Connection pooling insights
-- Port usage patterns
-</details>
-
-### 12. **User Agents Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Browser/client type distribution
-- Request count per user agent
-- Percentage breakdown
-- Parsed browser names (Chrome, Firefox, Safari, etc.)
-
-**Use cases:**
-- Browser compatibility planning
-- Bot detection
-- Client analytics
-
-**Example:**
-```
-Chrome:  45,234 (36%)
-Firefox: 23,456 (18.7%)
-Safari:  18,234 (14.5%)
-Bot:     12,345 (9.8%)
-```
-</details>
-
-### 13. **Geographic Distribution Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Request distribution by country
-- Top 10 countries by traffic
-- Request count and percentage
-- Country flags
-
-**Requirements:**
-- GeoIP database configured
-
-**Use cases:**
-- Geographic traffic analysis
-- CDN planning
-- Regional performance insights
-
-**Example:**
-```
-🇺🇸 United States  34,567 (27.5%)
-🇬🇧 United Kingdom 23,456 (18.6%)
-🇩🇪 Germany        15,234 (12.1%)
-```
-</details>
-
-### 14. **Interactive Geographic Map Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- World map with request heatmap
-- Color-coded countries by traffic volume
-- Interactive hover information
-- Zoom and pan functionality
-
-**Requirements:**
-- GeoIP database with coordinates
-- D3.js visualization
-
-**Use cases:**
-- Visual traffic distribution
-- Presentations and reports
-- Geographic insights
-</details>
-
-### 15. **Recent Errors Card**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Latest error entries (4xx and 5xx)
-- Timestamp of error
-- HTTP method and path
-- Status code
-- Router and service involved
-- Error level (Warning/Error)
-
-**Color coding:**
-- 🟡 Warning: 4xx errors (client-side)
-- 🔴 Error: 5xx errors (server-side)
-
-**Use cases:**
-- Real-time error monitoring
-- Debugging issues
-- Alert investigation
-
-**Example:**
-```
-🔴 500 Internal Server Error
-   2024-10-15 14:23:45
-   POST /api/orders
-   Router: api-router → backend-service
-```
-</details>
-
-### 16. **System Resources Cards** (CPU, Memory, Disk)
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-
-**CPU Card:**
-- Current CPU usage percentage
-- Number of cores
-- Health status
-
-**Memory Card:**
-- Memory usage percentage
-- Used / Total memory
-- Available memory
-
-**Disk Card:**
-- Disk usage percentage
-- Used / Total space
-- Available space
-
-**Health indicators:**
-- 🟢 Healthy: < 70%
-- 🟡 Warning: 70-90%
-- 🔴 Critical: > 90%
-
-**Requirements:**
-- `TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true`
-
-**Use cases:**
-- Server health monitoring
-- Capacity planning
-- Resource optimization
-</details>
-
-### 17. **Recent Logs Table**
-
-<details>
-<summary>Click to expand</summary>
-
-**What it shows:**
-- Detailed table of recent log entries
-- Customizable columns
-- Sortable fields
-- Color-coded status codes
-- Expandable for full details
-
-**Default columns:**
-- Timestamp
-- Method
-- Path
-- Status
-- Duration
-- Client IP
-
-**Optional columns:**
-- Service Name
-- Router Name
-- Request Host
-- User Agent
-- Origin Duration
-- Overhead
-- And more...
-
-**Use cases:**
-- Detailed request inspection
-- Debugging specific requests
-- Log analysis
-</details>
+### Overview Cards
+
+**Total Requests**: Aggregate count of all HTTP requests processed
+
+**Average Response Time**: Mean response time across all requests (in milliseconds)
+
+**Error Rate**: Percentage of requests with 4xx or 5xx status codes
+
+**Active Services**: Number of unique Traefik services handling traffic
+
+### Geographic Cards
+
+**Top Countries**: Requests grouped by country (requires GeoIP)
+
+**Top Cities**: Requests grouped by city (requires GeoIP)
+
+**Interactive Map**: Geographic heatmap visualization
+
+### Traffic Analysis
+
+**Requests by Status Code**: Distribution of 2xx, 3xx, 4xx, 5xx responses
+
+**Top Services**: Most active Traefik services by request count
+
+**Top Routers**: Most active Traefik routers by request count
+
+**Methods Distribution**: HTTP methods (GET, POST, PUT, DELETE, etc.)
+
+### Performance Metrics
+
+**Response Time Chart**: Time-series graph of response times
+
+**Request Rate**: Requests per second/minute/hour
+
+**Slowest Endpoints**: Top 10 slowest routes by average response time
+
+**Error Timeline**: Time-series of error occurrences
 
 ---
 
 ##  Filter Logs & API Usage
 
-The agent exposes REST API endpoints with powerful filtering capabilities.
+### Dashboard Filters
+
+Available in the top toolbar:
+
+- **Time Range**: Last 1h, 6h, 24h, 7d, 30d, or custom range
+- **Status Codes**: Filter by 2xx, 3xx, 4xx, 5xx
+- **HTTP Methods**: GET, POST, PUT, DELETE, PATCH, OPTIONS
+- **Services**: Filter by Traefik service name
+- **Routers**: Filter by Traefik router name
+- **Search**: Free-text search across all fields
 
 ### API Endpoints
 
-#### 1. Get Access Logs
-```http
-GET /api/logs/access
-```
-
-**Query Parameters:**
-- `position` - Starting position for incremental read (default: 0)
-- `lines` - Number of lines to read (default: 1000)
-- `period` - Time period filter (e.g., `1h`, `24h`, `7d`)
-- `status` - Filter by status code (e.g., `200`, `404`, `500`)
-
-**Example:**
+**Get Logs:**
 ```bash
-curl -H "Authorization: Bearer your_token" \
-  "http://localhost:5000/api/logs/access?period=1h&lines=500"
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/logs/access?lines=100&status=200&method=GET"
 ```
 
-**Response:**
-```json
-{
-  "logs": [...],
-  "count": 500,
-  "position": 12345
-}
-```
-
-#### 2. Get Error Logs (4xx/5xx only)
-```http
-GET /api/logs/error
-```
-
-**Query Parameters:**
-- `position` - Starting position
-- `lines` - Number of lines (default: 100)
-- `period` - Time period filter
-- `status` - Specific status code filter
-
-**Example:**
+**Get Status:**
 ```bash
-curl -H "Authorization: Bearer your_token" \
-  "http://localhost:5000/api/logs/error?status=500&period=24h"
-```
-
-#### 3. Get Status Distribution
-```http
-GET /api/logs/status
-```
-
-**Example:**
-```bash
-curl -H "Authorization: Bearer your_token" \
+curl -H "Authorization: Bearer YOUR_TOKEN" \
   "http://localhost:5000/api/logs/status"
 ```
 
-**Response:**
-```json
-{
-  "total_requests": 125847,
-  "status_2xx": 98234,
-  "status_3xx": 15432,
-  "status_4xx": 8945,
-  "status_5xx": 3236,
-  "error_rate": 9.6
-}
-```
-
-#### 4. Get System Resources
-```http
-GET /api/system/resources
-```
-
-**Example:**
+**Get Metrics:**
 ```bash
-curl -H "Authorization: Bearer your_token" \
-  "http://localhost:5000/api/system/resources"
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/logs/metrics?period=1h"
 ```
 
-**Response:**
-```json
-{
-  "cpu": {
-    "usage_percent": 45.2,
-    "cores": 8
-  },
-  "memory": {
-    "total": 16384,
-    "used": 8192,
-    "usage_percent": 50.0
-  },
-  "disk": {
-    "total": 500000,
-    "used": 250000,
-    "usage_percent": 50.0
-  }
-}
-```
-
-#### 5. Get Log File Sizes
-```http
-GET /api/system/logs
-```
-
-**Example:**
+**GeoIP Lookup:**
 ```bash
-curl -H "Authorization: Bearer your_token" \
-  "http://localhost:5000/api/system/logs"
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/location/lookup?ip=8.8.8.8"
 ```
 
-### Time Period Formats
-
-Supported formats for `period` parameter:
-
-- `15m` - Last 15 minutes
-- `30m` - Last 30 minutes
-- `1h` - Last 1 hour
-- `3h` - Last 3 hours
-- `6h` - Last 6 hours
-- `12h` - Last 12 hours
-- `24h` - Last 24 hours
-- `7d` - Last 7 days
-- `30d` - Last 30 days
-
-### Status Code Filtering
-
-Filter by specific status codes or ranges:
-
+**System Stats:**
 ```bash
-# Specific status code
-?status=404
-
-# Success codes
-?status=200
-
-# All 4xx errors
-?status=4xx
-
-# All 5xx errors
-?status=5xx
-
-# Combine with period
-?status=500&period=1h
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/system/stats"
 ```
-
-### Incremental Log Reading
-
-The agent tracks reading positions to efficiently handle large log files:
-
-```bash
-# First request - start from beginning
-curl "http://localhost:5000/api/logs/access?lines=1000"
-# Response includes: "position": 45678
-
-# Next request - continue from last position
-curl "http://localhost:5000/api/logs/access?position=45678&lines=1000"
-```
-
-Position tracking is stored in the `/data` volume.
 
 ---
 
@@ -1035,107 +594,87 @@ Position tracking is stored in the `/data` volume.
 
 ### Agent Environment Variables
 
-```bash
-# Server Configuration
-PORT=5000                                    # Agent listening port
-
-# Log Paths
-TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log   # Access log file
-TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/traefik.log   # Error log file
-
-# Log Format
-TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json       # json or clf
-
-# System Monitoring
-TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true # Enable system stats
-
-# Authentication
-TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=your_token  # Bearer token (required)
-
-# GeoIP Configuration
-TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true                    # Enable GeoIP
-TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb       # City DB path
-TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb # Country DB path
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `TRAEFIK_LOG_DASHBOARD_ACCESS_PATH` | Path to Traefik access log | `/logs/access.log` | Yes |
+| `TRAEFIK_LOG_DASHBOARD_ERROR_PATH` | Path to Traefik error log | - | No |
+| `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN` | Bearer token for authentication | - | Yes |
+| `TRAEFIK_LOG_DASHBOARD_LOG_FORMAT` | Log format (json/common) | `json` | No |
+| `TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING` | Enable system monitoring | `true` | No |
+| `TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED` | Enable GeoIP lookups | `false` | No |
+| `TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB` | Path to GeoLite2-City.mmdb | - | If GeoIP enabled |
+| `TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB` | Path to GeoLite2-Country.mmdb | - | If GeoIP enabled |
+| `PORT` | Agent listen port | `5000` | No |
 
 ### Dashboard Environment Variables
 
-```bash
-# Agent Connection
-AGENT_API_URL=http://traefik-agent:5000      # Agent API endpoint
-AGENT_API_TOKEN=your_token                    # Authentication token
-
-# Application
-NODE_ENV=production                           # production or development
-PORT=3000                                     # Dashboard port
-```
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `AGENT_API_URL` | Default agent URL (for env agent) | - | Yes (for env agent) |
+| `AGENT_API_TOKEN` | Default agent token (for env agent) | - | Yes (for env agent) |
+| `AGENT_NAME` | Name for environment agent | `Environment Agent` | No |
+| `NODE_ENV` | Node environment | `production` | No |
+| `PORT` | Dashboard listen port | `3000` | No |
+| `DATABASE_PATH` | SQLite database location | `./data/agents.db` | No |
 
 ### Traefik Configuration
 
-Configure Traefik to output JSON logs:
+Configure Traefik to output JSON access logs:
 
-**traefik.yml:**
 ```yaml
+# traefik.yml
 accessLog:
-  filePath: "/var/log/traefik/access.log"
+  filePath: "/logs/access.log"
   format: json
+  bufferingSize: 100
+  
   fields:
     defaultMode: keep
+    names:
+      ClientUsername: drop
     headers:
       defaultMode: keep
-```
-
-**Or with CLI:**
-```bash
---accesslog=true
---accesslog.filepath=/var/log/traefik/access.log
---accesslog.format=json
+      names:
+        Authorization: drop
+        Cookie: drop
 ```
 
 ---
 
 ##  Performance
 
-### Benchmarks
+### Optimizations in v2.x
 
-| Component | Metric | Performance |
-|-----------|--------|-------------|
-| **Agent** | Log parsing | 100,000+ lines/second |
-| | Memory usage | ~50MB per 1M entries |
-| | API response time | <50ms average |
-| | CPU usage | <5% during normal operation |
-| **Dashboard** | Data points | 10,000+ smoothly |
-| | Update latency | <10ms UI refresh |
-| | Memory usage | ~100MB in browser |
-| **CLI** | UI refresh | <10ms |
-| | CPU usage | <5% |
+- **Parallel Fetching**: Dashboard fetches agents and selected agent in parallel
+- **Optimized State Management**: Direct state updates instead of full refreshes
+- **Position Tracking**: Agents only read new log entries, not entire file
+- **Database Indexing**: Indexes on `source` and `status` columns
+- **Efficient Date Handling**: Proper ISO string and Date object conversion
 
-### Optimization Tips
+### Resource Usage
 
-**For Large Log Files:**
-1. Use incremental reading with position tracking
-2. Enable Gzip compression on log files
-3. Rotate logs frequently
-4. Use the `lines` parameter to limit response size
+**Agent:**
+- CPU: ~5-10% (idle) / ~20-30% (heavy traffic)
+- Memory: ~50-100 MB
+- Disk: Minimal (position files < 1 KB)
 
-**For High Traffic:**
-1. Increase refresh interval
-2. Deploy multiple agent instances
-3. Use reverse proxy caching
-4. Enable log sampling in Traefik
+**Dashboard:**
+- CPU: ~5% (idle) / ~15% (active)
+- Memory: ~150-200 MB
+- Database: ~1-10 MB (depending on agent count)
 
-**Memory Management:**
-- Agent uses bounded memory buffers
-- Position tracking prevents re-reading old logs
-- Go garbage collection tuned for low latency
+### Scaling Recommendations
+
+- **< 1000 req/sec**: Single agent sufficient
+- **1000-10,000 req/sec**: Single agent with optimized log rotation
+- **> 10,000 req/sec**: Consider multiple agents with load balancing
+- **Multiple Locations**: Deploy agent per location for better latency
 
 ---
 
 ##  Troubleshooting
 
-### Common Issues
-
-#### 1. Dashboard Shows "Connection Error"
+### Dashboard Shows "Connection Error"
 
 **Symptoms:**
 - Red connection error banner
@@ -1149,14 +688,35 @@ docker ps | grep traefik-agent
 # Check agent logs
 docker logs traefik-log-dashboard-agent
 
-# Verify agent is accessible
-curl http://localhost:5000/api/logs/status
+# Verify agent is accessible from dashboard
+docker exec traefik-log-dashboard wget -O- http://traefik-agent:5000/api/logs/status
 
 # Check authentication token matches
-echo $AGENT_API_TOKEN
+docker exec traefik-agent env | grep AUTH_TOKEN
+docker exec traefik-dashboard env | grep AGENT_API_TOKEN
 ```
 
-#### 2. GeoIP Not Working
+### Cannot Delete Agent
+
+**Symptoms:**
+- Delete button disabled or shows error
+- Error: "Cannot delete environment-sourced agents"
+
+**Cause:** Agent is defined in docker-compose.yml environment variables
+
+**Solution:**
+```bash
+# Environment agents (source='env') are protected
+# They can only be removed by:
+# 1. Removing environment variables from docker-compose.yml
+# 2. Restarting the dashboard
+
+docker compose down
+# Edit docker-compose.yml - remove AGENT_API_URL and AGENT_API_TOKEN
+docker compose up -d
+```
+
+### GeoIP Not Working
 
 **Symptoms:**
 - Geographic cards show "No data"
@@ -1168,17 +728,22 @@ echo $AGENT_API_TOKEN
 ls -lh ./data/geoip/
 
 # Check agent logs for GeoIP errors
-docker logs traefik-log-dashboard-agent | grep GeoIP
+docker logs traefik-log-dashboard-agent | grep -i geoip
 
 # Verify environment variables
 docker exec traefik-agent env | grep GEOIP
 
 # Test GeoIP lookup
-curl -H "Authorization: Bearer token" \
+curl -H "Authorization: Bearer YOUR_TOKEN" \
   "http://localhost:5000/api/location/status"
+
+# Re-download databases if corrupted
+cd data/geoip
+rm *.mmdb
+# Follow GeoIP setup instructions above
 ```
 
-#### 3. No Logs Appearing
+### No Logs Appearing
 
 **Symptoms:**
 - Dashboard shows zero requests
@@ -1189,17 +754,18 @@ curl -H "Authorization: Bearer token" \
 # Verify log file path is correct
 docker exec traefik-agent ls -lh /logs/
 
-# Check log file permissions
-docker exec traefik-agent cat /logs/access.log
+# Check log file permissions (should be readable)
+docker exec traefik-agent cat /logs/access.log | head -5
 
 # Verify log format matches configuration
-head /path/to/traefik/access.log
+# Should be JSON format:
+docker exec traefik-agent head -1 /logs/access.log
 
 # Check Traefik is generating logs
-tail -f /path/to/traefik/access.log
+tail -f /path/to/your/traefik/logs/access.log
 ```
 
-#### 4. High Memory Usage
+### High Memory Usage
 
 **Symptoms:**
 - Agent consuming excessive memory
@@ -1207,60 +773,67 @@ tail -f /path/to/traefik/access.log
 
 **Solutions:**
 ```bash
-# Reduce lines per request
-AGENT_API_URL/api/logs/access?lines=100
-
 # Enable log rotation in Traefik
-# Reduce refresh interval in dashboard
-# Clear browser cache
+# traefik.yml:
+# accessLog:
+#   filePath: "/logs/access.log"
+#   maxSize: 100  # MB
+#   maxBackups: 3
+#   maxAge: 7     # days
 
-# Check for log file issues
-du -sh /path/to/traefik/logs/*
+# Reduce dashboard refresh interval
+# In UI: Settings → Refresh Interval → 30s or 60s
+
+# Check database size
+du -sh data/dashboard/agents.db
+
+# Vacuum database if large
+docker exec traefik-dashboard sqlite3 /app/data/agents.db "VACUUM;"
 ```
 
-#### 5. Authentication Failed
+### Agent Status Stuck on "Checking"
 
 **Symptoms:**
-- 401 Unauthorized errors
-- Cannot access API
+- Agent status never changes from "checking"
+- No lastSeen timestamp
 
 **Solutions:**
 ```bash
-# Verify token is set
-echo $TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN
+# Manually check agent status
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://agent-url:5000/api/logs/status
 
-# Test with curl
-curl -H "Authorization: Bearer your_token" \
-  http://localhost:5000/api/logs/status
+# Check network connectivity
+docker exec traefik-dashboard ping -c 3 traefik-agent
 
-# Check dashboard environment
-docker exec traefik-dashboard env | grep TOKEN
+# Verify token is correct
+# In Dashboard: Settings → Agents → Edit Agent → Update Token
 
-# Restart services with correct token
-docker-compose restart
+# Force status refresh
+# In Dashboard: Settings → Agents → Click refresh button
 ```
 
-### Getting Help
+### Database Locked Error
 
-If you're still experiencing issues:
+**Symptoms:**
+- Error: "database is locked"
+- Agent operations fail
 
-1. **Check Logs:**
-   ```bash
-   docker-compose logs -f
-   ```
+**Solutions:**
+```bash
+# Stop dashboard
+docker compose stop traefik-dashboard
 
-2. **Enable Debug Mode:**
-   ```yaml
-   environment:
-     - LOG_LEVEL=debug
-   ```
+# Check for stale locks
+ls -la data/dashboard/
 
-3. **Join Discord:**
-   - https://discord.gg/HDCt9MjyMJ
+# Remove lock files if present
+rm data/dashboard/agents.db-shm
+rm data/dashboard/agents.db-wal
 
-4. **Open GitHub Issue:**
-   - https://github.com/hhftechnology/traefik-log-dashboard/issues
-   - Include logs and configuration
+# Restart dashboard
+docker compose start traefik-dashboard
+```
 
 ---
 
@@ -1271,6 +844,7 @@ If you're still experiencing issues:
 - **CLI Documentation**: [./cli/README.md](./cli/README.md)
 - **API Reference**: [./docs/API.md](./docs/API.md)
 - **Architecture Guide**: [./docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- **Migration Guide V1→V2**: [./docs/MigrationV1toV2.md](./docs/MigrationV1toV2.md)
 
 ---
 
@@ -1288,18 +862,7 @@ Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.m
 
 ##  License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
----
-
-##  Acknowledgments
-
-- [Traefik](https://traefik.io/) - Excellent cloud-native reverse proxy
-- [Next.js](https://nextjs.org/) - Powerful React framework
-- [Chart.js](https://www.chartjs.org/) - Beautiful charts
-- [D3.js](https://d3js.org/) - Data visualization library
-- [MaxMind](https://www.maxmind.com/) - GeoIP database provider
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea) - TUI framework
+This project is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE - see the [LICENSE](LICENSE) file for details.
 
 ---
 

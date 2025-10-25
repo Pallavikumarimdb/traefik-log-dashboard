@@ -1,36 +1,32 @@
-# Traefik Log Dashboard Migration Guide
-## From v1.x (OTLP-based) to v2.x (Agent-based)
-
----
+# Migration Guide: Traefik Log Dashboard V1 to V2
 
 ##  Overview
 
-This guide will help you migrate from the OTLP-based architecture (v2.x) to the new agent-based architecture (v3.x).
-
-### Key Changes
-
-| Aspect | v1.x (Old) | v2.x (New) |
-|--------|-----------|-----------|
-| **Architecture** | Monolithic backend + frontend | Agent + Dashboard (decoupled) |
-| **Backend Port** | 3001 | 5000 |
-| **OTLP Support** |  Direct receiver (4317/4318) |  Removed (logs only) |
-| **Authentication** | None |  Token-based |
-| **Log Parsing** | Direct file watching | Position-tracked incremental |
-| **Real-time Updates** | WebSocket | API polling |
-| **Frontend** | React + Shadcn UI | Next.js 15 + Shadcn UI |
-| **GeoIP Config** | Single DB path | Separate City + Country DBs |
-| **Data Persistence** | In-memory only | Position tracking in `/data` |
+This guide will help you migrate from Traefik Log Dashboard V1.x (monolithic backend with OTLP tracing) to V2.x (multi-agent architecture with persistent database).
 
 ---
 
-## ⚠️ Breaking Changes
+##  Key Changes in V2
 
-### 1. **OTLP Tracing Removed**
-The new architecture focuses on log file parsing only. If you require OpenTelemetry tracing:
+### 1. **Architecture Overhaul**
+```diff
+- Monolithic backend (Node.js/Express)
++ Agent-based architecture (Go)
++ Multi-agent support with centralized dashboard
++ SQLite database for persistent agent configuration
+```
+
+### 2. **OpenTelemetry Removal**
+```diff
+- OTLP tracing support (gRPC/HTTP)
++ Log-based analytics only
+```
+
+If you require OpenTelemetry tracing:
 - Consider using dedicated OTLP collectors (Jaeger, Tempo, Grafana)
 - The dashboard now provides log-based analytics only
 
-### 2. **Port Changes**
+### 3. **Port Changes**
 ```diff
 - Backend: 3001 → Agent: 5000
 - OTLP GRPC: 4317 (removed)
@@ -38,15 +34,28 @@ The new architecture focuses on log file parsing only. If you require OpenTeleme
   Frontend: 3000 (unchanged)
 ```
 
-### 3. **Authentication Required**
+### 4. **Authentication Required**
 Agent and dashboard now require token authentication:
 ```diff
 - No authentication
 + Bearer token authentication between components
 ```
 
-### 4. **Environment Variable Changes**
-Complete restructuring of environment variables (see mapping table below).
+### 5. **Database Introduction**
+```diff
+- In-memory/localStorage agent configuration
++ SQLite database for persistent agent storage
++ Protected environment agents
++ Agent status tracking with lastSeen timestamps
+```
+
+### 6. **Bug Fixes and Improvements**
+- ✅ Fixed date handling (proper ISO string and Date object conversion)
+- ✅ Enhanced error messages for delete operations
+- ✅ Parallel fetching for improved performance
+- ✅ Optimized state management
+- ✅ Better agent status tracking
+- ✅ Protected environment agents cannot be deleted from UI
 
 ---
 
@@ -74,6 +83,12 @@ Complete restructuring of environment variables (see mapping table below).
 - [ ] **Remove OTLP from Traefik**
   - New version doesn't support OTLP
   - Update Traefik config to keep JSON logging only
+
+- [ ] **Generate secure tokens**
+  ```bash
+  # Generate strong authentication tokens
+  openssl rand -hex 32
+  ```
 
 ---
 
@@ -109,6 +124,16 @@ accessLog:
   filePath: "/logs/access.log"
   format: json
   bufferingSize: 100
+  
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+    headers:
+      defaultMode: keep
+      names:
+        Authorization: drop
+        Cookie: drop
 ```
 
 **Apply changes:**
@@ -123,9 +148,11 @@ docker compose restart traefik
 # Create required directories
 mkdir -p data/geoip
 mkdir -p data/positions
+mkdir -p data/dashboard  # NEW: For SQLite database
 
 # Set proper permissions
-chmod 755 data/geoip data/positions
+chmod 755 data/geoip data/positions data/dashboard
+chown -R 1001:1001 ./data/dashboard
 ```
 
 ### Step 4: Download GeoIP Databases (Optional)
@@ -133,53 +160,58 @@ chmod 755 data/geoip data/positions
 If using geolocation features:
 
 ```bash
-# Option 1: Using MaxMind license key
-export MAXMIND_LICENSE_KEY="your_license_key_here"
+cd data/geoip
 
-# Download databases
-wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=${MAXMIND_LICENSE_KEY}&suffix=tar.gz" -O GeoLite2-City.tar.gz
-wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=${MAXMIND_LICENSE_KEY}&suffix=tar.gz" -O GeoLite2-Country.tar.gz
+# Download using MaxMind license key
+wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=YOUR_KEY&suffix=tar.gz" -O GeoLite2-City.tar.gz
+
+wget "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=YOUR_KEY&suffix=tar.gz" -O GeoLite2-Country.tar.gz
 
 # Extract
-tar -xzf GeoLite2-City.tar.gz
-tar -xzf GeoLite2-Country.tar.gz
+tar -xzf GeoLite2-City.tar.gz --strip-components=1
+tar -xzf GeoLite2-Country.tar.gz --strip-components=1
 
-# Move to data directory
-mv GeoLite2-City_*/GeoLite2-City.mmdb data/geoip/
-mv GeoLite2-Country_*/GeoLite2-Country.mmdb data/geoip/
+# Clean up
+rm *.tar.gz
 
-# Cleanup
-rm -rf GeoLite2-*.tar.gz GeoLite2-City_* GeoLite2-Country_*
-
-# Option 2: Skip GeoIP
-# Set TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=false in compose file
+cd ../..
 ```
 
-### Step 5: Create New Docker Compose File
+Sign up for free MaxMind account: https://www.maxmind.com/en/geolite2/signup
 
-Replace your old `docker-compose.yml` with the new configuration:
+### Step 5: Generate Authentication Token
+
+```bash
+# Generate a cryptographically secure token
+TOKEN=$(openssl rand -hex 32)
+echo "Generated token: $TOKEN"
+echo "⚠️  IMPORTANT: Save this token securely!"
+```
+
+### Step 6: Create New docker-compose.yml
+
+Replace your old docker-compose.yml with:
 
 ```yaml
-# docker-compose.yml
 services:
   # Traefik Log Dashboard Agent
   traefik-agent:
-    image: hhftechnology/traefik-log-dashboard-agent:latest
+    image: hhftechnology/traefik-log-dashboard-agent:dev-dashboard
     container_name: traefik-log-dashboard-agent
     restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
-      - /path/to/traefik/logs:/logs:ro  # ⚠️ UPDATE THIS PATH
-      - ./data/geoip:/geoip:ro
-      - ./data/positions:/data
+      - ./data/logs:/logs:ro                # Your Traefik logs
+      - ./data/geoip:/geoip:ro             # GeoIP databases
+      - ./data/positions:/data              # Position tracking
     environment:
       # Log Paths
       - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
       - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
       
-      # Authentication - GENERATE A STRONG TOKEN
-      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=YOUR_SECRET_TOKEN_HERE  # ⚠️ CHANGE THIS
+      # Authentication - REPLACE WITH YOUR TOKEN
+      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=YOUR_GENERATED_TOKEN_HERE
       
       # System Monitoring
       - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
@@ -201,19 +233,23 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - traefik-network  # ⚠️ UPDATE TO YOUR NETWORK NAME
+      - traefik-network
 
   # Traefik Log Dashboard - Next.js web UI
   traefik-dashboard:
-    image: hhftechnology/traefik-log-dashboard:latest
+    image: hhftechnology/traefik-log-dashboard:dev-dashboard
     container_name: traefik-log-dashboard
     restart: unless-stopped
+    user: "1001:1001"
     ports:
       - "3000:3000"
+    volumes:
+      - ./data/dashboard:/app/data         # NEW: SQLite database storage
     environment:
-      # Agent Configuration
+      # Agent Configuration - REPLACE WITH YOUR TOKEN
       - AGENT_API_URL=http://traefik-agent:5000
-      - AGENT_API_TOKEN=YOUR_SECRET_TOKEN_HERE  # ⚠️ MUST MATCH AGENT TOKEN
+      - AGENT_API_TOKEN=YOUR_GENERATED_TOKEN_HERE
+      - AGENT_NAME=Default Agent           # Optional: Custom name
       
       # Node Environment
       - NODE_ENV=production
@@ -221,43 +257,33 @@ services:
     depends_on:
       traefik-agent:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     networks:
-      - traefik-network  # ⚠️ UPDATE TO YOUR NETWORK NAME
+      - traefik-network
 
 networks:
-  traefik-network:  # ⚠️ UPDATE TO YOUR NETWORK NAME
+  traefik-network:
     external: true
 ```
 
-**Critical Configuration Updates:**
-1. **Line 8**: Update log path to match your Traefik logs location
-2. **Line 15**: Generate a strong authentication token
-3. **Line 40**: Use the **same token** as the agent
-4. **Lines 47, 58**: Update network name to match your setup
+** Important Configuration Notes:**
 
-### Step 6: Generate Authentication Token
+1. Replace `YOUR_GENERATED_TOKEN_HERE` with the token you generated in Step 5
+2. Ensure both `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN` and `AGENT_API_TOKEN` use the **same token**
+3. Update network name (`traefik-network`) to match your existing Traefik network
+4. Adjust log paths (`./data/logs`) to point to your actual Traefik logs directory
+
+### Step 7: Update Log Volume Paths
 
 ```bash
-# Generate a secure random token
-openssl rand -hex 32
-
-# Or use this
-echo -n "my-secret-password" | md5sum | cut -d' ' -f1
-
-# Example output: d41d8cd98f00b204e9800998ecf8427e
+# If your Traefik logs are in a different location:
+# Update the volume mount in docker-compose.yml
+# Example:
+# - /var/log/traefik:/logs:ro
+# OR
+# - /opt/traefik/logs:/logs:ro
 ```
 
-**Update both services with this token:**
-- Agent: `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN`
-- Dashboard: `AGENT_API_TOKEN`
-
-### Step 7: Start New Services
+### Step 8: Start New Services
 
 ```bash
 # Pull latest images
@@ -266,89 +292,115 @@ docker compose pull
 # Start services
 docker compose up -d
 
-# Check logs
+# Watch logs to ensure successful startup
 docker compose logs -f
-
-# Verify services are healthy
-docker compose ps
 ```
 
-### Step 8: Verify Migration
+### Step 9: Verify Migration
 
-1. **Check Agent Health:**
-   ```bash
-   curl http://localhost:5000/api/logs/status
-   # Expected: {"status":"ok","access_log":...}
-   ```
+```bash
+# Check agent health
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:5000/api/logs/status
 
-2. **Check Dashboard:**
-   ```bash
-   # Open browser
-   open http://localhost:3000
-   
-   # Or test with curl
-   curl -I http://localhost:3000
-   ```
+# Should return: {"status":"ok","logPath":"/logs/access.log",...}
 
-3. **Test Authentication:**
-   ```bash
-   # Should fail without token
-   curl http://localhost:5000/api/logs/access
-   # Expected: 401 Unauthorized
-   
-   # Should succeed with token
-   curl -H "Authorization: Bearer YOUR_TOKEN" \
-        http://localhost:5000/api/logs/access
-   ```
+# Check dashboard is accessible
+curl http://localhost:3000
 
-4. **Check GeoIP (if enabled):**
-   ```bash
-   curl -H "Authorization: Bearer YOUR_TOKEN" \
-        http://localhost:5000/api/location/status
-   # Expected: {"enabled":true,"available":true,...}
-   ```
+# Check database was created
+ls -lh data/dashboard/agents.db
+```
+
+### Step 10: Access Dashboard
+
+1. Open browser to http://localhost:3000
+2. Verify agent connection status (should show green/online)
+3. Check that logs are being displayed
+4. Test GeoIP if enabled (geographic cards should populate)
 
 ---
 
-## 🔧 Configuration Mapping
+##  Environment Variable Mapping
 
-### Environment Variables
+### Agent Variables
 
-| v1.x (Old) | v2.x (New) | Notes |
-|-----------|-----------|-------|
-| `TRAEFIK_LOG_PATH` | `TRAEFIK_LOG_DASHBOARD_ACCESS_PATH` | Now separate access/error paths |
-| `PORT` (3001) | `PORT` (5000) | Agent runs on 5000 |
-| `FRONTEND_PORT` | `PORT` (3000) | Dashboard uses standard PORT |
-| `USE_MAXMIND` | `TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED` | Boolean flag |
-| `MAXMIND_DB_PATH` | `TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB` | Separate city DB |
-| - | `TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB` | New: Country DB |
-| `OTLP_ENABLED` | ❌ Removed | OTLP not supported |
-| `OTLP_GRPC_PORT` | ❌ Removed | OTLP not supported |
-| `OTLP_HTTP_PORT` | ❌ Removed | OTLP not supported |
-| - | `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN` | New: Required auth |
-| - | `TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING` | New: System metrics |
-| - | `TRAEFIK_LOG_DASHBOARD_LOG_FORMAT` | New: json or clf |
-| - | `AGENT_API_URL` | New: Dashboard → Agent URL |
-| - | `AGENT_API_TOKEN` | New: Dashboard auth token |
-| `GOGC` | - | Agent handles GC internally |
-| `GOMEMLIMIT` | - | Agent handles memory internally |
+| V1.x Variable | V2.x Variable | Notes |
+|--------------|---------------|-------|
+| N/A (backend) | `TRAEFIK_LOG_DASHBOARD_ACCESS_PATH` | Path to Traefik access log |
+| N/A (backend) | `TRAEFIK_LOG_DASHBOARD_ERROR_PATH` | Optional error log path |
+| N/A | `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN` | **NEW**: Required authentication |
+| N/A | `TRAEFIK_LOG_DASHBOARD_LOG_FORMAT` | Log format (json/common) |
+| N/A | `TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING` | Enable system stats |
+| N/A | `TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED` | Enable GeoIP lookups |
+| N/A | `TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB` | Path to GeoLite2-City.mmdb |
+| N/A | `TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB` | Path to GeoLite2-Country.mmdb |
+| N/A | `PORT` | Agent listen port (default: 5000) |
 
-### Docker Compose Services
+### Dashboard Variables
 
-| v2.x (Old) | v3.x (New) | Changes |
-|-----------|-----------|---------|
-| `backend` | `traefik-agent` | Renamed, port 5000 |
-| `frontend` | `traefik-dashboard` | Renamed, Next.js based |
-| - | - | Position tracking volume added |
-| `maxmind-updater` | Manual | Run separately if needed |
-| `sample-app` | ❌ Removed | Not in agent version |
-| `traffic-generator` | ❌ Removed | Not in agent version |
+| V1.x Variable | V2.x Variable | Notes |
+|--------------|---------------|-------|
+| `BACKEND_URL` | `AGENT_API_URL` | Changed from backend to agent |
+| N/A | `AGENT_API_TOKEN` | **NEW**: Required authentication |
+| N/A | `AGENT_NAME` | **NEW**: Name for environment agent |
+| N/A | `DATABASE_PATH` | **NEW**: SQLite database location |
+| `NODE_ENV` | `NODE_ENV` | Unchanged |
+| `PORT` | `PORT` | Unchanged (default: 3000) |
 
 ---
 
-##  Security Enhancements
+##  Database Features (New in V2)
 
-The new version includes several security improvements:
+### Agent Database Schema
+
+V2 introduces persistent SQLite storage:
+
+```sql
+CREATE TABLE agents (
+  id TEXT PRIMARY KEY,                    -- agent-001, agent-002, etc.
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  token TEXT NOT NULL,
+  location TEXT NOT NULL,                 -- 'on-site' or 'off-site'
+  number INTEGER NOT NULL,
+  status TEXT,                           -- 'online', 'offline', 'checking'
+  last_seen TEXT,                        -- ISO timestamp
+  description TEXT,
+  tags TEXT,                             -- JSON array
+  source TEXT NOT NULL DEFAULT 'manual', -- 'env' or 'manual'
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+### Environment vs Manual Agents
+
+**Environment Agents (source='env'):**
+- Defined in docker-compose.yml via `AGENT_API_URL` and `AGENT_API_TOKEN`
+- Automatically synced on dashboard startup
+- **Cannot be deleted from UI** (protected with 🔒 icon)
+- Can only be removed by updating docker-compose.yml and restarting
+
+**Manual Agents (source='manual'):**
+- Added through dashboard UI
+- Fully editable and deletable
+- Stored persistently in SQLite database
+
+### Database Location
+
+Default: `./data/dashboard/agents.db`
+
+Custom location:
+```yaml
+traefik-dashboard:
+  environment:
+    - DATABASE_PATH=/custom/path/agents.db
+```
+
+---
+
+##  Security Improvements
 
 ### 1. Authentication
 ```yaml
@@ -378,7 +430,114 @@ healthcheck:
 
 ---
 
-##  Troubleshooting
+##  Bug Fixes in V2
+
+### 1. Date Handling Fixed
+**Issue**: lastSeen dates were not properly converted between ISO strings and Date objects
+
+**Fix**: 
+```typescript
+// Proper handling of both Date objects and ISO strings
+if (updates.lastSeen instanceof Date) {
+  values.push(updates.lastSeen.toISOString());
+} else if (typeof updates.lastSeen === 'string') {
+  values.push(updates.lastSeen);
+}
+```
+
+### 2. Enhanced Delete Error Messages
+**Issue**: Generic "Failed to delete agent" error
+
+**Fix**:
+```typescript
+// Specific error messages for different scenarios
+if (errorMessage.includes('environment-sourced')) {
+  toast.error('Cannot Delete Environment Agent', {
+    description: 'This agent is configured in environment variables...'
+  });
+} else if (errorMessage.includes('not found')) {
+  toast.error('Agent Not Found', {
+    description: 'The agent you are trying to delete no longer exists.'
+  });
+}
+```
+
+### 3. Optimized State Management
+**Issue**: Full page refresh on every agent operation
+
+**Fix**:
+```typescript
+// Direct state updates instead of full refresh
+setAgents(prev => prev.filter(a => a.id !== id));
+```
+
+### 4. Parallel Fetching
+**Issue**: Sequential loading of agents and selected agent
+
+**Fix**:
+```typescript
+// Fetch agents and selected agent in parallel
+const [agentsData, selectedData] = await Promise.all([
+  fetchAgents(),
+  fetchSelectedAgent()
+]);
+```
+
+### 5. Protected Environment Agents
+**Issue**: Environment agents could be deleted, breaking configuration
+
+**Fix**:
+```typescript
+// Check agent source before deletion
+if (agent?.source === 'env') {
+  throw new Error('Cannot delete environment-sourced agents');
+}
+```
+
+---
+
+##  Multi-Agent Setup (New Feature)
+
+V2 supports monitoring multiple Traefik instances:
+
+### Option 1: Additional Agents in docker-compose.yml
+
+```yaml
+services:
+  traefik-agent-2:
+    image: hhftechnology/traefik-log-dashboard-agent:dev-dashboard
+    container_name: traefik-log-dashboard-agent-2
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./data/logs2:/logs:ro
+      - ./data/geoip:/geoip:ro
+      - ./data/positions2:/data
+    environment:
+      - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
+      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=different_token_for_agent_2
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+      - PORT=5000
+    networks:
+      - traefik-network
+```
+
+### Option 2: Add Agents via Dashboard UI
+
+1. Navigate to **Settings → Agents**
+2. Click **Add Agent**
+3. Fill in details:
+   - Name: "Production Server"
+   - URL: http://agent-host:5000
+   - Token: agent_authentication_token
+   - Location: on-site/off-site
+4. Click **Save**
+
+---
+
+##  Common Migration Issues
 
 ### Issue: Agent Returns 401 Unauthorized
 
@@ -387,8 +546,8 @@ healthcheck:
 **Solution:**
 ```bash
 # Verify tokens match in both services
-docker compose exec traefik-agent printenv | grep TOKEN
-docker compose exec traefik-dashboard printenv | grep TOKEN
+docker exec traefik-agent env | grep AUTH_TOKEN
+docker exec traefik-dashboard env | grep AGENT_API_TOKEN
 
 # Update if different
 docker compose down
@@ -403,10 +562,10 @@ docker compose up -d
 **Solution:**
 ```bash
 # Check agent can read logs
-docker compose exec traefik-agent ls -la /logs
+docker exec traefik-agent ls -la /logs
 
-# Verify log format
-docker compose exec traefik-agent head -1 /logs/access.log
+# Verify log format is JSON
+docker exec traefik-agent head -1 /logs/access.log
 
 # Should be JSON like:
 # {"ClientAddr":"192.168.1.1:12345","RequestMethod":"GET",...}
@@ -440,7 +599,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 **Solution:**
 ```bash
 # Check if agent is accessible from dashboard
-docker compose exec traefik-dashboard wget -O- http://traefik-agent:5000/api/logs/status
+docker exec traefik-dashboard wget -O- http://traefik-agent:5000/api/logs/status
 
 # If fails, verify network:
 docker network ls
@@ -449,39 +608,78 @@ docker network inspect traefik-network
 # Ensure both services are on same network
 ```
 
+### Issue: Database Locked Error
+
+**Cause:** SQLite database locked by another process
+
+**Solution:**
+```bash
+# Stop dashboard
+docker compose stop traefik-dashboard
+
+# Check for stale locks
+ls -la data/dashboard/
+
+# Remove lock files
+rm data/dashboard/agents.db-shm
+rm data/dashboard/agents.db-wal
+
+# Restart dashboard
+docker compose start traefik-dashboard
+```
+### Issue: Database not getting created
+```bash
+# 1. Stop the dashboard
+docker compose down traefik-dashboard
+
+# 2. Create and fix permissions
+mkdir -p ./data/dashboard
+sudo chown -R 1001:1001 ./data/dashboard
+
+# 3. Restart
+docker compose up -d traefik-dashboard
+
+# 4. Check logs
+docker compose logs -f traefik-dashboard
+```
+### Issue: Cannot Delete Agent from UI
+
+**Cause:** Agent is environment-sourced (defined in docker-compose.yml)
+
+**Solution:**
+```bash
+# Environment agents are protected and show 🔒 icon
+# To remove:
+# 1. Edit docker-compose.yml
+# 2. Remove AGENT_API_URL and AGENT_API_TOKEN
+# 3. Restart dashboard
+
+docker compose down
+# Edit docker-compose.yml
+docker compose up -d
+```
+
 ### Issue: High Memory Usage
 
 **Cause:** Large log files or many requests
 
 **Solution:**
 ```yaml
-# Add position tracking to reduce memory
-# Already configured in new version via:
-volumes:
-  - ./data/positions:/data
+# Enable log rotation in Traefik
+# traefik.yml:
+accessLog:
+  filePath: "/logs/access.log"
+  maxSize: 100  # MB
+  maxBackups: 3
+  maxAge: 7     # days
 
-# Agent only keeps recent logs in memory
-# Older entries are tracked by position file
-```
-
-### Issue: Permission Denied on Position File
-
-**Cause:** Container user can't write to /data
-
-**Solution:**
-```bash
-# Fix permissions
-sudo chown -R 1000:1000 data/positions
-chmod 755 data/positions
-
-# Or use bind mount with proper user
-volumes:
-  - ./data/positions:/data:rw
+# Position tracking automatically prevents full file reads
+# Agent only reads new entries since last position
 ```
 
 ---
 
-##  Rollback Procedure(Not advised)
+##  Rollback Procedure
 
 If you need to revert to v1.x:
 
@@ -512,65 +710,18 @@ curl http://localhost:3001/health
 curl http://localhost:3000
 ```
 
----
-
-##  Feature Comparison
-
-### What's New in v2.x 
-
--  Agent-based architecture (better scalability)
--  Token-based authentication
--  Position-tracked incremental log reading
--  Separate access and error log support
--  System resource monitoring
--  Next.js 15 with React 19 dashboard
--  Improved GeoIP with separate databases
--  Better health checks and monitoring
-
-### What's Removed in v2.x ⚠️
-
--  OTLP tracing support (use dedicated collectors)
--  WebSocket real-time updates (replaced with API polling)
--  Sample app and traffic generator
--  MaxMind auto-updater (manual download)
-
-### What's Changed in v2.x 
-
-- Port 3001 → 5000 for backend/agent
-- Single backend → Decoupled agent + dashboard
-- React → Next.js 15 frontend
-- Direct log watching → Position-tracked parsing
-- No auth → Token required
-
----
-
-##  Additional Resources
-
-### Documentation
-- [Agent API Reference](https://github.com/hhftechnology/traefik-log-dashboard/blob/main/agent/README.md)
-- [Dashboard Configuration](https://github.com/hhftechnology/traefik-log-dashboard/blob/main/dashboard/README.md)
-- [Architecture Overview](https://github.com/hhftechnology/traefik-log-dashboard/blob/main/docs/ARCHITECTURE.md)
-
-### Support
-- [GitHub Issues](https://github.com/hhftechnology/traefik-log-dashboard/issues)
-- [Discord Community](https://discord.gg/HDCt9MjyMJ)
-- [GitHub Discussions](https://github.com/hhftechnology/traefik-log-dashboard/discussions)
-
-### MaxMind GeoIP
-- [Sign up for free account](https://www.maxmind.com/en/geolite2/signup)
-- [GeoLite2 Documentation](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
-- [Database Updates](https://dev.maxmind.com/geoip/updating-databases)
+** Note**: Rollback is NOT advised as v1.x is no longer maintained
 
 ---
 
 ##  Post-Migration Checklist
 
 - [ ] Old services stopped and removed
-- [ ] New docker-compose.yml configured
-- [ ] Strong authentication token generated and set
+- [ ] New docker-compose.yml configured with strong tokens
 - [ ] Log paths verified and accessible
 - [ ] GeoIP databases downloaded (if using)
 - [ ] Data directories created with proper permissions
+- [ ] SQLite database initialized (./data/dashboard/agents.db exists)
 - [ ] New services started successfully
 - [ ] Health checks passing
 - [ ] Dashboard accessible at http://localhost:3000
@@ -578,6 +729,8 @@ curl http://localhost:3000
 - [ ] Authentication working correctly
 - [ ] Logs appearing in dashboard
 - [ ] GeoIP lookups working (if enabled)
+- [ ] Environment agent showing in UI with 🔒 icon
+- [ ] Manual agents can be added/edited/deleted
 - [ ] Old Traefik OTLP config removed
 - [ ] Backups saved for rollback if needed
 - [ ] Documentation updated with new endpoints
@@ -585,102 +738,90 @@ curl http://localhost:3000
 
 ---
 
-##  Quick Migration Script
+##  Feature Comparison
 
-For automated migration (use with caution):
+### What's New in v2.x 
 
-```bash
-#!/bin/bash
-set -e
+- ✅ Multi-agent architecture (unlimited agents)
+- ✅ Persistent SQLite database
+- ✅ Protected environment agents
+- ✅ Agent health monitoring with lastSeen timestamps
+- ✅ Enhanced error messages
+- ✅ Parallel data fetching
+- ✅ Optimized state management
+- ✅ Proper date handling
+- ✅ Position-based log reading (memory efficient)
+- ✅ Bearer token authentication
+- ✅ Comprehensive API endpoints
+- ✅ System resource monitoring
 
-echo " Starting Traefik Log Dashboard Migration..."
+### What's Removed 
 
-# Stop old services
-echo " Stopping old services..."
-docker compose down
+- ❌ OpenTelemetry/OTLP tracing support
+- ❌ Monolithic backend architecture
+- ❌ In-memory agent configuration
 
-# Backup
-echo " Creating backups..."
-cp docker-compose.yml docker-compose.yml.backup.$(date +%Y%m%d_%H%M%S)
-cp .env .env.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+### Migration Benefits 
 
-# Create directories
-echo " Creating directories..."
-mkdir -p data/geoip data/positions
-chmod 755 data/geoip data/positions
-
-# Generate token
-echo " Generating authentication token..."
-TOKEN=$(openssl rand -hex 32)
-echo "Generated token: $TOKEN"
-echo "  IMPORTANT: Save this token securely!"
-
-# Create new compose file
-echo " Creating new docker-compose.yml..."
-cat > docker-compose.yml << 'EOF'
-# ... paste the new docker-compose.yml content here ...
-EOF
-
-# Replace token placeholders
-sed -i "s/YOUR_SECRET_TOKEN_HERE/$TOKEN/g" docker-compose.yml
-
-echo " Migration preparation complete!"
-echo ""
-echo "Next steps:"
-echo "1. Review docker-compose.yml"
-echo "2. Update log paths and network names"
-echo "3. Run: docker compose up -d"
-echo "4. Access dashboard: http://localhost:3000"
-echo ""
-echo "Your authentication token: $TOKEN"
-```
+-  Better performance (Go vs Node.js)
+-  Persistent agent configuration
+-  Enhanced security with authentication
+-  Support for multiple Traefik instances
+-  Multiple bug fixes and stability improvements
+-  Better user experience with proper error messages
 
 ---
 
-##  Best Practices
+##  Getting Help
 
-### Production Deployment
+If you encounter issues during migration:
 
-1. **Use Strong Tokens**
+1. **Check Logs:**
    ```bash
-   # Generate cryptographically secure tokens
-   openssl rand -hex 32
+   docker compose logs -f
+   docker compose logs traefik-agent
+   docker compose logs traefik-dashboard
    ```
 
-2. **Enable TLS/HTTPS**
+2. **Enable Debug Mode:**
    ```yaml
-   # Use reverse proxy (Traefik, nginx) for HTTPS
-   # Never expose agent directly to internet
+   environment:
+     - LOG_LEVEL=debug
    ```
 
-3. **Set Resource Limits**
-   ```yaml
-   deploy:
-     resources:
-       limits:
-         cpus: '1'
-         memory: 512M
-   ```
+3. **Join Discord:**
+   - https://discord.gg/HDCt9MjyMJ
+   - Active community support
+   - Migration assistance available
 
-4. **Monitor Health**
-   ```bash
-   # Set up monitoring for:
-   # - http://localhost:5000/api/logs/status
-   # - http://localhost:3000/
-   ```
+4. **Open GitHub Issue:**
+   - https://github.com/hhftechnology/traefik-log-dashboard/issues
+   - Include logs and configuration
+   - Tag as "migration" or "v2"
 
-5. **Regular GeoIP Updates**
-   ```bash
-   # Update databases monthly
-   # MaxMind updates GeoLite2 weekly
-   ```
+5. **Review Documentation:**
+   - [README.md](../README.md)
 
-6. **Log Rotation**
-   ```bash
-   # Ensure Traefik logs are rotated
-   # Prevents disk space issues
-   ```
 
 ---
 
-**Migration completed successfully? ⭐ Star the repo and join our [Discord](https://discord.gg/HDCt9MjyMJ)!**
+##  Migration Complete!
+
+Congratulations! You've successfully migrated to Traefik Log Dashboard V2.
+
+**Next Steps:**
+1.  Star the repo on GitHub
+2.  Join our Discord community
+3.  Provide feedback on your migration experience
+4.  Explore multi-agent features
+5.  Set up GeoIP if not already enabled
+
+**Enjoying V2? Help others migrate by:**
+- Sharing your experience
+- Contributing to documentation
+- Reporting bugs
+- Suggesting features
+
+---
+
+**Made with ❤️ by the HHF Technology Team**
