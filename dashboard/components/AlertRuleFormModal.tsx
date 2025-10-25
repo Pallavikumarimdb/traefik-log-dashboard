@@ -145,7 +145,7 @@ export default function AlertRuleFormModal({
     name: '',
     description: '',
     enabled: true,
-    agent_id: null as string | null,
+    agent_id: undefined as string | undefined,
     webhook_ids: [] as string[],
     trigger_type: 'interval' as AlertTriggerType,
     interval: '1h' as AlertInterval,
@@ -174,7 +174,7 @@ export default function AlertRuleFormModal({
           name: alert.name,
           description: alert.description || '',
           enabled: alert.enabled,
-          agent_id: alert.agent_id || null,
+          agent_id: alert.agent_id,
           webhook_ids: alert.webhook_ids,
           trigger_type: alert.trigger_type,
           interval: alert.interval || '1h',
@@ -185,7 +185,7 @@ export default function AlertRuleFormModal({
           name: '',
           description: '',
           enabled: true,
-          agent_id: null,
+          agent_id: undefined,
           webhook_ids: [],
           trigger_type: 'interval',
           interval: '1h',
@@ -417,7 +417,7 @@ export default function AlertRuleFormModal({
                   </label>
                   <select
                     value={formData.agent_id || ''}
-                    onChange={e => handleInputChange('agent_id', e.target.value || null)}
+                    onChange={e => handleInputChange('agent_id', e.target.value || undefined)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">All agents</option>
