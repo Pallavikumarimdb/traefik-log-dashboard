@@ -31,6 +31,7 @@ export default function AlertsSettingsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [testingWebhook, setTestingWebhook] = useState<string | null>(null);
+  const [testingAlert, setTestingAlert] = useState<string | null>(null);
 
   // Modal states
   const [showWebhookModal, setShowWebhookModal] = useState(false);
@@ -225,6 +226,44 @@ export default function AlertsSettingsPage() {
       }
     } catch (error) {
       toast.error('Failed to update alert');
+    }
+  };
+
+  const handleTestAlert = async (alert: AlertRule) => {
+    setTestingAlert(alert.id);
+
+    try {
+      // Get the first agent or the agent associated with the alert
+      const agent = alert.agent_id
+        ? agents.find(a => a.id === alert.agent_id)
+        : agents[0];
+
+      if (!agent) {
+        toast.error('No agent available to test alert');
+        return;
+      }
+
+      const response = await fetch('/api/alerts/test-trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          alertId: alert.id,
+          agentId: agent.id,
+          agentName: agent.name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Test alert triggered successfully');
+      } else {
+        toast.error('Test failed: ' + data.error);
+      }
+    } catch (error) {
+      toast.error('Failed to test alert');
+    } finally {
+      setTestingAlert(null);
     }
   };
 
@@ -449,6 +488,15 @@ export default function AlertsSettingsPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTestAlert(alert)}
+                        disabled={testingAlert === alert.id || !alert.enabled}
+                        title={!alert.enabled ? 'Enable alert to test' : 'Test alert'}
+                      >
+                        <TestTube className="w-4 h-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

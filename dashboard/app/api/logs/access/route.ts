@@ -61,10 +61,19 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    
+
     console.log(`Agent [${agent.name}] returned`, data.logs?.length || 0, 'logs');
-    
-    const res = NextResponse.json(data);
+
+    // Add agent info to response
+    const responseData = {
+      ...data,
+      agent: {
+        id: agent.id,
+        name: agent.name,
+      },
+    };
+
+    const res = NextResponse.json(responseData);
     res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.headers.set('Pragma', 'no-cache');
     res.headers.set('Expires', '0');

@@ -14,9 +14,11 @@ import { Button } from '@/components/ui/button';
 interface DashboardWithFiltersProps {
   logs: TraefikLog[];
   demoMode?: boolean;
+  agentId?: string;
+  agentName?: string;
 }
 
-export default function DashboardWithFilters({ logs, demoMode = false }: DashboardWithFiltersProps) {
+export default function DashboardWithFilters({ logs, demoMode = false, agentId, agentName }: DashboardWithFiltersProps) {
   const { settings } = useFilters();
 
   // Apply filters to logs
@@ -81,7 +83,7 @@ export default function DashboardWithFilters({ logs, demoMode = false }: Dashboa
       )}
 
       {/* Main Dashboard */}
-      <Dashboard logs={filteredLogs} demoMode={demoMode} />
+      <Dashboard logs={filteredLogs} demoMode={demoMode} agentId={agentId} agentName={agentName} />
     </>
   );
 }

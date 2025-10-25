@@ -17,10 +17,12 @@ export default function DashboardPage() {
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const [agentName, setAgentName] = useState<string | null>(null);
 
   const positionRef = useRef<number>(-1);
   const isFirstFetch = useRef(true);
-  
+
   // ADDED: Track seen log entries by unique ID to prevent duplicates
   const seenLogsRef = useRef<Set<string>>(new Set());
 
@@ -28,10 +30,10 @@ export default function DashboardPage() {
     const fetchLogs = async () => {
       // Don't fetch if paused
       if (isPaused) return;
-      
+
       try {
         const position = positionRef.current ?? -1;
-        
+
         // FIX: Remove period parameter to use position-based incremental reading only
         // This prevents conflicts between period filtering and position tracking
         const response = await fetch(
@@ -43,6 +45,12 @@ export default function DashboardPage() {
         }
 
         const data = await response.json();
+
+        // Capture agent info on first successful response
+        if (isFirstFetch.current && data.agent) {
+          setAgentId(data.agent.id);
+          setAgentName(data.agent.name);
+        }
 
         if (data.logs && data.logs.length > 0) {
           const parsedLogs = parseTraefikLogs(data.logs);
@@ -200,7 +208,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <DashboardWithFilters logs={logs} demoMode={false} /> 
+      <DashboardWithFilters logs={logs} demoMode={false} agentId={agentId || undefined} agentName={agentName || undefined} />
     </div>
   );
 }
