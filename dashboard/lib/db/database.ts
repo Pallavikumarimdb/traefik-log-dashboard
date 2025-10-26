@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { Agent, AgentUpdate } from '../types/agent';
 import { Webhook, WebhookUpdate, AlertRule, AlertRuleUpdate, NotificationHistory } from '../types/alerting';
+import { MetricSnapshot, StoredSnapshot } from '../types/metrics-snapshot';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'agents.db');
 
@@ -118,6 +119,26 @@ export function initDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_notification_history_webhook ON notification_history(webhook_id);
     CREATE INDEX IF NOT EXISTS idx_notification_history_status ON notification_history(status);
     CREATE INDEX IF NOT EXISTS idx_notification_history_created ON notification_history(created_at);
+
+    -- Metric Snapshots table
+    CREATE TABLE IF NOT EXISTS metric_snapshots (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      agent_name TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      window_start TEXT NOT NULL,
+      window_end TEXT NOT NULL,
+      interval TEXT NOT NULL CHECK(interval IN ('5m', '15m', '30m', '1h', '6h', '12h', '24h')),
+      log_count INTEGER NOT NULL,
+      metrics TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_metric_snapshots_agent ON metric_snapshots(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_metric_snapshots_interval ON metric_snapshots(interval);
+    CREATE INDEX IF NOT EXISTS idx_metric_snapshots_timestamp ON metric_snapshots(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_metric_snapshots_window ON metric_snapshots(agent_id, interval, window_start);
   `);
 
   return db;
@@ -806,6 +827,132 @@ export function cleanupNotificationHistory(daysToKeep: number = 30): number {
   `).run(cutoffDate.toISOString());
 
   return result.changes;
+}
+
+// ==================== METRIC SNAPSHOTS ====================
+
+/**
+ * Save a metric snapshot
+ */
+export function saveMetricSnapshot(snapshot: MetricSnapshot): StoredSnapshot {
+  const db = getDatabase();
+
+  const stored: StoredSnapshot = {
+    id: snapshot.id,
+    agent_id: snapshot.agent_id,
+    agent_name: snapshot.agent_name,
+    timestamp: snapshot.timestamp,
+    window_start: snapshot.window_start,
+    window_end: snapshot.window_end,
+    interval: snapshot.interval,
+    log_count: snapshot.log_count,
+    metrics: JSON.stringify(snapshot.metrics),
+    created_at: new Date().toISOString(),
+  };
+
+  db.prepare(`
+    INSERT INTO metric_snapshots (id, agent_id, agent_name, timestamp, window_start, window_end, interval, log_count, metrics, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    stored.id,
+    stored.agent_id,
+    stored.agent_name,
+    stored.timestamp,
+    stored.window_start,
+    stored.window_end,
+    stored.interval,
+    stored.log_count,
+    stored.metrics,
+    stored.created_at
+  );
+
+  return stored;
+}
+
+/**
+ * Get the latest snapshot for an agent and interval
+ */
+export function getLatestSnapshot(agentId: string, interval: string): MetricSnapshot | null {
+  const db = getDatabase();
+
+  const row = db.prepare(`
+    SELECT * FROM metric_snapshots
+    WHERE agent_id = ? AND interval = ?
+    ORDER BY timestamp DESC
+    LIMIT 1
+  `).get(agentId, interval) as StoredSnapshot | undefined;
+
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    agent_id: row.agent_id,
+    agent_name: row.agent_name,
+    timestamp: row.timestamp,
+    window_start: row.window_start,
+    window_end: row.window_end,
+    interval: row.interval as any,
+    log_count: row.log_count,
+    metrics: JSON.parse(row.metrics),
+  };
+}
+
+/**
+ * Get snapshots for an agent within a time range
+ */
+export function getSnapshotsByTimeRange(
+  agentId: string,
+  interval: string,
+  startTime: string,
+  endTime: string
+): MetricSnapshot[] {
+  const db = getDatabase();
+
+  const rows = db.prepare(`
+    SELECT * FROM metric_snapshots
+    WHERE agent_id = ? AND interval = ? AND timestamp >= ? AND timestamp <= ?
+    ORDER BY timestamp DESC
+  `).all(agentId, interval, startTime, endTime) as StoredSnapshot[];
+
+  return rows.map(row => ({
+    id: row.id,
+    agent_id: row.agent_id,
+    agent_name: row.agent_name,
+    timestamp: row.timestamp,
+    window_start: row.window_start,
+    window_end: row.window_end,
+    interval: row.interval as any,
+    log_count: row.log_count,
+    metrics: JSON.parse(row.metrics),
+  }));
+}
+
+/**
+ * Clean up old snapshots (older than specified days)
+ */
+export function cleanupOldSnapshots(daysToKeep: number = 7): number {
+  const db = getDatabase();
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+  const result = db.prepare(`
+    DELETE FROM metric_snapshots
+    WHERE created_at < ?
+  `).run(cutoffDate.toISOString());
+
+  return result.changes;
+}
+
+/**
+ * Get snapshot count for an agent
+ */
+export function getSnapshotCount(agentId: string): number {
+  const db = getDatabase();
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM metric_snapshots WHERE agent_id = ?
+  `).get(agentId) as { count: number };
+
+  return result.count;
 }
 
 // Initialize database and sync env agents on module load

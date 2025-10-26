@@ -55,8 +55,8 @@ export default function Dashboard({ logs, demoMode = false, agentId, agentName }
     return calculateMetrics(sortedLogs, geoLocations);
   }, [logs, geoLocations]);
 
-  // Process metrics for alerts (only in non-demo mode)
-  useMetricsProcessing(agentId || null, agentName || null, metrics, {
+  // Process metrics for alerts and snapshots (only in non-demo mode)
+  useMetricsProcessing(agentId || null, agentName || null, metrics, logs, {
     enabled: !demoMode,
   });
 

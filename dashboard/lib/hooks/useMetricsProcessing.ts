@@ -1,6 +1,6 @@
-// Custom hook for processing metrics with alert and archival services
+// Custom hook for processing metrics with alert, snapshot, and archival services
 import { useEffect, useRef } from 'react';
-import { DashboardMetrics } from '../types';
+import { DashboardMetrics, TraefikLog } from '../types';
 
 interface UseMetricsProcessingOptions {
   enabled?: boolean;
@@ -8,13 +8,14 @@ interface UseMetricsProcessingOptions {
 }
 
 /**
- * Hook to automatically process metrics for alerts and archival
+ * Hook to automatically process metrics for alerts, snapshots, and archival
  * Use this in your dashboard component to enable automatic alert evaluation and archival
  */
 export function useMetricsProcessing(
   agentId: string | null,
   agentName: string | null,
   metrics: DashboardMetrics | null,
+  logs: TraefikLog[] | null,
   options: UseMetricsProcessingOptions = {}
 ) {
   const { enabled = true, debounceMs = 5000 } = options;
@@ -55,6 +56,7 @@ export function useMetricsProcessing(
             agentId,
             agentName,
             metrics,
+            logs: logs || [], // Include logs for snapshot creation
           }),
         });
 
@@ -69,5 +71,5 @@ export function useMetricsProcessing(
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [agentId, agentName, metrics, enabled, debounceMs]);
+  }, [agentId, agentName, metrics, logs, enabled, debounceMs]);
 }

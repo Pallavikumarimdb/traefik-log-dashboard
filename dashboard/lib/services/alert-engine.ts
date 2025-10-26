@@ -5,10 +5,12 @@ import {
   getEnabledAlertRules,
   getWebhookById,
   addNotificationHistory,
+  getLatestSnapshot,
 } from '../db/database';
 import { sendNotification } from './notification-service';
 import { AlertRule, AlertData, AlertInterval } from '../types/alerting';
 import { DashboardMetrics } from '../types';
+import { MetricSnapshot } from '../types/metrics-snapshot';
 
 // Track last execution time for each alert rule
 const lastExecutionTimes = new Map<string, number>();
@@ -161,8 +163,21 @@ export class AlertEngine {
       }
     }
 
-    // Build alert data
-    const alertData = this.buildAlertData(agentId, agentName, metrics);
+    // For interval alerts, use snapshot data instead of live metrics
+    let alertData: AlertData;
+    if (alert.trigger_type === 'interval' && alert.interval) {
+      const snapshot = getLatestSnapshot(agentId, alert.interval);
+      if (snapshot) {
+        console.log(`Using snapshot for interval alert: ${alert.interval}, window: ${snapshot.window_start} to ${snapshot.window_end}`);
+        alertData = this.buildAlertDataFromSnapshot(snapshot);
+      } else {
+        console.warn(`No snapshot found for interval ${alert.interval}, using live metrics`);
+        alertData = this.buildAlertData(agentId, agentName, metrics);
+      }
+    } else {
+      // For threshold and event alerts, use live metrics
+      alertData = this.buildAlertData(agentId, agentName, metrics);
+    }
 
     // Send to all webhooks
     for (const webhookId of alert.webhook_ids) {
@@ -281,6 +296,40 @@ export class AlertEngine {
             }
           : undefined,
         request_count: metrics.requests?.total,
+      },
+    };
+  }
+
+  /**
+   * Build alert data from a metric snapshot
+   * This provides clean, time-windowed data instead of cumulative metrics
+   */
+  private buildAlertDataFromSnapshot(snapshot: MetricSnapshot): AlertData {
+    return {
+      timestamp: snapshot.timestamp,
+      agent_name: snapshot.agent_name,
+      agent_id: snapshot.agent_id,
+      metrics: {
+        top_ips: snapshot.metrics.top_ips,
+        top_locations: snapshot.metrics.top_locations,
+        top_routes: snapshot.metrics.top_routes,
+        top_status_codes: snapshot.metrics.status_codes
+          ? [
+              { status: 200, count: snapshot.metrics.status_codes.status2xx },
+              { status: 300, count: snapshot.metrics.status_codes.status3xx },
+              { status: 400, count: snapshot.metrics.status_codes.status4xx },
+              { status: 500, count: snapshot.metrics.status_codes.status5xx },
+            ].filter((s) => s.count > 0)
+          : undefined,
+        top_user_agents: snapshot.metrics.top_user_agents,
+        top_routers: snapshot.metrics.top_routers,
+        top_services: snapshot.metrics.top_services,
+        top_hosts: snapshot.metrics.top_hosts,
+        top_request_addresses: snapshot.metrics.top_request_addresses,
+        top_client_ips: snapshot.metrics.top_client_ips,
+        error_rate: snapshot.metrics.error_rate,
+        response_time: snapshot.metrics.response_time,
+        request_count: snapshot.metrics.request_count,
       },
     };
   }

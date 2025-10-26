@@ -5,13 +5,13 @@ import { serviceManager } from '@/lib/services/service-manager';
 export const dynamic = 'force-dynamic';
 
 /**
- * POST /api/services/process-metrics - Process metrics for alerts and archival
+ * POST /api/services/process-metrics - Process metrics for alerts, snapshots, and archival
  * This endpoint should be called from the dashboard when metrics are calculated
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { agentId, agentName, metrics } = body;
+    const { agentId, agentName, metrics, logs } = body;
 
     if (!agentId || !agentName || !metrics) {
       return NextResponse.json(
@@ -20,8 +20,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process metrics (evaluate alerts and update archival cache)
-    await serviceManager.processMetrics(agentId, agentName, metrics);
+    // Process metrics (create snapshots, evaluate alerts, and update archival cache)
+    // logs parameter is optional but recommended for snapshot creation
+    await serviceManager.processMetrics(agentId, agentName, metrics, logs);
 
     return NextResponse.json({
       success: true,

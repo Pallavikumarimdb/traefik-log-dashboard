@@ -1,9 +1,11 @@
 // Service Manager
-// Centralized manager for alert engine and archival service
+// Centralized manager for alert engine, archival service, and snapshot scheduler
 
 import { alertEngine } from './alert-engine';
 import { archivalService } from './archival-service';
+import { snapshotScheduler } from './snapshot-scheduler';
 import { DashboardMetrics } from '../types';
+import { TraefikLog } from '../types';
 
 /**
  * Service Manager
@@ -72,19 +74,25 @@ export class ServiceManager {
   }
 
   /**
-   * Process metrics - update cache and evaluate alerts
+   * Process metrics - update cache, create snapshots, and evaluate alerts
    * This should be called whenever new metrics are calculated
    */
   async processMetrics(
     agentId: string,
     agentName: string,
-    metrics: DashboardMetrics
+    metrics: DashboardMetrics,
+    logs?: TraefikLog[]
   ): Promise<void> {
     try {
       // Update metrics cache for archival service
       archivalService.updateMetricsCache(agentId, metrics);
 
-      // Evaluate alerts
+      // Create snapshots if logs are provided
+      if (logs && logs.length > 0) {
+        await snapshotScheduler.processLogs(agentId, agentName, logs);
+      }
+
+      // Evaluate alerts (will use snapshots for interval alerts)
       await alertEngine.evaluateAlerts(agentId, agentName, metrics);
     } catch (error) {
       console.error('Error processing metrics:', error);
