@@ -14,7 +14,7 @@ import {
   groupBy,
   extractUserAgentIdentifier,
 } from '../utils';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
  * Interval durations in milliseconds
@@ -57,7 +57,7 @@ export function createMetricSnapshot(
   const metrics = calculateSnapshotMetrics(windowedLogs, topLimit);
 
   return {
-    id: uuidv4(),
+    id: randomUUID(),
     agent_id: agentId,
     agent_name: agentName,
     timestamp: now.toISOString(),
