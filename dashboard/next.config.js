@@ -4,10 +4,8 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   output: 'standalone',
-  
-  experimental: {
-    serverComponentsExternalPackages: ['better-sqlite3'],
-  },
+
+  serverExternalPackages: ['better-sqlite3'],
   
   async headers() {
     return [

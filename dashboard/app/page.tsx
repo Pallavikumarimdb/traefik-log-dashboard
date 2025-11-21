@@ -3,6 +3,8 @@ import { Activity, BarChart3, Terminal, Server, Gauge, Shield, Github } from 'lu
 import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
+  const showDemoPage = process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE !== 'false';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
       <header className="bg-white/80 backdrop-blur-sm border-b border-red-200 sticky top-0 z-50">
@@ -36,10 +38,12 @@ export default function HomePage() {
                 </svg>
                 <span className="text-sm font-medium hidden sm:inline">Discord</span>
               </a>
-              
-              <Button asChild variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
-                <Link href="/dashboard/demo">Demo</Link>
-              </Button>
+
+              {showDemoPage && (
+                <Button asChild variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+                  <Link href="/dashboard/demo">Demo</Link>
+                </Button>
+              )}
               <Button asChild className="bg-red-600 hover:bg-red-700 text-white">
                 <Link href="/dashboard">Launch Dashboard</Link>
               </Button>
@@ -61,9 +65,11 @@ export default function HomePage() {
             <Button asChild size="lg" className="bg-red-600 hover:bg-red-700 text-white text-lg px-8">
               <Link href="/dashboard">View Dashboard</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-red-300 text-red-700 hover:bg-red-50 text-lg px-8">
-              <Link href="/dashboard/demo">Try Demo</Link>
-            </Button>
+            {showDemoPage && (
+              <Button asChild size="lg" variant="outline" className="border-red-300 text-red-700 hover:bg-red-50 text-lg px-8">
+                <Link href="/dashboard/demo">Try Demo</Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -117,10 +123,12 @@ export default function HomePage() {
                 <span className="text-red-600 mr-2">•</span>
                 Geographic distribution maps
               </li>
-              <li className="flex items-start">
-                <span className="text-red-600 mr-2">•</span>
-                Demo mode available
-              </li>
+              {showDemoPage && (
+                <li className="flex items-start">
+                  <span className="text-red-600 mr-2">•</span>
+                  Demo mode available
+                </li>
+              )}
             </ul>
           </div>
 

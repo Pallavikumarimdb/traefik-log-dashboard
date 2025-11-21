@@ -2,10 +2,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters'; 
+import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters';
 import Header from '@/components/ui/Header';
 import { TraefikLog } from '@/lib/types';
 import { parseTraefikLogs } from '@/lib/traefik-parser';
+import { enrichLogsWithGeoLocation } from '@/lib/location';
 import { Button } from '@/components/ui/button';
 import { Pause, Play } from 'lucide-react';
 
@@ -16,10 +17,12 @@ export default function DashboardPage() {
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const [agentName, setAgentName] = useState<string | null>(null);
 
   const positionRef = useRef<number>(-1);
   const isFirstFetch = useRef(true);
-  
+
   // ADDED: Track seen log entries by unique ID to prevent duplicates
   const seenLogsRef = useRef<Set<string>>(new Set());
 
@@ -27,10 +30,10 @@ export default function DashboardPage() {
     const fetchLogs = async () => {
       // Don't fetch if paused
       if (isPaused) return;
-      
+
       try {
         const position = positionRef.current ?? -1;
-        
+
         // FIX: Remove period parameter to use position-based incremental reading only
         // This prevents conflicts between period filtering and position tracking
         const response = await fetch(
@@ -43,32 +46,41 @@ export default function DashboardPage() {
 
         const data = await response.json();
 
+        // Capture agent info on first successful response
+        if (isFirstFetch.current && data.agent) {
+          setAgentId(data.agent.id);
+          setAgentName(data.agent.name);
+        }
+
         if (data.logs && data.logs.length > 0) {
           const parsedLogs = parseTraefikLogs(data.logs);
-          
+
           // FIX: Deduplicate logs using composite unique key
           // Using StartUTC + RequestCount + RequestPath + ClientHost for uniqueness
           const newUniqueLogs = parsedLogs.filter(log => {
             // Create a composite key from multiple fields to ensure uniqueness
             const logKey = `${log.StartUTC || log.StartLocal}-${log.RequestCount}-${log.RequestPath}-${log.ClientHost}`;
-            
+
             if (seenLogsRef.current.has(logKey)) {
               return false; // Skip duplicate
             }
-            
+
             seenLogsRef.current.add(logKey);
             return true;
           });
 
           // Only update state if we have new unique logs
           if (newUniqueLogs.length > 0) {
+            // Enrich logs with geolocation data
+            const enrichedLogs = await enrichLogsWithGeoLocation(newUniqueLogs);
+
             setLogs((prevLogs: TraefikLog[]) => {
               if (isFirstFetch.current) {
                 isFirstFetch.current = false;
-                return newUniqueLogs;
+                return enrichedLogs;
               }
               // Append only new unique logs and keep last 1000
-              return [...prevLogs, ...newUniqueLogs].slice(-1000);
+              return [...prevLogs, ...enrichedLogs].slice(-1000);
             });
           }
         }
@@ -196,7 +208,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <DashboardWithFilters logs={logs} demoMode={false} /> 
+      <DashboardWithFilters logs={logs} demoMode={false} agentId={agentId || undefined} agentName={agentName || undefined} />
     </div>
   );
 }

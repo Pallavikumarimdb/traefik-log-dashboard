@@ -41,6 +41,7 @@ export default function FilterSettingsPage() {
     value: '',
     enabled: true,
     description: '',
+    mode: 'exclude',
   });
 
   const handleAddIP = () => {
@@ -129,8 +130,9 @@ export default function FilterSettingsPage() {
         operator: customCondition.operator || 'contains',
         value: customCondition.value,
         description: customCondition.description,
+        mode: customCondition.mode || 'exclude',
       } as FilterCondition);
-      
+
       setCustomCondition({
         name: '',
         type: 'custom',
@@ -139,6 +141,7 @@ export default function FilterSettingsPage() {
         value: '',
         enabled: true,
         description: '',
+        mode: 'exclude',
       });
       setShowCustomConditionForm(false);
       showSavedIndicator();
@@ -165,7 +168,7 @@ export default function FilterSettingsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button asChild variant="ghost" size="icon">
-                <Link href="/dashboard">
+                <Link href="/settings">
                   <ChevronLeft className="w-5 h-5" />
                 </Link>
               </Button>
@@ -606,6 +609,8 @@ export default function FilterSettingsPage() {
                         <option value="ServiceName">Service Name</option>
                         <option value="ClientHost">Client IP</option>
                         <option value="request_User_Agent">User Agent</option>
+                        <option value="geoCountry">Country</option>
+                        <option value="geoCity">City</option>
                       </select>
                     </div>
                     <div>
@@ -638,6 +643,22 @@ export default function FilterSettingsPage() {
                         placeholder="e.g., /health"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Filter Mode
+                      </label>
+                      <select
+                        value={customCondition.mode || 'exclude'}
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setCustomCondition({ ...customCondition, mode: e.target.value as 'exclude' | 'include' })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="exclude">Exclude (Hide matching logs)</option>
+                        <option value="include">Include (Show ONLY matching logs)</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Exclude mode hides logs that match this condition. Include mode shows ONLY logs that match this condition.
+                      </p>
                     </div>
                     <div className="col-span-2">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -694,6 +715,16 @@ export default function FilterSettingsPage() {
                               }
                             >
                               {condition.enabled ? 'Active' : 'Disabled'}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className={
+                                condition.mode === 'include'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-300'
+                                  : 'bg-red-50 text-red-700 border-red-300'
+                              }
+                            >
+                              {condition.mode === 'include' ? 'INCLUDE' : 'EXCLUDE'}
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-600 font-mono">

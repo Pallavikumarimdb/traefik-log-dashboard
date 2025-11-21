@@ -4,11 +4,12 @@ export interface FilterCondition {
   id: string;
   name: string;
   enabled: boolean;
-  type: 'ip' | 'status' | 'user-agent' | 'custom';
+  type: 'ip' | 'status' | 'user-agent' | 'custom' | 'country' | 'city';
   operator: 'equals' | 'contains' | 'starts_with' | 'ends_with' | 'regex' | 'not_equals' | 'greater_than' | 'less_than';
   field: string;
   value: string;
   description?: string;
+  mode?: 'exclude' | 'include';  // exclude = hide matching logs, include = show ONLY matching logs
 }
 
 export interface ProxySettings {

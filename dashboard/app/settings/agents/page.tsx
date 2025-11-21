@@ -114,7 +114,7 @@ export default function AgentSettingsPage() {
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex items-center gap-3 mb-6">
           <Link
-            href="/dashboard"
+            href="/settings"
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />

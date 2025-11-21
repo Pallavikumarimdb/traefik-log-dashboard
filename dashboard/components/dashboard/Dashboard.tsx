@@ -11,13 +11,16 @@ import {
   extractUserAgentIdentifier,
 } from '@/lib/utils';
 import { aggregateGeoLocations } from '@/lib/location';
+import { useMetricsProcessing } from '@/lib/hooks/useMetricsProcessing';
 
 interface DashboardProps {
   logs: TraefikLog[];
   demoMode?: boolean;
+  agentId?: string;
+  agentName?: string;
 }
 
-export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
+export default function Dashboard({ logs, demoMode = false, agentId, agentName }: DashboardProps) {
   const [geoLocations, setGeoLocations] = useState<GeoLocation[]>([]);
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
   const [systemStats, setSystemStats] = useState<any>(null);
@@ -51,6 +54,11 @@ export default function Dashboard({ logs, demoMode = false }: DashboardProps) {
 
     return calculateMetrics(sortedLogs, geoLocations);
   }, [logs, geoLocations]);
+
+  // Process metrics for alerts and snapshots (only in non-demo mode)
+  useMetricsProcessing(agentId || null, agentName || null, metrics, logs, {
+    enabled: !demoMode,
+  });
 
   // Fetch GeoIP data from agent (simplified - no rate limiting needed)
   useEffect(() => {
