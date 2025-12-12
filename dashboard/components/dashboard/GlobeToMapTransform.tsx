@@ -6,11 +6,18 @@ import { useEffect, useRef, useState } from "react"
 import * as d3 from "d3"
 import { feature } from "topojson-client"
 import { Button } from "@/components/ui/button"
+import { GeoLocation } from "@/lib/types"
+
+import { Plus, Minus } from "lucide-react"
 
 interface GeoFeature {
   type: string
   geometry: any
   properties: any
+}
+
+interface Props {
+  locations?: GeoLocation[]
 }
 
 function interpolateProjection(raw0: any, raw1: any) {
@@ -27,7 +34,7 @@ function interpolateProjection(raw0: any, raw1: any) {
   })
 }
 
-export function GlobeToMapTransform() {
+export function GlobeToMapTransform({ locations = [] }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [isAnimating, setIsAnimating] = useState(false)
   const [progress, setProgress] = useState([0])
@@ -36,6 +43,7 @@ export function GlobeToMapTransform() {
   const [translation, setTranslation] = useState([0, 0])
   const [isDragging, setIsDragging] = useState(false)
   const [lastMouse, setLastMouse] = useState([0, 0])
+  const [zoomLevel, setZoomLevel] = useState(1)
 
   const width = 800
   const height = 500
@@ -122,6 +130,7 @@ export function GlobeToMapTransform() {
     if (!svgRef.current || worldData.length === 0) return
 
     const svg = d3.select(svgRef.current)
+
     svg.selectAll("*").remove()
 
     const t = progress[0] / 100
@@ -131,7 +140,7 @@ export function GlobeToMapTransform() {
     const baseRotate = d3.scaleLinear().domain([0, 1]).range([0, 0])
 
     const projection = interpolateProjection(d3.geoOrthographicRaw, d3.geoEquirectangularRaw)
-      .scale(scale(alpha))
+      .scale(scale(alpha) * zoomLevel)
       .translate([width / 2 + translation[0], height / 2 + translation[1]])
       .rotate([baseRotate(alpha) + rotation[0], rotation[1]])
       .precision(0.1)
@@ -188,27 +197,82 @@ export function GlobeToMapTransform() {
         const pathData = d3.select(this).attr("d")
         return pathData && pathData.length > 0 && !pathData.includes("NaN") ? "visible" : "hidden"
       })
-    // hover handlers removed to keep country borders style constant
+    
+    // Removed sphere outline to fix "black line/rectangle" artifact
 
-    // Draw sphere outline on top so the map border overlays countries
-    try {
-      const sphereOutline = path({ type: "Sphere" })
-      if (sphereOutline) {
-        svg
-          .append("path")
-          .datum({ type: "Sphere" })
-          .attr("d", sphereOutline)
-          .attr("fill", "none")
-          .attr("stroke", "#222222")
-          .attr("stroke-width", 1)
-          .attr("opacity", 1.0)
-      }
-    } catch (error) {
-      console.log("[v0] Error creating sphere outline:", error)
+
+    // Add locations
+    if (locations && locations.length > 0) {
+      const maxCount = Math.max(...locations.map(l => l.count));
+      const radiusScale = d3.scaleSqrt().domain([0, maxCount]).range([2, 10]);
+
+      svg.selectAll(".location-marker")
+        .data(locations)
+        .enter()
+        .append("circle")
+        .attr("class", "location-marker")
+        .attr("cx", d => {
+          const coords = projection([d.longitude || 0, d.latitude || 0]);
+          return coords ? coords[0] : 0;
+        })
+        .attr("cy", d => {
+          const coords = projection([d.longitude || 0, d.latitude || 0]);
+          return coords ? coords[1] : 0;
+        })
+        .attr("r", d => radiusScale(d.count))
+        .attr("fill", "rgba(220, 38, 38, 0.7)") // red-600 with opacity
+        .attr("stroke", "white")
+        .attr("stroke-width", 1)
+        .style("visibility", function(d) {
+           const coords = projection([d.longitude || 0, d.latitude || 0]);
+           if (!coords) return "hidden";
+           return "visible";
+        })
+        // Better handling for visibility on globe:
+        .each(function(d) {
+           if (alpha < 0.5) { // Globe mode
+             const rotate = projection.rotate();
+             const center = [-rotate[0], -rotate[1]];
+             const distance = d3.geoDistance(
+               [d.longitude || 0, d.latitude || 0],
+               center as [number, number]
+             );
+             if (distance > Math.PI / 2) {
+               d3.select(this).style("visibility", "hidden");
+             }
+           }
+        });
     }
 
-    // console.log("[v0] Visualization updated with progress:", progress[0])
-  }, [worldData, progress, rotation, translation])
+    // Setup zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 8])
+      .on("zoom", (event) => {
+         // D3 zoom event gives us a transform k (scale)
+         // But we are managing state in React, so we just update the state.
+         // However, standard d3 zoom handles panning too. We have custom rotation logic.
+         // We only want 'wheel' events to affect scale.
+         // If we use full d3.zoom it might conflict with our custom drag rotation.
+         // So we just use it for wheel events essentially.
+         setZoomLevel(event.transform.k)
+      })
+      // Disable click/drag (panning) from d3.zoom because we handle dragging for rotation
+      // We only want the wheel/pinch behaviors
+      .filter((event) => {
+        return event.type === 'wheel' || event.type === 'dblclick';
+      })
+
+    // Apply current zoom transform so d3 internal state matches our react state
+    // This is important so the next wheel event starts from correct scale
+    svg.call(zoom as any)
+    svg.call(zoom.transform as any, d3.zoomIdentity.scale(zoomLevel))
+
+    // Cleanup
+    return () => {
+      svg.on(".zoom", null)
+    }
+
+  }, [worldData, progress, rotation, translation, locations, zoomLevel])
 
   const handleAnimate = () => {
     if (isAnimating) return
@@ -243,7 +307,11 @@ export function GlobeToMapTransform() {
   const handleReset = () => {
     setRotation([0, 0])
     setTranslation([0, 0])
+    setZoomLevel(1)
   }
+
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev * 1.2, 8))
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev / 1.2, 0.5))
 
   return (
     <div className="relative flex items-center justify-center w-full h-[500px]">
@@ -258,17 +326,38 @@ export function GlobeToMapTransform() {
         onMouseLeave={handleMouseUp}
         aria-label="Interactive Globe/Map Visualization"
       />
-      <div className="absolute bottom-4 right-4 flex gap-2 z-10">
-        <Button onClick={handleAnimate} disabled={isAnimating} className="cursor-pointer min-w-[120px] rounded">
-          {isAnimating ? "Animating..." : progress[0] === 0 ? "Unroll Globe" : "Roll to Globe"}
-        </Button>
-        <Button
-          onClick={handleReset}
-          variant="outline"
-          className="cursor-pointer min-w-[80px] hover:bg-neutral-100 bg-transparent rounded"
-        >
-          Reset
-        </Button>
+      <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2 z-10">
+        <div className="flex flex-col gap-1 bg-white/10 dark:bg-black/20 backdrop-blur-sm p-1 rounded-lg border border-neutral-200/20">
+          <Button
+            onClick={handleZoomIn}
+            variant="ghost"
+            size="icon"
+            className="w-8 h-8 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={handleZoomOut}
+            variant="ghost"
+            size="icon"
+            className="w-8 h-8 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button onClick={handleAnimate} disabled={isAnimating} className="cursor-pointer min-w-[120px] rounded shadow-sm">
+            {isAnimating ? "Animating..." : progress[0] === 0 ? "Unroll Globe" : "Roll to Globe"}
+          </Button>
+          <Button
+            onClick={handleReset}
+            variant="outline"
+            className="cursor-pointer min-w-[80px] hover:bg-neutral-100 bg-white dark:bg-black backdrop-blur-sm rounded shadow-sm"
+          >
+            Reset
+          </Button>
+        </div>
       </div>
     </div>
   )

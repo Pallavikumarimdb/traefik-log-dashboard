@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // eslint-disable-next-line no-console
     console.log(`Fetching from agent [${agent.name}]:`, `${agent.url}/api/logs/access?position=${position}&lines=${lines}&tail=${tail}`);
 
     const headers: HeadersInit = {

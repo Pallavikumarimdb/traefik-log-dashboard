@@ -1,0 +1,81 @@
+---
+title: Usage
+description: How to use Traefik Log Dashboard
+---
+
+## Dashboard Cards Explained
+
+### Overview Cards
+
+- **Total Requests**: Aggregate count of all HTTP requests processed
+- **Average Response Time**: Mean response time across all requests (in milliseconds)
+- **Error Rate**: Percentage of requests with 4xx or 5xx status codes
+- **Active Services**: Number of unique Traefik services handling traffic
+
+### Geographic Cards
+
+- **Top Countries**: Requests grouped by country (requires GeoIP)
+- **Top Cities**: Requests grouped by city (requires GeoIP)
+- **Interactive Map**: Geographic heatmap visualization
+
+### Traffic Analysis
+
+- **Requests by Status Code**: Distribution of 2xx, 3xx, 4xx, 5xx responses
+- **Top Services**: Most active Traefik services by request count
+- **Top Routers**: Most active Traefik routers by request count
+- **Methods Distribution**: HTTP methods (GET, POST, PUT, DELETE, etc.)
+
+### Performance Metrics
+
+- **Response Time Chart**: Time-series graph of response times
+- **Request Rate**: Requests per second/minute/hour
+- **Slowest Endpoints**: Top 10 slowest routes by average response time
+- **Error Timeline**: Time-series of error occurrences
+
+## Filter Logs
+
+Available in the top toolbar:
+
+- **Time Range**: Last 1h, 6h, 24h, 7d, 30d, or custom range
+- **Status Codes**: Filter by 2xx, 3xx, 4xx, 5xx
+- **HTTP Methods**: GET, POST, PUT, DELETE, PATCH, OPTIONS
+- **Services**: Filter by Traefik service name
+- **Routers**: Filter by Traefik router name
+- **Search**: Free-text search across all fields
+
+## API Usage
+
+### Get Logs
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/logs/access?lines=100&status=200&method=GET"
+```
+
+### Get Status
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/logs/status"
+```
+
+### Get Metrics
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/logs/metrics?period=1h"
+```
+
+### GeoIP Lookup
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/location/lookup?ip=8.8.8.8"
+```
+
+### System Stats
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:5000/api/system/stats"
+```

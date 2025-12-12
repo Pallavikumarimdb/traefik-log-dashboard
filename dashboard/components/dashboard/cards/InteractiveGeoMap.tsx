@@ -98,7 +98,7 @@ export default function InteractiveGeoMap({ locations }: Props) {
       <div className="space-y-4">
         {/* Globe Visualization */}
         <div className="w-full border rounded-lg overflow-hidden bg-neutral-50 mb-4">
-          <GlobeToMapTransform />
+          <GlobeToMapTransform locations={validLocations} />
         </div>
 
         <div className="bg-gradient-to-br from-red-50 to-white rounded-lg p-6 border border-red-200">

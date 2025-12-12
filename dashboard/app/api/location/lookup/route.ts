@@ -25,7 +25,7 @@ async function getReader() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ips } = body;
+    const { ips }: { ips: string[] } = body;
 
     if (!ips || !Array.isArray(ips) || ips.length === 0) {
       return NextResponse.json(
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
             longitude: result.location?.longitude,
           });
         }
-      } catch (e) {
+      } catch (_e) {
         // Ignore invalid IPs
         continue;
       }

@@ -28,7 +28,6 @@ import {
   ChevronLeft,
   Lock,
   Info,
-  AlertTriangle,
 } from 'lucide-react';
 import AgentFormModal from '@/components/AgentFormModal';
 import AgentBulkOperations from '@/components/AgentBulkOperations';
