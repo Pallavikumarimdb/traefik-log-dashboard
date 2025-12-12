@@ -21,9 +21,10 @@ interface HealthMonitorOptions {
 }
 
 export function useAgentHealth(options: HealthMonitorOptions = {}) {
+  // PERFORMANCE FIX: Increased default from 30s to 10min to reduce CPU/memory load
   const {
-    checkInterval = 30000,
-    enableAutoCheck = true,
+    checkInterval = 600000, // 10 minutes
+    enableAutoCheck = false, // PERFORMANCE FIX: Disabled by default
     onStatusChange,
   } = options;
 

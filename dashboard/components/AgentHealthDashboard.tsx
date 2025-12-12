@@ -21,6 +21,7 @@ export default function AgentHealthDashboard() {
   const { agents } = useAgents();
   const [autoRefresh, setAutoRefresh] = useState(true);
 
+  // PERFORMANCE FIX: Increased interval from 30s to 5min to reduce load
   const {
     healthMetrics,
     isMonitoring,
@@ -28,7 +29,7 @@ export default function AgentHealthDashboard() {
     getOverallHealth,
     getUnhealthyAgents,
   } = useAgentHealth({
-    checkInterval: 30000, // 30 seconds
+    checkInterval: 300000, // 5 minutes (was 30 seconds)
     enableAutoCheck: autoRefresh,
     onStatusChange: (agentId, isOnline) => {
       console.log(`Agent ${agentId} status changed to ${isOnline ? 'online' : 'offline'}`);

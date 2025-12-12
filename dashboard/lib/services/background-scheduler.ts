@@ -4,7 +4,8 @@ import { parseTraefikLogs } from '../traefik-parser';
 import { serviceManager } from './service-manager';
 import { TraefikLog } from '../types';
 
-const SCHEDULER_INTERVAL = 5 * 60 * 1000; // 5 minutes
+// PERFORMANCE FIX: Increased from 5min to 30min to reduce CPU/memory load
+const SCHEDULER_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
 class BackgroundScheduler {
   private intervalId: NodeJS.Timeout | null = null;
@@ -13,10 +14,10 @@ class BackgroundScheduler {
   start() {
     if (this.intervalId) return;
 
-    console.log('Starting background scheduler...');
-    
-    // Run immediately on start
-    this.runJob();
+    console.log('Starting background scheduler (30min interval)...');
+
+    // PERFORMANCE FIX: Don't run immediately on start to reduce initial load
+    // First run will be after SCHEDULER_INTERVAL
 
     // Schedule periodic runs
     this.intervalId = setInterval(() => {
