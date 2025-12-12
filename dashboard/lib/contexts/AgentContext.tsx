@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { Agent } from '../types/agent';
 import { toast } from 'sonner';
 
@@ -266,19 +266,23 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     }
   }, [agents, updateAgent]);
 
+  // PERFORMANCE FIX: Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      agents,
+      selectedAgent,
+      selectAgent,
+      addAgent,
+      updateAgent,
+      deleteAgent,
+      refreshAgents,
+      checkAgentStatus,
+    }),
+    [agents, selectedAgent, selectAgent, addAgent, updateAgent, deleteAgent, refreshAgents, checkAgentStatus]
+  );
+
   return (
-    <AgentContext.Provider
-      value={{
-        agents,
-        selectedAgent,
-        selectAgent,
-        addAgent,
-        updateAgent,
-        deleteAgent,
-        refreshAgents,
-        checkAgentStatus,
-      }}
-    >
+    <AgentContext.Provider value={contextValue}>
       {children}
     </AgentContext.Provider>
   );

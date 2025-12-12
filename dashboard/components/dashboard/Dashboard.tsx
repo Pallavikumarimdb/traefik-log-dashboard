@@ -25,23 +25,28 @@ export default function Dashboard({ logs, demoMode = false, agentId, agentName }
   const { geoLocations, isLoadingGeo } = useGeoLocation(logs);
   const systemStats = useSystemStats(demoMode);
 
-  // Calculate metrics (excluding geo data which is async)
-  const metrics = useMemo(() => {
-    if (logs.length === 0) {
-      return getEmptyMetrics();
-    }
+  // PERFORMANCE FIX: Memoize sorted logs separately to prevent re-sorting on geoLocations change
+  const sortedLogs = useMemo(() => {
+    if (logs.length === 0) return [];
 
     // Sort logs by most recent first and keep latest 1000 entries
-    const sortedLogs = [...logs]
+    return [...logs]
       .sort((a, b) => {
         const timeA = new Date(a.StartUTC || a.StartLocal).getTime();
         const timeB = new Date(b.StartUTC || b.StartLocal).getTime();
         return timeB - timeA; // Most recent first
       })
       .slice(0, 1000);
+  }, [logs]);
+
+  // PERFORMANCE FIX: Calculate metrics using memoized sortedLogs
+  const metrics = useMemo(() => {
+    if (sortedLogs.length === 0) {
+      return getEmptyMetrics();
+    }
 
     return calculateMetrics(sortedLogs, geoLocations);
-  }, [logs, geoLocations]);
+  }, [sortedLogs, geoLocations]);
 
   // Process metrics for alerts and snapshots (only in non-demo mode)
   useMetricsProcessing(agentId || null, agentName || null, metrics, logs, {

@@ -141,7 +141,8 @@ export class APIClient {
   }
 
   /**
- * Lookup locations for IP addresses
+ * Lookup locations for IP addresses using Dashboard's local GeoIP database
+ * REFACTOR: Changed from calling agent to using local dashboard endpoint
  */
 async lookupLocations(ips: string[]): Promise<{
   locations: Array<{
@@ -151,12 +152,22 @@ async lookupLocations(ips: string[]): Promise<{
     latitude?: number;
     longitude?: number;
   }>;
-  count: number;
+  count?: number;
 }> {
-  return this.fetch('/api/location/lookup', {
+  // Call Dashboard's own location API instead of agent
+  const response = await fetch('/api/location/lookup', {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ ips }),
   });
+
+  if (!response.ok) {
+    throw new Error(`Location lookup failed: ${response.statusText}`);
+  }
+
+  return response.json();
 }
 
 /**

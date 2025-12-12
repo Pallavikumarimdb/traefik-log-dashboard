@@ -13,14 +13,27 @@ export function useLogFetcher() {
   const [isPaused, setIsPaused] = useState(false);
   const [agentId, setAgentId] = useState<string | null>(null);
   const [agentName, setAgentName] = useState<string | null>(null);
+  const [isTabVisible, setIsTabVisible] = useState(true);
 
   const positionRef = useRef<number>(-1);
   const isFirstFetch = useRef(true);
   const seenLogsRef = useRef<Set<string>>(new Set());
+  const maxSeenLogs = 2000; // Limit seen logs cache to prevent infinite growth
+
+  // PERFORMANCE FIX: Pause polling when tab is not visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
     const fetchLogs = async () => {
-      if (isPaused) return;
+      // PERFORMANCE FIX: Don't fetch when paused or tab not visible
+      if (isPaused || !isTabVisible) return;
 
       try {
         const position = positionRef.current ?? -1;
@@ -42,6 +55,14 @@ export function useLogFetcher() {
             }
 
             seenLogsRef.current.add(logKey);
+
+            // MEMORY LEAK FIX: Prevent infinite Set growth
+            if (seenLogsRef.current.size > maxSeenLogs) {
+              // Convert to array, remove oldest half, convert back to Set
+              const logsArray = Array.from(seenLogsRef.current);
+              seenLogsRef.current = new Set(logsArray.slice(logsArray.length / 2));
+            }
+
             return true;
           });
 
@@ -75,9 +96,10 @@ export function useLogFetcher() {
     };
 
     fetchLogs();
-    const interval = setInterval(fetchLogs, 5000);
+    // PERFORMANCE FIX: Increased from 5s to 10s to reduce CPU load
+    const interval = setInterval(fetchLogs, 10000);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, isTabVisible]);
 
   return {
     logs,

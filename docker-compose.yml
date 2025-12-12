@@ -8,27 +8,23 @@ services:
       - "5000:5000"
     volumes:
       - ./data/logs:/logs:ro
-      - ./data/geoip:/geoip:ro
       - ./data/positions:/data
     environment:
       # Log Paths
       - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
       - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
-      
+
       # Authentication - REPLACE WITH YOUR TOKEN
       - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=d41d8cd98f00b204e9800998ecf8427e
-      
+
       # System Monitoring
       - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
-      
-      # GeoIP Configuration
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
-      
+
+      # REFACTOR: GeoIP removed - Dashboard handles GeoIP locally
+
       # Log Format
       - TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json
-      
+
       # Server Port
       - PORT=5000
     healthcheck:
@@ -59,6 +55,7 @@ services:
       # Node Environment
       - NODE_ENV=production
       - PORT=3000
+      - GEOIP_DB_PATH=/geoip/GeoLite2-City.mmdb
       
       # Display Configuration
       - NEXT_PUBLIC_SHOW_DEMO_PAGE=true

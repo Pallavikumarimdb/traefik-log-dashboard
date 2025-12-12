@@ -18,18 +18,29 @@ interface HeaderProps {
   showAgentSelector?: boolean;  // Optional
 }
 
-export default function Header({ 
-  title, 
-  connected = false, 
-  demoMode = false, 
+export default function Header({
+  title,
+  connected = false,
+  demoMode = false,
   lastUpdate,
-  showAgentSelector = true 
+  showAgentSelector = true
 }: HeaderProps) {
   const { selectedAgent } = useAgents();
   const [alertCount, setAlertCount] = useState<number>(0);
+  const [isTabVisible, setIsTabVisible] = useState(true);
+
+  // PERFORMANCE FIX: Pause polling when tab is not visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
-    if (demoMode) return;
+    if (demoMode || !isTabVisible) return;
 
     const fetchAlertStats = async () => {
       try {
@@ -44,10 +55,11 @@ export default function Header({
     };
 
     fetchAlertStats();
-    const interval = setInterval(fetchAlertStats, 60000); // Update every minute
+    // PERFORMANCE FIX: Increased from 60s to 120s to reduce load
+    const interval = setInterval(fetchAlertStats, 120000);
 
     return () => clearInterval(interval);
-  }, [demoMode]);
+  }, [demoMode, isTabVisible]);
 
   return (
     <header className="bg-white border-b border-red-200 sticky top-0 z-50 shadow-sm">

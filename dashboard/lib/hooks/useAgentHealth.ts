@@ -30,10 +30,21 @@ export function useAgentHealth(options: HealthMonitorOptions = {}) {
   const { agents, checkAgentStatus } = useAgents();
   const [healthMetrics, setHealthMetrics] = useState<Record<string, AgentHealthMetrics>>({});
   const [isMonitoring, setIsMonitoring] = useState(false);
-  
+  const [isTabVisible, setIsTabVisible] = useState(true);
+
   // Use refs to avoid dependency issues
   const healthMetricsRef = useRef(healthMetrics);
   const onStatusChangeRef = useRef(onStatusChange);
+
+  // PERFORMANCE FIX: Pause polling when tab is not visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // Update refs when values change
   useEffect(() => {
@@ -108,18 +119,23 @@ export function useAgentHealth(options: HealthMonitorOptions = {}) {
     setIsMonitoring(false);
   }, [agents, checkSingleAgent]); // Removed healthMetrics from dependencies
 
-  // Auto-check setup - only depends on static values and agents
+  // MEMORY LEAK FIX: Auto-check setup with proper dependencies and visibility check
   useEffect(() => {
-    if (!enableAutoCheck || agents.length === 0) return;
+    if (!enableAutoCheck || agents.length === 0 || !isTabVisible) return;
 
     // Initial check
     checkAllAgents();
 
     // Set up interval
-    const interval = setInterval(checkAllAgents, checkInterval);
+    const interval = setInterval(() => {
+      // Double-check visibility before executing
+      if (!document.hidden) {
+        checkAllAgents();
+      }
+    }, checkInterval);
 
     return () => clearInterval(interval);
-  }, [enableAutoCheck, checkInterval, agents.length]); // Removed checkAllAgents dependency
+  }, [enableAutoCheck, checkInterval, agents.length, checkAllAgents, isTabVisible]); // FIXED: Added checkAllAgents and isTabVisible
 
   const getAgentHealth = useCallback((agentId: string): AgentHealthMetrics | null => {
     return healthMetrics[agentId] || null;

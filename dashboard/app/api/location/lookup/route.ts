@@ -12,8 +12,8 @@ async function getReader() {
   
   try {
     // Try to locate the database file
-    // In development/production it should be in node_modules
-    const dbPath = path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dist', 'GeoLite2-City.mmdb');
+    // Check environment variable first, then fallback to node_modules
+    const dbPath = process.env.GEOIP_DB_PATH || path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dist', 'GeoLite2-City.mmdb');
     reader = await maxmind.open(dbPath);
     return reader;
   } catch (error) {

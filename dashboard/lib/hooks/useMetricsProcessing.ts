@@ -18,7 +18,8 @@ export function useMetricsProcessing(
   logs: TraefikLog[] | null,
   options: UseMetricsProcessingOptions = {}
 ) {
-  const { enabled = true, debounceMs = 5000 } = options;
+  // PERFORMANCE FIX: Increased default debounce from 5s to 10s to match new polling intervals
+  const { enabled = true, debounceMs = 10000 } = options;
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastProcessedRef = useRef<string>('');
 

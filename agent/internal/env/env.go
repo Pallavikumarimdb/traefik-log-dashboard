@@ -8,6 +8,7 @@ import (
 )
 
 // Env holds environment variables for the agent
+// REFACTOR: Removed GeoIP fields - Dashboard handles GeoIP locally
 type Env struct {
 	Port             string
 	AccessPath       string
@@ -15,9 +16,6 @@ type Env struct {
 	SystemMonitoring bool
 	AuthToken        string
 	LogFormat        string
-	GeoIPEnabled     bool
-	GeoIPCityDB      string
-	GeoIPCountryDB   string
 	PositionFile     string
 }
 
@@ -36,9 +34,6 @@ func LoadEnv() Env {
 		SystemMonitoring: getEnvBool("TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING", true),
 		AuthToken:        getEnv("TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN", ""),
 		LogFormat:        getEnv("TRAEFIK_LOG_DASHBOARD_LOG_FORMAT", "json"),
-		GeoIPEnabled:     getEnvBool("TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED", true),
-		GeoIPCityDB:      getEnv("TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB", "GeoLite2-City.mmdb"),
-		GeoIPCountryDB:   getEnv("TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB", "GeoLite2-Country.mmdb"),
 		PositionFile:     getEnv("POSITION_FILE", "/data/.position"),
 	}
 }
