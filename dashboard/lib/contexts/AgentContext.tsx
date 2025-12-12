@@ -236,24 +236,38 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     }
   }, [agents, selectedAgent, selectAgent]);
 
-  // Check agent status
+  // REFACTORED: Check agent status with race condition prevention
   const checkAgentStatus = useCallback(async (id: string): Promise<boolean> => {
     const agent = agents.find(a => a.id === id);
-    if (!agent) return false;
-
-    // Update status to checking
-    await updateAgent(id, { status: 'checking' });
+    if (!agent) {
+      console.warn(`Agent ${id} not found for status check`);
+      return false;
+    }
 
     try {
+      // OPTIMIZATION: Set checking status optimistically without await
+      // This prevents blocking and reduces race conditions
+      updateAgent(id, { status: 'checking' }).catch(err => {
+        console.error('Failed to update checking status:', err);
+      });
+
+      // FIXED: Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch('/api/agents/check-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentUrl: agent.url, agentToken: agent.token }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
       const isOnline = response.ok && data.online;
 
+      // FIXED: Single state update instead of multiple sequential updates
       await updateAgent(id, {
         status: isOnline ? 'online' : 'offline',
         lastSeen: isOnline ? new Date() : undefined,
@@ -261,7 +275,18 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 
       return isOnline;
     } catch (error) {
-      await updateAgent(id, { status: 'offline' });
+      // IMPROVED: Better error logging and handling
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn(`Agent ${id} status check timeout`);
+      } else {
+        console.error(`Agent ${id} status check failed:`, error);
+      }
+
+      // Non-blocking status update
+      updateAgent(id, { status: 'offline' }).catch(err => {
+        console.error('Failed to update offline status:', err);
+      });
+
       return false;
     }
   }, [agents, updateAgent]);

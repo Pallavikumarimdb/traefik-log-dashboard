@@ -327,33 +327,33 @@ export function GlobeToMapTransform({ locations = [] }: Props) {
         aria-label="Interactive Globe/Map Visualization"
       />
       <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2 z-10">
-        <div className="flex flex-col gap-1 bg-white/10 dark:bg-black/20 backdrop-blur-sm p-1 rounded-lg border border-neutral-200/20">
+        <div className="flex flex-col bg-white dark:bg-neutral-950 shadow-md rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden">
           <Button
             onClick={handleZoomIn}
             variant="ghost"
             size="icon"
-            className="w-8 h-8 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="w-8 h-8 rounded-none hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-100 dark:border-neutral-800"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
           </Button>
           <Button
             onClick={handleZoomOut}
             variant="ghost"
             size="icon"
-            className="w-8 h-8 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="w-8 h-8 rounded-none hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
           </Button>
         </div>
         
         <div className="flex gap-2">
-          <Button onClick={handleAnimate} disabled={isAnimating} className="cursor-pointer min-w-[120px] rounded shadow-sm">
+          <Button onClick={handleAnimate} disabled={isAnimating} className="cursor-pointer min-w-[120px] rounded shadow-sm bg-red-600 hover:bg-red-700 text-white border-0">
             {isAnimating ? "Animating..." : progress[0] === 0 ? "Unroll Globe" : "Roll to Globe"}
           </Button>
           <Button
             onClick={handleReset}
             variant="outline"
-            className="cursor-pointer min-w-[80px] hover:bg-neutral-100 bg-white dark:bg-black backdrop-blur-sm rounded shadow-sm"
+            className="cursor-pointer min-w-[80px] hover:bg-neutral-100 bg-white dark:bg-black backdrop-blur-sm rounded shadow-sm border-neutral-200 dark:border-neutral-800"
           >
             Reset
           </Button>
