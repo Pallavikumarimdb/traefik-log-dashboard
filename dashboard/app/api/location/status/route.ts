@@ -1,64 +1,61 @@
 import { NextResponse } from 'next/server';
-import { agentConfig } from '@/lib/agent-config';
+import maxmind from 'maxmind';
+import path from 'path';
+import fs from 'fs';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/**
+ * REFACTOR: Changed to check local GeoIP database instead of calling agent
+ * Dashboard now handles all GeoIP lookups locally
+ */
 export async function GET() {
   try {
-    const AGENT_API_URL = agentConfig.url;
-    const AGENT_API_TOKEN = agentConfig.token;
+    // Check for GeoIP database locally
+    const dbPath = process.env.GEOIP_DB_PATH || path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dist', 'GeoLite2-City.mmdb');
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+    let available = false;
+    let dbLocation = '';
+
+    // Check if database file exists
+    try {
+      if (fs.existsSync(dbPath)) {
+        // Try to open it to verify it's valid
+        const reader = await maxmind.open(dbPath);
+        if (reader) {
+          available = true;
+          dbLocation = dbPath;
+        }
+      }
+    } catch (err) {
+      console.error('GeoIP database check failed:', err);
+      available = false;
+    }
+
+    const data = {
+      enabled: true, // Always enabled in dashboard
+      available: available,
+      database: dbLocation,
+      message: available
+        ? 'GeoIP database available (local)'
+        : 'GeoIP database not found. Install geolite2-redist npm package or set GEOIP_DB_PATH',
     };
 
-    if (AGENT_API_TOKEN) {
-      headers['Authorization'] = `Bearer ${AGENT_API_TOKEN}`;
-    }
-
-    const response = await fetch(
-      `${AGENT_API_URL}/api/location/status`,
-      {
-        headers,
-        cache: 'no-store',
-      }
-    );
-
-    if (!response.ok) {
-      // If agent doesn't have location endpoint, return disabled status
-      if (response.status === 404) {
-        return NextResponse.json({
-          enabled: false,
-          available: false,
-          message: 'Location service not available on agent'
-        });
-      }
-
-      const error = await response.text();
-      console.error('Agent location status error:', error);
-      return NextResponse.json(
-        { error: `Agent error: ${error}` },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    
     const res = NextResponse.json(data);
     res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.headers.set('Pragma', 'no-cache');
     res.headers.set('Expires', '0');
-    
+
     return res;
   } catch (error) {
     console.error('Location status API error:', error);
     return NextResponse.json(
-      { 
-        enabled: false,
+      {
+        enabled: true,
         available: false,
-        error: 'Failed to fetch location status',
-        details: String(error) 
+        error: 'Failed to check location status',
+        details: String(error)
       },
       { status: 500 }
     );

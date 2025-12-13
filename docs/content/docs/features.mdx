@@ -1,0 +1,34 @@
+---
+title: Features
+description: Capabilities of the Traefik Log Dashboard
+---
+
+## Dashboard Features
+
+- **Real-time analytics**: Metrics visualization with request rates, response times, and error tracking.
+- **GeoIP integration**: Country and city level mapping of requests (requires MaxMind DB).
+- **Advanced filtering**: Filter by status code, HTTP method, service, router, and time range.
+- **Responsive design**: Works beautifully on both desktop and mobile devices.
+- **Modern UI**: Clean interface with dark mode support.
+- **Auto-refresh**: Configurable intervals to keep data up to date.
+- **Persistent configuration**: Agent settings are stored reliably in SQLite.
+
+## Multi-Agent Capabilities
+
+- **Unlimited Agents**: Manage as many Traefik instances as needed.
+- **Location Awareness**: Organize agents by "on-site" or "off-site" locations.
+- **Health Monitoring**: Monitor the real-time status of all connected agents.
+- **Tagging System**: Categorize agents with custom tags for better organization.
+- **Individual Authentication**: Secure each agent with its own unique token.
+- **Aggregate Views**: See data from all agents combined or drill down into specific ones.
+- **Protected Environments**: Environment-defined agents are protected from accidental deletion.
+
+## Agent Features
+
+- **High Performance**: Built with Go for efficiency and speed.
+- **Log Parsing**: Supports both JSON and Common Log Format.
+- **Efficient Reading**: Tracks file positions to only read new log entries.
+- **GeoIP Support**: Integrated MaxMind GeoIP support for location data.
+- **System Monitoring**: Tracks resource usage of the agent itself.
+- **Bearer Token Auth**: Secure API access.
+- **RESTful API**: Full API for programmatic access to data.

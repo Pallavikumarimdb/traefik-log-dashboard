@@ -39,6 +39,8 @@ export default function AlertsSettingsPage() {
   const [editingWebhook, setEditingWebhook] = useState<Webhook | null>(null);
   const [editingAlert, setEditingAlert] = useState<AlertRule | null>(null);
 
+  const [stats, setStats] = useState({ total: 0, last24h: 0, success: 0, failed: 0 });
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -46,10 +48,11 @@ export default function AlertsSettingsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [webhooksRes, alertsRes, agentsRes] = await Promise.all([
+      const [webhooksRes, alertsRes, agentsRes, statsRes] = await Promise.all([
         fetch('/api/webhooks'),
         fetch('/api/alerts'),
         fetch('/api/agents'),
+        fetch('/api/alerts/stats'),
       ]);
 
       if (webhooksRes.ok) {
@@ -65,6 +68,11 @@ export default function AlertsSettingsPage() {
       if (agentsRes.ok) {
         const agentsData = await agentsRes.json();
         setAgents(agentsData.agents || []);
+      }
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -127,7 +135,7 @@ export default function AlertsSettingsPage() {
       } else {
         toast.error('Test failed: ' + data.error);
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to test webhook');
     } finally {
       setTestingWebhook(null);
@@ -149,7 +157,7 @@ export default function AlertsSettingsPage() {
         toast.success(`Webhook ${!webhook.enabled ? 'enabled' : 'disabled'}`);
         fetchData();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update webhook');
     }
   };
@@ -166,7 +174,7 @@ export default function AlertsSettingsPage() {
         toast.success('Webhook deleted');
         fetchData();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete webhook');
     }
   };
@@ -224,7 +232,7 @@ export default function AlertsSettingsPage() {
         toast.success(`Alert ${!alert.enabled ? 'enabled' : 'disabled'}`);
         fetchData();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update alert');
     }
   };
@@ -260,7 +268,7 @@ export default function AlertsSettingsPage() {
       } else {
         toast.error('Test failed: ' + data.error);
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to test alert');
     } finally {
       setTestingAlert(null);
@@ -279,7 +287,7 @@ export default function AlertsSettingsPage() {
         toast.success('Alert rule deleted');
         fetchData();
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete alert rule');
     }
   };
@@ -303,6 +311,26 @@ export default function AlertsSettingsPage() {
             <p className="text-gray-600 mt-1">
               Manage webhooks and alert rules for notifications
             </p>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">Total Alerts</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">Last 24 Hours</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.last24h}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">Successful</div>
+            <div className="text-2xl font-bold text-green-600">{stats.success}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">Failed</div>
+            <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
           </div>
         </div>
 

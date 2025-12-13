@@ -1,0 +1,29 @@
+---
+title: Environment Variables
+description: Complete list of environment variables
+---
+
+## Agent Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `TRAEFIK_LOG_DASHBOARD_ACCESS_PATH` | Path to Traefik access log | `/logs/access.log` | Yes |
+| `TRAEFIK_LOG_DASHBOARD_ERROR_PATH` | Path to Traefik error log | - | No |
+| `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN` | Bearer token for authentication | - | Yes |
+| `TRAEFIK_LOG_DASHBOARD_LOG_FORMAT` | Log format (json/common) | `json` | No |
+| `TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING` | Enable system monitoring | `true` | No |
+| `TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED` | Enable GeoIP lookups | `false` | No |
+| `TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB` | Path to GeoLite2-City.mmdb | - | If GeoIP enabled |
+| `TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB` | Path to GeoLite2-Country.mmdb | - | If GeoIP enabled |
+| `PORT` | Agent listen port | `5000` | No |
+
+## Dashboard Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `AGENT_API_URL` | Default agent URL (for env agent) | - | Yes (for env agent) |
+| `AGENT_API_TOKEN` | Default agent token (for env agent) | - | Yes (for env agent) |
+| `AGENT_NAME` | Name for environment agent | `Environment Agent` | No |
+| `NODE_ENV` | Node environment | `production` | No |
+| `PORT` | Dashboard listen port | `3000` | No |
+| `DATABASE_PATH` | SQLite database location | `./data/agents.db` | No |

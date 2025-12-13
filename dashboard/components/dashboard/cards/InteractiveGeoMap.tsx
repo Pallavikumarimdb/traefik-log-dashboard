@@ -6,6 +6,9 @@ import Card from '@/components/ui/DashboardCard';
 import { GeoLocation } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 
+import Link from 'next/link';
+import { GlobeToMapTransform } from '@/components/dashboard/GlobeToMapTransform';
+
 interface Props {
   locations: GeoLocation[];
 }
@@ -16,13 +19,23 @@ export default function InteractiveGeoMap({ locations }: Props) {
   if (!locations || locations.length === 0) {
     return (
       <Card title="Interactive Geographic Map" icon={<Globe className="w-5 h-5 text-red-600" />}>
-        <div className="text-center py-8 text-gray-500">No geographic data available</div>
+        <div className="space-y-4">
+           {/* Show globe even if no data, or just show the empty message? 
+               User request implies adding the globe. 
+               But "No geographic data available" suggests we shouldn't show a map that pretends to have data.
+               However, the globe is interactive. 
+               Let's render it but maybe with a note, or just keep the empty state separate.
+               Actually, let's put it in the main block. If no locations, maybe we don't show the component?
+               Let's stick to the main block for now.
+           */}
+           <div className="text-center py-8 text-gray-500">No geographic data available</div>
+        </div>
       </Card>
     );
   }
 
   const validLocations = locations.filter(
-    loc => loc.country !== 'Unknown' && loc.country !== 'Private' && loc.country !== 'Private Network'
+    (loc) => loc.country !== 'Unknown' && loc.country !== 'Private' && loc.country !== 'Private Network'
   );
   
   const totalRequests = validLocations.reduce((sum, loc) => sum + loc.count, 0);
@@ -83,6 +96,11 @@ export default function InteractiveGeoMap({ locations }: Props) {
   return (
     <Card title="Interactive Geographic Map" icon={<Globe className="w-5 h-5 text-red-600" />}>
       <div className="space-y-4">
+        {/* Globe Visualization */}
+        <div className="w-full border rounded-lg overflow-hidden bg-neutral-50 mb-4">
+          <GlobeToMapTransform locations={validLocations} />
+        </div>
+
         <div className="bg-gradient-to-br from-red-50 to-white rounded-lg p-6 border border-red-200">
           <div className="flex items-center justify-between mb-4">
             <div>

@@ -1,7 +1,7 @@
 // dashboard/lib/contexts/FilterContext.tsx
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { FilterSettings, FilterCondition, defaultFilterSettings } from '../types/filter';
 
 interface FilterContextType {
@@ -38,49 +38,54 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
-  const updateSettings = (newSettings: Partial<FilterSettings>) => {
+  // PERFORMANCE FIX: Memoize callback functions to prevent unnecessary re-renders
+  const updateSettings = useCallback((newSettings: Partial<FilterSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
-  };
+  }, []);
 
-  const resetSettings = () => {
+  const resetSettings = useCallback(() => {
     setSettings(defaultFilterSettings);
     localStorage.removeItem(STORAGE_KEY);
-  };
+  }, []);
 
-  const addCustomCondition = (condition: FilterCondition) => {
+  const addCustomCondition = useCallback((condition: FilterCondition) => {
     setSettings((prev) => ({
       ...prev,
       customConditions: [...prev.customConditions, condition],
     }));
-  };
+  }, []);
 
-  const removeCustomCondition = (id: string) => {
+  const removeCustomCondition = useCallback((id: string) => {
     setSettings((prev) => ({
       ...prev,
       customConditions: prev.customConditions.filter((c) => c.id !== id),
     }));
-  };
+  }, []);
 
-  const updateCustomCondition = (id: string, updates: Partial<FilterCondition>) => {
+  const updateCustomCondition = useCallback((id: string, updates: Partial<FilterCondition>) => {
     setSettings((prev) => ({
       ...prev,
       customConditions: prev.customConditions.map((c) =>
         c.id === id ? { ...c, ...updates } : c
       ),
     }));
-  };
+  }, []);
+
+  // PERFORMANCE FIX: Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      settings,
+      updateSettings,
+      resetSettings,
+      addCustomCondition,
+      removeCustomCondition,
+      updateCustomCondition,
+    }),
+    [settings, updateSettings, resetSettings, addCustomCondition, removeCustomCondition, updateCustomCondition]
+  );
 
   return (
-    <FilterContext.Provider
-      value={{
-        settings,
-        updateSettings,
-        resetSettings,
-        addCustomCondition,
-        removeCustomCondition,
-        updateCustomCondition,
-      }}
-    >
+    <FilterContext.Provider value={contextValue}>
       {children}
     </FilterContext.Provider>
   );

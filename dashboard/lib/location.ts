@@ -1,4 +1,47 @@
 import { GeoLocation, TraefikLog } from './types';
+import { apiClient } from './api-client';
+
+// PERFORMANCE FIX: In-memory cache for GeoIP lookups
+const geoIPCache = new Map<string, { country: string; city?: string; latitude?: number; longitude?: number }>();
+const CACHE_MAX_SIZE = 5000; // Limit cache size to prevent memory bloat
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour TTL
+const cacheTimestamps = new Map<string, number>();
+
+/**
+ * Clear expired cache entries
+ */
+function cleanExpiredCache() {
+  const now = Date.now();
+  for (const [ip, timestamp] of cacheTimestamps.entries()) {
+    if (now - timestamp > CACHE_TTL) {
+      geoIPCache.delete(ip);
+      cacheTimestamps.delete(ip);
+    }
+  }
+}
+
+/**
+ * Add to cache with size limit
+ */
+function addToCache(ip: string, data: any) {
+  // Clean expired entries first
+  if (geoIPCache.size > CACHE_MAX_SIZE * 0.8) {
+    cleanExpiredCache();
+  }
+
+  // If still too large, remove oldest entries
+  if (geoIPCache.size >= CACHE_MAX_SIZE) {
+    const sortedEntries = Array.from(cacheTimestamps.entries()).sort((a, b) => a[1] - b[1]);
+    const toRemove = sortedEntries.slice(0, CACHE_MAX_SIZE / 4);
+    toRemove.forEach(([ip]) => {
+      geoIPCache.delete(ip);
+      cacheTimestamps.delete(ip);
+    });
+  }
+
+  geoIPCache.set(ip, data);
+  cacheTimestamps.set(ip, Date.now());
+}
 
 /**
  * Extract IP address from client address string
@@ -114,34 +157,45 @@ export function getCountryCoordinates(countryCode: string): { lat: number; lon: 
 }
 
 /**
- * Lookup locations from agent API
+ * Lookup locations from agent API with caching
  */
 async function lookupLocationsFromAgent(ips: string[]): Promise<Map<string, any>> {
   try {
-    const response = await fetch('/api/location/lookup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ips }),
+    // PERFORMANCE FIX: Check cache first, only lookup uncached IPs
+    const uncachedIPs: string[] = [];
+    const locationMap = new Map();
+
+    ips.forEach(ip => {
+      const cached = geoIPCache.get(ip);
+      if (cached) {
+        locationMap.set(ip, cached);
+      } else {
+        uncachedIPs.push(ip);
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`Location lookup failed: ${response.statusText}`);
+    // If all IPs were cached, return immediately
+    if (uncachedIPs.length === 0) {
+      console.log(`GeoIP: All ${ips.length} IPs found in cache`);
+      return locationMap;
     }
 
-    const data = await response.json();
+    console.log(`GeoIP: ${locationMap.size} cached, ${uncachedIPs.length} need lookup`);
+
+    // Lookup only uncached IPs
+    const data = await apiClient.lookupLocations(uncachedIPs);
     const locations = data.locations || [];
 
-    // Convert to Map for easy lookup
-    const locationMap = new Map();
+    // Add to map and cache
     locations.forEach((loc: any) => {
-      locationMap.set(loc.ipAddress, {
+      const geoData = {
         country: loc.country || 'Unknown',
         city: loc.city,
         latitude: loc.latitude,
         longitude: loc.longitude,
-      });
+      };
+      locationMap.set(loc.ipAddress, geoData);
+      addToCache(loc.ipAddress, geoData); // Cache the result
     });
 
     return locationMap;

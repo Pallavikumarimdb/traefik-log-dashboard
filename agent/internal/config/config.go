@@ -5,6 +5,7 @@ import (
 )
 
 // Config holds the application configuration
+// REFACTOR: Removed GeoIP fields - Dashboard handles GeoIP locally
 type Config struct {
 	AccessPath       string
 	ErrorPath        string
@@ -13,9 +14,6 @@ type Config struct {
 	MonitorInterval  int
 	Port             string
 	LogFormat        string
-	GeoIPEnabled     bool
-	GeoIPCityDB      string
-	GeoIPCountryDB   string
 	PositionFile     string
 }
 
@@ -31,9 +29,6 @@ func Load() *Config {
 		MonitorInterval:  2000, // Keep default for now
 		Port:             e.Port,
 		LogFormat:        e.LogFormat,
-		GeoIPEnabled:     e.GeoIPEnabled,
-		GeoIPCityDB:      e.GeoIPCityDB,
-		GeoIPCountryDB:   e.GeoIPCountryDB,
 		PositionFile:     e.PositionFile,
 	}
 

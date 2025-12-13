@@ -1,0 +1,135 @@
+---
+title: Quick Start
+description: Get up and running with Traefik Log Dashboard
+---
+
+## Prerequisites
+
+- Docker and Docker Compose
+- Traefik configured with JSON access logs
+- (Optional) MaxMind GeoIP databases for geolocation
+
+## Single Agent Setup
+
+### 1. Create directory structure
+
+```bash
+mkdir -p traefik-dashboard/{data/{logs,geoip,positions,dashboard}}
+cd traefik-dashboard
+```
+
+### 2. Create `docker-compose.yml`
+
+```yaml
+services:
+  # Traefik Log Dashboard Agent
+  traefik-agent:
+    image: hhftechnology/traefik-log-dashboard-agent:dev-dashboard
+    container_name: traefik-log-dashboard-agent
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data/logs:/logs:ro
+      - ./data/geoip:/geoip:ro  # MaxMind GeoIP databases
+      - ./data/positions:/data
+    environment:
+      # Log Paths
+      - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
+      - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
+      
+      # Authentication
+      - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=d41d8cd98f00b204e9800998ecf8427e
+      
+      # System Monitoring
+      - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
+      
+      # GeoIP Configuration
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
+      - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+      
+      # Log Format
+      - TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json
+      
+      # Server Port
+      - PORT=5000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/logs/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - traefik-network
+
+  # Traefik Log Dashboard - Next.js web UI
+  traefik-dashboard:
+    image: hhftechnology/traefik-log-dashboard:dev-dashboard
+    container_name: traefik-log-dashboard
+    restart: unless-stopped
+    user: "1001:1001"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/dashboard:/app/data
+    environment:
+      # Agent Configuration (Default/Environment Agent)
+      - AGENT_API_URL=http://traefik-agent:5000
+      - AGENT_API_TOKEN=d41d8cd98f00b204e9800998ecf8427e
+      - AGENT_NAME=Default Agent  # Optional: Name for environment agent
+      
+      # Node Environment
+      - NODE_ENV=production
+      - PORT=3000
+    depends_on:
+      traefik-agent:
+        condition: service_healthy
+    networks:
+      - traefik-network
+
+networks:
+  traefik-network:
+    external: true
+```
+
+### 3. Generate secure authentication token
+
+```bash
+# Generate a strong token
+openssl rand -hex 32
+
+# Update both TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN and AGENT_API_TOKEN with this value
+```
+
+### 4. Start the services
+
+```bash
+docker compose up -d
+```
+
+### 5. Access the dashboard
+
+Open your browser to [http://localhost:3000](http://localhost:3000)
+
+## Traefik Configuration
+
+Configure Traefik to output JSON access logs:
+
+```yaml
+# traefik.yml
+accessLog:
+  filePath: "/logs/access.log"
+  format: json
+  bufferingSize: 100
+  
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+    headers:
+      defaultMode: keep
+      names:
+        Authorization: drop
+        Cookie: drop
+```

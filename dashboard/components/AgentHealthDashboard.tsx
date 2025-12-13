@@ -1,7 +1,7 @@
 // dashboard/components/AgentHealthDashboard.tsx
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAgents } from '@/lib/contexts/AgentContext';
 import { useAgentHealth } from '@/lib/hooks/useAgentHealth';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ export default function AgentHealthDashboard() {
   const { agents } = useAgents();
   const [autoRefresh, setAutoRefresh] = useState(true);
 
+  // PERFORMANCE FIX: Increased interval from 30s to 5min to reduce load
   const {
     healthMetrics,
     isMonitoring,
@@ -28,15 +29,37 @@ export default function AgentHealthDashboard() {
     getOverallHealth,
     getUnhealthyAgents,
   } = useAgentHealth({
-    checkInterval: 30000, // 30 seconds
+    checkInterval: 300000, // 5 minutes (was 30 seconds)
     enableAutoCheck: autoRefresh,
     onStatusChange: (agentId, isOnline) => {
       console.log(`Agent ${agentId} status changed to ${isOnline ? 'online' : 'offline'}`);
     },
   });
 
-  const overallHealth = getOverallHealth();
-  const unhealthyAgents = getUnhealthyAgents();
+  // SAFETY FIX: Add error boundary for health metrics calculation
+  const overallHealth = React.useMemo(() => {
+    try {
+      return getOverallHealth();
+    } catch (error) {
+      console.error('Failed to calculate overall health:', error);
+      return {
+        totalAgents: agents.length,
+        onlineAgents: 0,
+        offlineAgents: agents.length,
+        averageResponseTime: 0,
+        overallUptime: 0,
+      };
+    }
+  }, [getOverallHealth, agents.length]);
+
+  const unhealthyAgents = React.useMemo(() => {
+    try {
+      return getUnhealthyAgents();
+    } catch (error) {
+      console.error('Failed to get unhealthy agents:', error);
+      return [];
+    }
+  }, [getUnhealthyAgents]);
 
   const getStatusBadge = (isOnline: boolean) => {
     return isOnline ? (
@@ -101,7 +124,7 @@ export default function AgentHealthDashboard() {
             <Badge variant="secondary">{overallHealth.overallUptime.toFixed(1)}%</Badge>
           </div>
           <div className="text-2xl font-bold text-gray-900 mb-1">
-            {overallHealth.overallUptime.toFixed(1)}%
+            {(overallHealth?.overallUptime ?? 0).toFixed(1)}%
           </div>
           <div className="text-sm text-gray-600">Overall Uptime</div>
         </div>
@@ -120,7 +143,7 @@ export default function AgentHealthDashboard() {
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="rounded border-gray-300 text-red-600 focus:ring-red-500"
             />
-            Auto-refresh (30s)
+            Auto-refresh (5min)
           </label>
           <Button
             onClick={() => checkAllAgents()}
