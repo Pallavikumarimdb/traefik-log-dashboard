@@ -5,7 +5,9 @@
 A comprehensive analytics platform for Traefik access logs with three deployment options: a Go-based API agent, a modern Next.js web dashboard, and a beautiful terminal-based CLI.
 
 <div align="center">
-
+    
+[![Docker](https://img.shields.io/docker/pulls/hhftechnology/traefik-log-dashboard?style=flat-square)](https://hub.docker.com/r/hhftechnology/traefik-log-dashboard)
+[![Docker](https://img.shields.io/docker/pulls/hhftechnology/traefik-log-dashboard-agent?style=flat-square)](https://hub.docker.com/r/hhftechnology/traefik-log-dashboard-agent)
 ![Stars](https://img.shields.io/github/stars/hhftechnology/traefik-log-dashboard?style=flat-square)
 [![Discord](https://img.shields.io/discord/994247717368909884?logo=discord&style=flat-square)](https://discord.gg/HDCt9MjyMJ)
 
@@ -43,6 +45,20 @@ Traefik Log Dashboard is a powerful analytics platform that provides real-time i
 1. **Agent** - Go-based backend API that parses logs and exposes metrics
 2. **Dashboard** - Next.js web UI with interactive charts and real-time updates
 3. **CLI** - Beautiful terminal-based dashboard (optional)
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7eb3bd6f-f195-4fbb-babc-140e4a37451f" />
+---
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/cb97cf90-a670-4afc-8e92-17b39fb03c7b" />
+---
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/1c534efa-bfaf-4603-9b87-d69a736a8a67" />
+---
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7e659846-db62-4825-bfe3-218081c66450" />
+---
+<img width="1735" height="1532" alt="image" src="https://github.com/user-attachments/assets/29a0df2a-3ff3-4204-ba06-7bc34f39f7c6" />
+---
+<img width="1735" height="810" alt="image" src="https://github.com/user-attachments/assets/94059cb8-dec7-49cc-9531-51270f314ba7" />
+
+<img width="1877" height="7800" alt="image" src="https://github.com/user-attachments/assets/ba81077f-95b0-4a73-82ab-bb9e75d4c04a" />
 
 ### What's New in v2.x
 
