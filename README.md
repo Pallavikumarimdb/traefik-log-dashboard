@@ -165,34 +165,22 @@ cd traefik-dashboard
 services:
   # Traefik Log Dashboard Agent
   traefik-agent:
-    image: hhftechnology/traefik-log-dashboard-agent:dev-dashboard
+    image: hhftechnology/traefik-log-dashboard-agent:latest
     container_name: traefik-log-dashboard-agent
     restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
-      - ./data/logs:/logs:ro
-      - ./data/geoip:/geoip:ro  # MaxMind GeoIP databases
+      - /root/config/traefik/logs:/logs:ro
       - ./data/positions:/data
     environment:
       # Log Paths
       - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
       - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
-      
       # Authentication
       - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=d41d8cd98f00b204e9800998ecf8427e
-      
       # System Monitoring
-      - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
-      
-      # GeoIP Configuration
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
-      
-      # Log Format
-      - TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json
-      
+      - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true      
       # Server Port
       - PORT=5000
     healthcheck:
@@ -202,35 +190,41 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - traefik-network
+      - pangolin
 
   # Traefik Log Dashboard - Next.js web UI
   traefik-dashboard:
-    image: hhftechnology/traefik-log-dashboard:dev-dashboard
+    image: hhftechnology/traefik-log-dashboard:latest
     container_name: traefik-log-dashboard
     restart: unless-stopped
-    user: "1001:1001"
     ports:
       - "3000:3000"
     volumes:
       - ./data/dashboard:/app/data
+      - ./data/geoip:/geoip:ro  # MaxMind GeoIP databases
+      - ./data/positions:/data
     environment:
-      # Agent Configuration (Default/Environment Agent)
+      # Agent Configuration - REPLACE WITH YOUR TOKEN
       - AGENT_API_URL=http://traefik-agent:5000
       - AGENT_API_TOKEN=d41d8cd98f00b204e9800998ecf8427e
-      - AGENT_NAME=Default Agent  # Optional: Name for environment agent
+      - AGENT_NAME=Default Agent
       
       # Node Environment
       - NODE_ENV=production
       - PORT=3000
+      - GEOIP_DB_PATH=/geoip/GeoLite2-City.mmdb
+      
+      # Display Configuration
+      - NEXT_PUBLIC_SHOW_DEMO_PAGE=true
+      - NEXT_PUBLIC_MAX_LOGS_DISPLAY=500
     depends_on:
       traefik-agent:
         condition: service_healthy
     networks:
-      - traefik-network
+      - pangolin
 
 networks:
-  traefik-network:
+  pangolin:
     external: true
 ```
 
