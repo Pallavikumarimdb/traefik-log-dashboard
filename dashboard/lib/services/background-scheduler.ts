@@ -1,4 +1,4 @@
-import { getAllAgents, getAgentById } from '../db/database';
+import { getAllAgents } from '../db/database';
 import { calculateMetrics } from '../utils/metric-calculator';
 import { parseTraefikLogs } from '../traefik-parser';
 import { serviceManager } from './service-manager';
@@ -21,13 +21,17 @@ class BackgroundScheduler {
    */
   start() {
     if (this.intervalId) {
-      console.log('[Scheduler] Already running');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Scheduler] Already running');
+      }
       return;
     }
 
     this.startTime = new Date();
-    console.log('[Scheduler] Starting background scheduler (30min interval)...');
-    console.log(`[Scheduler] Initial run will execute immediately, then every ${SCHEDULER_INTERVAL / 1000 / 60} minutes`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Scheduler] Starting background scheduler (30min interval)...');
+      console.warn(`[Scheduler] Initial run will execute immediately, then every ${SCHEDULER_INTERVAL / 1000 / 60} minutes`);
+    }
 
     // FIX for Issue #122: Run immediately on start to ensure alerts trigger without dashboard being open
     // This ensures the scheduler doesn't wait 30 minutes before first run
@@ -42,14 +46,18 @@ class BackgroundScheduler {
       });
     }, SCHEDULER_INTERVAL);
 
-    console.log('[Scheduler] Background scheduler started successfully');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Scheduler] Background scheduler started successfully');
+    }
   }
 
   stop() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('[Scheduler] Background scheduler stopped');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Scheduler] Background scheduler stopped');
+      }
     }
   }
 
@@ -70,7 +78,9 @@ class BackgroundScheduler {
 
   private async runJob() {
     if (this.isRunning) {
-      console.log('[Scheduler] Previous job still running, skipping this cycle');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Scheduler] Previous job still running, skipping this cycle');
+      }
       return;
     }
     
@@ -78,12 +88,18 @@ class BackgroundScheduler {
     const runStartTime = new Date();
 
     try {
-      console.log(`[Scheduler] Running background metrics processing at ${runStartTime.toISOString()}...`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[Scheduler] Running background metrics processing at ${runStartTime.toISOString()}...`);
+      }
       const agents = getAllAgents();
-      console.log(`[Scheduler] Found ${agents.length} agents to process`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[Scheduler] Found ${agents.length} agents to process`);
+      }
 
       if (agents.length === 0) {
-        console.log('[Scheduler] No agents configured, skipping run');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[Scheduler] No agents configured, skipping run');
+        }
         return;
       }
 
@@ -92,23 +108,31 @@ class BackgroundScheduler {
 
       for (const agent of agents) {
         if (agent.status === 'offline') {
-          console.log(`[Scheduler] Skipping offline agent: ${agent.name}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[Scheduler] Skipping offline agent: ${agent.name}`);
+          }
           skippedCount++;
           continue;
         }
 
         try {
-          console.log(`[Scheduler] Fetching logs for agent: ${agent.name} (${agent.url})`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[Scheduler] Fetching logs for agent: ${agent.name} (${agent.url})`);
+          }
           // Fetch logs
           const logs = await this.fetchLogs(agent.url, agent.token);
           
           if (logs.length === 0) {
-            console.log(`[Scheduler] No new logs for agent: ${agent.name}`);
+            if (process.env.NODE_ENV === 'development') {
+              console.warn(`[Scheduler] No new logs for agent: ${agent.name}`);
+            }
             skippedCount++;
             continue;
           }
 
-          console.log(`[Scheduler] Processing ${logs.length} logs for agent: ${agent.name}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[Scheduler] Processing ${logs.length} logs for agent: ${agent.name}`);
+          }
 
           // Calculate metrics
           // Note: We don't have geo-location in background yet, passing empty array
@@ -119,7 +143,9 @@ class BackgroundScheduler {
           await serviceManager.processMetrics(agent.id, agent.name, metrics, logs);
           
           processedCount++;
-          console.log(`[Scheduler] ✓ Successfully processed metrics for agent ${agent.name} (${agent.id})`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[Scheduler] ✓ Successfully processed metrics for agent ${agent.name} (${agent.id})`);
+          }
         } catch (error) {
           this.errorCount++;
           console.error(`[Scheduler] ✗ Error processing agent ${agent.name}:`, error);
@@ -129,7 +155,9 @@ class BackgroundScheduler {
       this.lastRunTime = new Date();
       this.runCount++;
       const duration = this.lastRunTime.getTime() - runStartTime.getTime();
-      console.log(`[Scheduler] Run completed: ${processedCount} processed, ${skippedCount} skipped, ${this.errorCount} errors total, took ${duration}ms`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[Scheduler] Run completed: ${processedCount} processed, ${skippedCount} skipped, ${this.errorCount} errors total, took ${duration}ms`);
+      }
     } catch (error) {
       this.errorCount++;
       console.error('[Scheduler] ✗ Fatal error in background scheduler:', error);
@@ -180,10 +208,10 @@ class BackgroundScheduler {
         const lines = text.split('\n').filter(line => line.trim());
         
         return parseTraefikLogs(lines);
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         clearTimeout(timeoutId);
         
-        if (fetchError.name === 'AbortError') {
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
           throw new Error(`Request timeout after 30s for ${baseUrl}`);
         }
         throw fetchError;

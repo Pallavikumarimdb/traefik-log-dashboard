@@ -12,7 +12,9 @@ import { Plus, Minus } from "lucide-react"
 
 interface GeoFeature {
   type: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   geometry: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   properties: any
 }
 
@@ -20,16 +22,24 @@ interface Props {
   locations?: GeoLocation[]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function interpolateProjection(raw0: any, raw1: any) {
-  const mutate: any = d3.geoProjectionMutator((t: number) => (x: number, y: number) => {
+  const mutate = d3.geoProjectionMutator((t: number) => (x: number, y: number) => {
     const [x0, y0] = raw0(x, y)
     const [x1, y1] = raw1(x, y)
     return [x0 + t * (x1 - x0), y0 + t * (y1 - y0)]
   })
   let t = 0
-  return Object.assign((mutate as any)(t), {
-    alpha(_: number) {
-      return arguments.length ? (mutate as any)((t = +_)) : t
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projection = mutate() as any
+  return Object.assign(projection, {
+    alpha(_?: number) {
+      if (arguments.length) {
+        t = +(_ ?? 0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return mutate() as any
+      }
+      return t
     },
   })
 }
@@ -54,12 +64,16 @@ export function GlobeToMapTransform({ locations = [] }: Props) {
       try {
         // Using Natural Earth data from a CDN
         const response = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const world: any = await response.json()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const countries = (feature(world, world.objects.countries) as any).features
         setWorldData(countries)
-        console.log("[v0] Successfully loaded world data with", countries.length, "countries")
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("[v0] Successfully loaded world data with", countries.length, "countries")
+        }
       } catch (error) {
-        console.log("[v0] Error loading world data:", error)
+        console.error("[v0] Error loading world data:", error)
         // Fallback: create a simple world outline
         const fallbackData = [
           {
@@ -166,7 +180,7 @@ export function GlobeToMapTransform({ locations = [] }: Props) {
           .attr("opacity", 0.2)
       }
     } catch (error) {
-      console.log("[v0] Error creating graticule:", error)
+      console.error("[v0] Error creating graticule:", error)
     }
 
     // Add countries
@@ -178,14 +192,14 @@ export function GlobeToMapTransform({ locations = [] }: Props) {
       .attr("class", "country")
       .attr("d", (d) => {
         try {
-          const pathString = path(d as any)
+          const pathString = path(d as Parameters<typeof path>[0])
           if (!pathString) return ""
           if (typeof pathString === "string" && (pathString.includes("NaN") || pathString.includes("Infinity"))) {
             return ""
           }
           return pathString
         } catch (error) {
-          console.log("[v0] Error generating path for country:", error)
+          console.error("[v0] Error generating path for country:", error)
           return ""
         }
       })
@@ -264,8 +278,10 @@ export function GlobeToMapTransform({ locations = [] }: Props) {
 
     // Apply current zoom transform so d3 internal state matches our react state
     // This is important so the next wheel event starts from correct scale
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     svg.call(zoom as any)
-    svg.call(zoom.transform as any, d3.zoomIdentity.scale(zoomLevel))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    svg.call((zoom.transform as any), d3.zoomIdentity.scale(zoomLevel))
 
     // Cleanup
     return () => {

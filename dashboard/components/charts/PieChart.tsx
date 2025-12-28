@@ -8,7 +8,6 @@ import {
   Legend,
 } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
-import type { TooltipItem } from 'chart.js';
 import { commonTooltipConfig } from '@/lib/utils/chart-config';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -73,7 +72,7 @@ function PieChart({
       tooltip: {
         ...commonTooltipConfig,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: { label?: string; parsed?: number; dataset: { data: number[] } }) {
             const label = context.label || '';
             const value = context.parsed || 0;
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);

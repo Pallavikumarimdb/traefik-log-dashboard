@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import maxmind, { Reader } from 'maxmind';
+import maxmind from 'maxmind';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-let reader: Reader<any> | null = null;
+let reader: Awaited<ReturnType<typeof maxmind.open>> | null = null;
 
 async function getReader() {
   if (reader) return reader;
@@ -59,16 +59,18 @@ export async function POST(request: NextRequest) {
         // But we can add a quick check if needed, though the reader just returns null for private/unknown
         const result = lookup.get(ip);
 
-        if (result && result.country) {
+        // Type guard to check if result is a CityResponse
+        if (result && 'country' in result && result.country) {
+          const cityResponse = result as { country?: { iso_code?: string }; city?: { names?: { en?: string } }; location?: { latitude?: number; longitude?: number } };
           locations.push({
             ipAddress: ip,
-            country: result.country.iso_code,
-            city: result.city?.names?.en,
-            latitude: result.location?.latitude,
-            longitude: result.location?.longitude,
+            country: cityResponse.country?.iso_code,
+            city: cityResponse.city?.names?.en,
+            latitude: cityResponse.location?.latitude,
+            longitude: cityResponse.location?.longitude,
           });
         }
-      } catch (_e) {
+      } catch {
         // Ignore invalid IPs
         continue;
       }

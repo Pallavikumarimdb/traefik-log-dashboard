@@ -3,9 +3,10 @@
 import { Monitor } from 'lucide-react';
 import Card from '@/components/ui/DashboardCard';
 import { formatNumber } from '@/lib/utils';
+import { UserAgentMetrics } from '@/lib/types';
 
 interface Props {
-  userAgents: any[];
+  userAgents: UserAgentMetrics[];
 }
 
 export default function UserAgentsCard({ userAgents }: Props) {
@@ -22,14 +23,8 @@ export default function UserAgentsCard({ userAgents }: Props) {
   const topAgents = userAgents.slice(0, 12);
   const maxCount = Math.max(...topAgents.map(ua => ua.count), 1);
 
-  const getBrowserName = (agent: any): string => {
-    if (typeof agent.browser === 'string') {
-      return agent.browser;
-    }
-    if (typeof agent.browser === 'object' && agent.browser.browser) {
-      return agent.browser.browser;
-    }
-    return 'Unknown';
+  const getBrowserName = (agent: UserAgentMetrics): string => {
+    return agent.browser || 'Unknown';
   };
 
   return (

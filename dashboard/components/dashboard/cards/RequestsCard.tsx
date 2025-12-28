@@ -22,7 +22,7 @@ export default function RequestsCard({ metrics }: Props) {
     return 'text-gray-600';
   };
 
-  const sparklineData = Array.from({ length: 20 }, (_, i) => {
+  const sparklineData = Array.from({ length: 20 }, () => {
     const variance = Math.random() * 0.3 - 0.15;
     return metrics.perSecond * (1 + variance);
   });

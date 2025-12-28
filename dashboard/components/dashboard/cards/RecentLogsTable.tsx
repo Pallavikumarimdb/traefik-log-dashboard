@@ -184,7 +184,7 @@ export default function RecentLogsTable({ logs }: Props) {
               {visibleColumns.map(col => (
                 <th
                   key={col.id}
-                  className={`text-left py-3 px-3 text-xs font-bold uppercase tracking-wider text-gray-700 bg-red-50/50 ${(col as any).width || ''}`}
+                  className={`text-left py-3 px-3 text-xs font-bold uppercase tracking-wider text-gray-700 bg-red-50/50 ${('width' in col ? col.width : '') || ''}`}
                 >
                   {col.header}
                 </th>
@@ -200,7 +200,7 @@ export default function RecentLogsTable({ logs }: Props) {
                 {visibleColumns.map(col => (
                   <td
                     key={col.id}
-                    className={`py-2.5 px-3 align-top ${(col as any).width || ''}`}
+                    className={`py-2.5 px-3 align-top ${('width' in col ? col.width : '') || ''}`}
                   >
                     {renderCell(log, col.id)}
                   </td>

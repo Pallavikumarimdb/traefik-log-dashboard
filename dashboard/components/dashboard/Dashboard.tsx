@@ -2,13 +2,7 @@
 
 import { useMemo } from 'react';
 import DashboardGrid from './DashboardGrid';
-import { TraefikLog, DashboardMetrics, AddressMetric, HostMetric, ClientMetric, GeoLocation } from '@/lib/types';
-import {
-  calculateAverage,
-  calculatePercentile,
-  groupBy,
-  extractUserAgentIdentifier,
-} from '@/lib/utils';
+import { TraefikLog } from '@/lib/types';
 import { useMetricsProcessing } from '@/lib/hooks/useMetricsProcessing';
 import { useGeoLocation } from '@/lib/hooks/useGeoLocation';
 import { useSystemStats } from '@/lib/hooks/useSystemStats';

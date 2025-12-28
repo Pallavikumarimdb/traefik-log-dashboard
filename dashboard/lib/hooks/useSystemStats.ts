@@ -1,34 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useTabVisibility } from './useTabVisibility';
-
-/**
- * System stats interface
- * BEST PRACTICE FIX: Replace any type with proper interface
- * Matches the structure expected by SystemInfoCards component
- */
-export interface SystemStats {
-  cpu?: {
-    usage_percent: number;
-    cores: number;
-    model?: string;
-    speed?: number;
-  };
-  memory?: {
-    total: number;
-    used: number;
-    used_percent: number;
-    available: number;
-    free?: number;
-  };
-  disk?: {
-    total: number;
-    used: number;
-    used_percent: number;
-    free: number;
-  };
-  [key: string]: unknown; // Allow additional properties from agent
-}
+import { SystemStats } from '@/lib/types';
 
 export function useSystemStats(demoMode: boolean) {
   const [systemStats, setSystemStats] = useState<SystemStats | undefined>(undefined);

@@ -52,19 +52,24 @@ function cleanupSnapshotTimes(): void {
     const toRemove = sortedEntries.slice(0, lastSnapshotTimes.size - MAX_CACHE_SIZE);
     toRemove.forEach(([key]) => lastSnapshotTimes.delete(key));
     
-    console.log(`[SnapshotScheduler] Cleaned up ${toRemove.length} old snapshot time entries`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[SnapshotScheduler] Cleaned up ${toRemove.length} old snapshot time entries`);
+    }
   }
 
-  if (entriesToDelete.length > 0) {
-    console.log(`[SnapshotScheduler] Cleaned up ${entriesToDelete.length} expired snapshot time entries`);
+  if (entriesToDelete.length > 0 && process.env.NODE_ENV === 'development') {
+    console.warn(`[SnapshotScheduler] Cleaned up ${entriesToDelete.length} expired snapshot time entries`);
   }
 }
 
 // Initialize cleanup interval (only in server context)
-let cleanupInterval: NodeJS.Timeout | null = null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let _cleanupInterval: NodeJS.Timeout | null = null;
 if (typeof window === 'undefined') {
-  cleanupInterval = setInterval(cleanupSnapshotTimes, CLEANUP_INTERVAL);
-  console.log('[SnapshotScheduler] Snapshot times cleanup initialized (runs daily)');
+  _cleanupInterval = setInterval(cleanupSnapshotTimes, CLEANUP_INTERVAL);
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[SnapshotScheduler] Snapshot times cleanup initialized (runs daily)');
+  }
 }
 
 /**
@@ -87,7 +92,9 @@ export class SnapshotScheduler {
     logs: TraefikLog[]
   ): Promise<void> {
     if (this.isRunning) {
-      console.log('Snapshot creation already in progress, skipping...');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Snapshot creation already in progress, skipping...');
+      }
       return;
     }
 
@@ -118,9 +125,11 @@ export class SnapshotScheduler {
         return;
       }
 
-      console.log(
-        `Creating snapshots for agent ${agentName} (${agentId}): ${intervalsToSnapshot.join(', ')}`
-      );
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `Creating snapshots for agent ${agentName} (${agentId}): ${intervalsToSnapshot.join(', ')}`
+        );
+      }
 
       // Create snapshots for all intervals that need updating
       const snapshots = createSnapshotsForIntervals(
@@ -138,9 +147,11 @@ export class SnapshotScheduler {
           const key = `${agentId}-${snapshot.interval}`;
           lastSnapshotTimes.set(key, now);
 
-          console.log(
-            `✓ Created snapshot for interval ${snapshot.interval}: ${snapshot.log_count} logs from ${snapshot.window_start} to ${snapshot.window_end}`
-          );
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(
+              `✓ Created snapshot for interval ${snapshot.interval}: ${snapshot.log_count} logs from ${snapshot.window_start} to ${snapshot.window_end}`
+            );
+          }
         } catch (error) {
           console.error(`Failed to save snapshot for ${snapshot.interval}:`, error);
         }

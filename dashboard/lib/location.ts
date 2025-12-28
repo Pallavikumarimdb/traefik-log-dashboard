@@ -41,25 +41,30 @@ function cleanExpiredCache(): void {
       cacheTimestamps.delete(ip);
     });
     
-    console.log(`[GeoIP Cache] LRU eviction: removed ${toRemove.length} entries`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[GeoIP Cache] LRU eviction: removed ${toRemove.length} entries`);
+    }
   }
 
-  if (expired.length > 0) {
-    console.log(`[GeoIP Cache] Cleaned up ${expired.length} expired entries`);
+  if (expired.length > 0 && process.env.NODE_ENV === 'development') {
+    console.warn(`[GeoIP Cache] Cleaned up ${expired.length} expired entries`);
   }
 }
 
 // Start periodic cleanup (only in server context)
-let cleanupInterval: NodeJS.Timeout | null = null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let _cleanupInterval: NodeJS.Timeout | null = null;
 if (typeof window === 'undefined') {
-  cleanupInterval = setInterval(cleanupExpiredCache, CLEANUP_INTERVAL);
-  console.log('[GeoIP Cache] Periodic cleanup initialized (runs every 30 minutes)');
+  _cleanupInterval = setInterval(cleanExpiredCache, CLEANUP_INTERVAL);
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[GeoIP Cache] Periodic cleanup initialized (runs every 30 minutes)');
+  }
 }
 
 /**
  * Add to cache with size limit using LRU strategy
  */
-function addToCache(ip: string, data: any): void {
+function addToCache(ip: string, data: { country: string; city?: string; latitude?: number; longitude?: number }): void {
   // Clean expired entries first if approaching limit
   if (geoIPCache.size > CACHE_MAX_SIZE * 0.8) {
     cleanExpiredCache();
@@ -74,7 +79,9 @@ function addToCache(ip: string, data: any): void {
       geoIPCache.delete(ipToRemove);
       cacheTimestamps.delete(ipToRemove);
     });
-    console.log(`[GeoIP Cache] LRU eviction before add: removed ${toRemove.length} entries`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[GeoIP Cache] LRU eviction before add: removed ${toRemove.length} entries`);
+    }
   }
 
   geoIPCache.set(ip, data);
@@ -160,7 +167,7 @@ export function getCountryCoordinates(countryCode: string): { lat: number; lon: 
 /**
  * Lookup locations from agent API with caching
  */
-async function lookupLocationsFromAgent(ips: string[]): Promise<Map<string, any>> {
+async function lookupLocationsFromAgent(ips: string[]): Promise<Map<string, { country: string; city?: string; latitude?: number; longitude?: number }>> {
   try {
     // PERFORMANCE FIX: Check cache first, only lookup uncached IPs
     const uncachedIPs: string[] = [];
@@ -177,18 +184,22 @@ async function lookupLocationsFromAgent(ips: string[]): Promise<Map<string, any>
 
     // If all IPs were cached, return immediately
     if (uncachedIPs.length === 0) {
-      console.log(`GeoIP: All ${ips.length} IPs found in cache`);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`GeoIP: All ${ips.length} IPs found in cache`);
+      }
       return locationMap;
     }
 
-    console.log(`GeoIP: ${locationMap.size} cached, ${uncachedIPs.length} need lookup`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`GeoIP: ${locationMap.size} cached, ${uncachedIPs.length} need lookup`);
+    }
 
     // Lookup only uncached IPs
     const data = await apiClient.lookupLocations(uncachedIPs);
     const locations = data.locations || [];
 
     // Add to map and cache
-    locations.forEach((loc: any) => {
+    locations.forEach((loc: { ipAddress: string; country?: string; city?: string; latitude?: number; longitude?: number }) => {
       const geoData = {
         country: loc.country || 'Unknown',
         city: loc.city,
@@ -232,7 +243,9 @@ export async function aggregateGeoLocations(
     return [];
   }
 
-  console.log(`Looking up ${uniqueIPs.size} unique IPs`);
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`Looking up ${uniqueIPs.size} unique IPs`);
+  }
 
   // Call agent API for location lookups (it handles batching internally)
   if (onProgress) {
@@ -301,7 +314,9 @@ export async function aggregateGeoLocations(
     }))
     .sort((a, b) => b.count - a.count);
 
-  console.log(`Location lookup complete: ${locations.length} countries found`);
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`Location lookup complete: ${locations.length} countries found`);
+  }
 
   return locations;
 }

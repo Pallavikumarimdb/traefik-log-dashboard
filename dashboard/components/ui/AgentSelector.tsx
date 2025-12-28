@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, MapPin, Server, Circle } from 'lucide-react';
+import { MapPin, Server, Circle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -30,6 +30,7 @@ export default function AgentSelector({ className }: AgentSelectorProps) {
     agents.forEach(agent => {
       handleCheckStatus(agent.id);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCheckStatus = async (agentId: string) => {

@@ -44,7 +44,7 @@ const FIELD_KEYS = {
  * Handles multiple possible field name variations
  * FIXED: Accept readonly arrays to work with FIELD_KEYS constant
  */
-function getStringValue(parsed: any, keys: readonly string[], defaultValue: string = ''): string {
+function getStringValue(parsed: Record<string, unknown>, keys: readonly string[], defaultValue: string = ''): string {
   for (const key of keys) {
     if (parsed[key] !== undefined && parsed[key] !== null) {
       if (typeof parsed[key] === 'string') {
@@ -61,7 +61,7 @@ function getStringValue(parsed: any, keys: readonly string[], defaultValue: stri
  * Helper function to safely extract integer values from parsed JSON
  * FIXED: Accept readonly arrays to work with FIELD_KEYS constant
  */
-function getIntValue(parsed: any, keys: readonly string[], defaultValue: number = 0): number {
+function getIntValue(parsed: Record<string, unknown>, keys: readonly string[], defaultValue: number = 0): number {
   for (const key of keys) {
     const value = parsed[key];
     if (value !== undefined && value !== null) {
@@ -82,7 +82,7 @@ function getIntValue(parsed: any, keys: readonly string[], defaultValue: number 
 /**
  * Check if a parsed JSON object is a valid Traefik log entry
  */
-function isValidTraefikLog(parsed: any): boolean {
+function isValidTraefikLog(parsed: Record<string, unknown>): boolean {
   // Must have a timestamp
   if (!parsed.time && !parsed.Time && !parsed.StartUTC) {
     return false;
@@ -120,7 +120,7 @@ export function parseTraefikLog(logLine: string): TraefikLog | null {
   if (JSON_START_PATTERN.test(logLine)) {
     try {
       return parseJSONLog(logLine);
-    } catch (_e) {
+    } catch {
       // If JSON parsing fails, try CLF as fallback
     }
   }
@@ -184,7 +184,7 @@ function parseJSONLog(logLine: string): TraefikLog | null {
       request_Referer: parsed['request_Referer'] || parsed['request_referer'] || parsed['RequestReferer'] || parsed['Referer'] || '',
       request_User_Agent: requestUserAgent,
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 }

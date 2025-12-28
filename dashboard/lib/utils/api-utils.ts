@@ -48,7 +48,7 @@ export async function fetchWithAbort(
  * @param timeoutMs - Timeout in milliseconds (default: 30000)
  * @returns Promise that resolves to parsed JSON
  */
-export async function fetchJSONWithAbort<T = any>(
+export async function fetchJSONWithAbort<T = unknown>(
   url: string,
   options: RequestInit = {},
   timeoutMs: number = 30000

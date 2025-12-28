@@ -2,7 +2,7 @@
 
 import { Cpu, HardDrive, MemoryStick } from 'lucide-react';
 import Card from '@/components/ui/DashboardCard';
-import { SystemStats } from '@/lib/hooks/useSystemStats';
+import { SystemStats } from '@/lib/types';
 
 interface Props {
   stats: SystemStats | null;

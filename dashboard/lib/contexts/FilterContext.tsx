@@ -34,7 +34,7 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
           // Clear corrupted data
           try {
             localStorage.removeItem(STORAGE_KEY);
-          } catch (removeError) {
+          } catch {
             // Ignore removal errors
           }
         }

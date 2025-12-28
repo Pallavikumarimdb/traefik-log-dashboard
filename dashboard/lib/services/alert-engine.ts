@@ -31,7 +31,8 @@ const intervalMap: Record<AlertInterval, number> = {
 };
 
 // Start periodic cleanup
-let cleanupInterval: NodeJS.Timeout | null = null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let _cleanupInterval: NodeJS.Timeout | null = null;
 
 /**
  * Cleanup old entries from lastExecutionTimes map
@@ -57,18 +58,22 @@ function cleanupExecutionTimes(): void {
     const toRemove = sortedEntries.slice(0, lastExecutionTimes.size - MAX_CACHE_SIZE);
     toRemove.forEach(([id]) => lastExecutionTimes.delete(id));
     
-    console.log(`[AlertEngine] Cleaned up ${toRemove.length} old execution time entries`);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[AlertEngine] Cleaned up ${toRemove.length} old execution time entries`);
+    }
   }
 
-  if (entriesToDelete.length > 0) {
-    console.log(`[AlertEngine] Cleaned up ${entriesToDelete.length} expired execution time entries`);
+  if (entriesToDelete.length > 0 && process.env.NODE_ENV === 'development') {
+    console.warn(`[AlertEngine] Cleaned up ${entriesToDelete.length} expired execution time entries`);
   }
 }
 
 // Initialize cleanup interval (only in server context)
 if (typeof window === 'undefined') {
-  cleanupInterval = setInterval(cleanupExecutionTimes, CLEANUP_INTERVAL);
-  console.log('[AlertEngine] Execution times cleanup initialized (runs every hour)');
+  _cleanupInterval = setInterval(cleanupExecutionTimes, CLEANUP_INTERVAL);
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[AlertEngine] Execution times cleanup initialized (runs every hour)');
+  }
 }
 
 /**
@@ -87,7 +92,9 @@ export class AlertEngine {
     metrics: DashboardMetrics
   ): Promise<void> {
     if (this.isRunning) {
-      console.log('Alert evaluation already in progress, skipping...');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Alert evaluation already in progress, skipping...');
+      }
       return;
     }
 
@@ -213,7 +220,9 @@ export class AlertEngine {
     if (alert.trigger_type === 'interval' && alert.interval) {
       const snapshot = getLatestSnapshot(agentId, alert.interval);
       if (snapshot) {
-        console.log(`Using snapshot for interval alert: ${alert.interval}, window: ${snapshot.window_start} to ${snapshot.window_end}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Using snapshot for interval alert: ${alert.interval}, window: ${snapshot.window_start} to ${snapshot.window_end}`);
+        }
         alertData = this.buildAlertDataFromSnapshot(snapshot);
       } else {
         console.warn(`No snapshot found for interval ${alert.interval}, using live metrics`);
@@ -229,11 +238,15 @@ export class AlertEngine {
       try {
         const webhook = getWebhookById(webhookId);
         if (!webhook || !webhook.enabled) {
-          console.log(`Webhook ${webhookId} not found or disabled, skipping`);
+          if (process.env.NODE_ENV === 'development') {
+          console.warn(`Webhook ${webhookId} not found or disabled, skipping`);
+        }
           continue;
         }
 
-        console.log(`Sending alert "${alert.name}" to webhook "${webhook.name}"`);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Sending alert "${alert.name}" to webhook "${webhook.name}"`);
+        }
 
         const result = await sendNotification(
           webhook,
@@ -253,7 +266,9 @@ export class AlertEngine {
         });
 
         if (result.success) {
-          console.log(`✓ Alert sent successfully to ${webhook.name}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`✓ Alert sent successfully to ${webhook.name}`);
+          }
         } else {
           console.error(`✗ Failed to send alert to ${webhook.name}: ${result.error}`);
         }

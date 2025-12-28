@@ -18,9 +18,16 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { HistoricalConfig } from '@/lib/types/historical';
 
+interface HistoricalStats {
+  total_entries: number;
+  oldest_entry: string | null;
+  newest_entry: string | null;
+  db_size_bytes: number;
+}
+
 export default function HistoricalSettingsPage() {
   const [config, setConfig] = useState<HistoricalConfig | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<HistoricalStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cleaning, setCleaning] = useState(false);
@@ -74,7 +81,7 @@ export default function HistoricalSettingsPage() {
       } else {
         toast.error('Failed to save configuration');
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to save configuration');
     } finally {
       setSaving(false);
@@ -97,7 +104,7 @@ export default function HistoricalSettingsPage() {
       } else {
         toast.error('Failed to cleanup historical data');
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to cleanup historical data');
     } finally {
       setCleaning(false);
@@ -126,7 +133,7 @@ export default function HistoricalSettingsPage() {
       } else {
         toast.error('Failed to export data');
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to export data');
     }
   };

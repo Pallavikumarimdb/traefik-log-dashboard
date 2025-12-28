@@ -3,7 +3,7 @@ export async function register() {
     // SECURITY: Intercept and filter Server Action errors
     const originalConsoleError = console.error;
 
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       const errorString = args.join(' ');
 
       // SECURITY: Suppress Server Action attack attempt errors
@@ -26,7 +26,9 @@ export async function register() {
       originalConsoleError.apply(console, args);
     };
 
-    console.log('[Instrumentation] Security error filtering enabled');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Instrumentation] Security error filtering enabled');
+    }
 
     const { backgroundScheduler } = await import('./lib/services/background-scheduler');
     const { initDatabase, syncEnvAgents } = await import('./lib/db/database');
@@ -39,10 +41,14 @@ export async function register() {
     const schedulerEnabled = process.env.ENABLE_BACKGROUND_SCHEDULER !== 'false';
 
     if (schedulerEnabled) {
-      console.log('[Instrumentation] Starting background scheduler (30min interval)...');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Instrumentation] Starting background scheduler (30min interval)...');
+      }
       backgroundScheduler.start();
     } else {
-      console.log('[Instrumentation] Background scheduler DISABLED via ENABLE_BACKGROUND_SCHEDULER=false');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Instrumentation] Background scheduler DISABLED via ENABLE_BACKGROUND_SCHEDULER=false');
+      }
     }
   }
 }

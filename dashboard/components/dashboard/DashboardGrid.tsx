@@ -23,7 +23,7 @@ import BackendsCard from './cards/BackendsCard';
 import InteractiveGeoMap from './cards/InteractiveGeoMap';
 import { CPUCard, MemoryCard, DiskCard } from './cards/SystemInfoCards';
 
-import { SystemStats } from '@/lib/hooks/useSystemStats';
+import { SystemStats } from '@/lib/types';
 
 interface DashboardGridProps {
   metrics: DashboardMetrics;
@@ -31,7 +31,7 @@ interface DashboardGridProps {
   demoMode?: boolean;
 }
 
-export default function DashboardGrid({ metrics, systemStats, demoMode = false }: DashboardGridProps) {
+export default function DashboardGrid({ metrics, systemStats }: DashboardGridProps) {
   return (
     <div className="w-full space-y-6">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

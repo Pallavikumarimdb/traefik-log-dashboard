@@ -37,14 +37,18 @@ export function useGeoLocation(logs: TraefikLog[]) {
 
       try {
 
-        console.log('Starting GeoIP lookup for', sortedLogs.length, 'logs');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Starting GeoIP lookup for', sortedLogs.length, 'logs');
+        }
 
         const locations = await aggregateGeoLocations(sortedLogs);
 
         if (isMounted) {
           setGeoLocations(locations);
           setIsLoadingGeo(false);
-          console.log('GeoIP lookup complete:', locations.length, 'countries found');
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('GeoIP lookup complete:', locations.length, 'countries found');
+          }
         }
       } catch (error) {
         console.error('Failed to fetch GeoIP data:', error);

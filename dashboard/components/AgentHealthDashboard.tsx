@@ -31,8 +31,10 @@ export default function AgentHealthDashboard() {
   } = useAgentHealth({
     checkInterval: 300000, // 5 minutes (was 30 seconds)
     enableAutoCheck: autoRefresh,
-    onStatusChange: (agentId, isOnline) => {
-      console.log(`Agent ${agentId} status changed to ${isOnline ? 'online' : 'offline'}`);
+      onStatusChange: (agentId, isOnline) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Agent ${agentId} status changed to ${isOnline ? 'online' : 'offline'}`);
+      }
     },
   });
 

@@ -7,7 +7,7 @@ interface SheetProps {
 	children: React.ReactNode
 }
 
-export function Sheet({ open, onOpenChange, children }: SheetProps) {
+export function Sheet({ open, children }: SheetProps) {
 	return <div data-open={open}>{children}</div>
 }
 

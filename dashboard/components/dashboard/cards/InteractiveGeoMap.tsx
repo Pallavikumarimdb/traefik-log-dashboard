@@ -5,8 +5,6 @@ import { MapPin, Globe } from 'lucide-react';
 import Card from '@/components/ui/DashboardCard';
 import { GeoLocation } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
-
-import Link from 'next/link';
 import { GlobeToMapTransform } from '@/components/dashboard/GlobeToMapTransform';
 
 interface Props {
