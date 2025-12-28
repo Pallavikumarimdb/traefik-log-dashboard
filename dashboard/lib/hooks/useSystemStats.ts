@@ -5,29 +5,33 @@ import { useTabVisibility } from './useTabVisibility';
 /**
  * System stats interface
  * BEST PRACTICE FIX: Replace any type with proper interface
+ * Matches the structure expected by SystemInfoCards component
  */
 export interface SystemStats {
   cpu?: {
-    usage?: number;
-    cores?: number;
+    usage_percent: number;
+    cores: number;
+    model?: string;
+    speed?: number;
   };
   memory?: {
-    total?: number;
-    used?: number;
-    available?: number;
-    percent?: number;
+    total: number;
+    used: number;
+    used_percent: number;
+    available: number;
+    free?: number;
   };
   disk?: {
-    total?: number;
-    used?: number;
-    available?: number;
-    percent?: number;
+    total: number;
+    used: number;
+    used_percent: number;
+    free: number;
   };
   [key: string]: unknown; // Allow additional properties from agent
 }
 
 export function useSystemStats(demoMode: boolean) {
-  const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
+  const [systemStats, setSystemStats] = useState<SystemStats | undefined>(undefined);
   
   // REDUNDANCY FIX: Use shared visibility hook
   const isTabVisible = useTabVisibility();

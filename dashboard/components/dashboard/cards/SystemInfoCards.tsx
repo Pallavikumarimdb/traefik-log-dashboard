@@ -2,28 +2,7 @@
 
 import { Cpu, HardDrive, MemoryStick } from 'lucide-react';
 import Card from '@/components/ui/DashboardCard';
-
-interface SystemStats {
-  cpu: {
-    usage_percent: number;
-    cores: number;
-    model?: string;
-    speed?: number;
-  };
-  memory: {
-    total: number;
-    used: number;
-    used_percent: number;
-    available: number;
-    free?: number;
-  };
-  disk: {
-    total: number;
-    used: number;
-    used_percent: number;
-    free: number;
-  };
-}
+import { SystemStats } from '@/lib/hooks/useSystemStats';
 
 interface Props {
   stats: SystemStats | null;

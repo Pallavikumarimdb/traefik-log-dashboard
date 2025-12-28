@@ -141,7 +141,7 @@ class BackgroundScheduler {
   private async fetchLogs(url: string, token: string): Promise<TraefikLog[]> {
     try {
       // Ensure URL doesn't end with slash
-      let baseUrl = url.replace(/\/$/, '');
+      const baseUrl = url.replace(/\/$/, '');
       
       // FIX for Issue #122: Better URL resolution for containerized deployments
       // If running in container and url is localhost, provide helpful warning and try alternatives

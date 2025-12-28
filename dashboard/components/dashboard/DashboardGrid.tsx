@@ -27,7 +27,7 @@ import { SystemStats } from '@/lib/hooks/useSystemStats';
 
 interface DashboardGridProps {
   metrics: DashboardMetrics;
-  systemStats?: SystemStats; // BEST PRACTICE FIX: Use proper type instead of any
+  systemStats?: SystemStats | null; // BEST PRACTICE FIX: Use proper type instead of any
   demoMode?: boolean;
 }
 
