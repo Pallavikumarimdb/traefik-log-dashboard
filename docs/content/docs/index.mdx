@@ -3,23 +3,55 @@ title: Introduction
 description: A comprehensive analytics platform for Traefik access logs
 ---
 
-<div align="center">
-    <h1 align="center">Traefik Log Dashboard</h1>
-</div>
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+<Callout title="Latest Release: v2.3.0" type="info">
+Enhanced security, interactive globe visualization, and improved performance.
+</Callout>
+
+# Traefik Log Dashboard
 
 A comprehensive analytics platform for Traefik access logs with three deployment options: a Go-based API agent, a modern Next.js web dashboard, and a beautiful terminal-based CLI.
-
-**A comprehensive real-time analytics platform for Traefik reverse proxy logs**
 
 ## Overview
 
 Traefik Log Dashboard is a powerful analytics platform that provides real-time insights into your Traefik reverse proxy traffic. It consists of three components that work together:
 
-1. **Agent** - Go-based backend API that parses logs and exposes metrics
-2. **Dashboard** - Next.js web UI with interactive charts and real-time updates
-3. **CLI** - Beautiful terminal-based dashboard (optional)
+<Steps>
+<Step>
+### Agent
+Go-based backend API that parses logs and exposes metrics with high performance and low resource usage.
+</Step>
 
-### Key Features
+<Step>
+### Dashboard
+Next.js web UI with interactive charts, real-time updates, and beautiful visualizations including 3D globe and geographic maps.
+</Step>
+
+<Step>
+### CLI (Optional)
+Beautiful terminal-based dashboard for monitoring directly from your command line.
+</Step>
+</Steps>
+
+## What's New in v2.3
+
+<Callout title="Security First" type="warn">
+This release includes critical security patches (CVE-2025-55182) and comprehensive middleware protection.
+</Callout>
+
+- ✅ **Enhanced Security** - Comprehensive middleware protection with request validation, rate limiting, and malicious pattern detection
+- ✅ **Interactive Globe Visualization** - 3D globe with smooth transitions to geographic maps
+- ✅ **Improved Agent Health Monitoring** - Real-time status tracking with visual health indicators
+- ✅ **Background Schedulers** - Server-side alert processing for notifications even when dashboard is closed
+- ✅ **Advanced Filtering** - Include/exclude modes, country/city filtering, and custom filter editing
+- ✅ **CVE-2025-55182 Fix** - Updated to Next.js 15.1.9 for security patches
+- ✅ **Optimized Performance** - Better log parsing, reduced memory usage, and faster geo-location lookups
+
+## Core Features from v2.x
 
 - ✅ **Multi-Agent Architecture** - Manage multiple Traefik instances from a single dashboard
 - ✅ **Persistent Agent Database** - SQLite-based storage for agent configurations
@@ -37,29 +69,73 @@ The platform supports a **multi-agent architecture** where you can deploy multip
 
 ```mermaid
 graph TD
-    Dashboard[Dashboard Next.js]
-    DB[(SQLite DB)]
-    Dashboard --> DB
-    
+    Dashboard[Dashboard Next.js + SQLite]
+
     subgraph "Agent 1 (Datacenter)"
         Agent1[Agent #1]
-        Traefik1[Traefik Access Log]
+        Traefik1[Traefik Logs]
         Agent1 --> Traefik1
     end
 
     subgraph "Agent 2 (Cloud)"
         Agent2[Agent #2]
-        Traefik2[Traefik Access Log]
+        Traefik2[Traefik Logs]
         Agent2 --> Traefik2
     end
-    
-    Dashboard --> Agent1
-    Dashboard --> Agent2
+
+    subgraph "Agent 3 (Edge)"
+        Agent3[Agent #3]
+        Traefik3[Traefik Logs]
+        Agent3 --> Traefik3
+    end
+
+    Dashboard -->|HTTP + Token Auth| Agent1
+    Dashboard -->|HTTP + Token Auth| Agent2
+    Dashboard -->|HTTP + Token Auth| Agent3
 ```
 
-**Key Architectural Components:**
+### Key Architectural Components
 
 1. **Dashboard** - Centralized web UI that communicates with multiple agents
 2. **Agents** - Deployed alongside each Traefik instance to parse local logs
 3. **SQLite Database** - Stores agent configurations, status, and metadata
 4. **Token Authentication** - Secures communication between dashboard and agents
+
+## Quick Navigation
+
+<Tabs items={['Get Started', 'Configure', 'Features']}>
+<Tab value="Get Started">
+Check out our [Quick Start Guide](/docs/quickstart) to get up and running in minutes.
+</Tab>
+<Tab value="Configure">
+Learn about [Configuration Options](/docs/configuration) including environment variables and settings.
+</Tab>
+<Tab value="Features">
+Explore all [Features](/docs/features) including filtering, alerting, and geographic visualization.
+</Tab>
+</Tabs>
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Quick Start"
+    description="Get started with Docker Compose in 5 minutes"
+    href="/docs/quickstart"
+  />
+  <Card
+    title="Configuration"
+    description="Learn how to configure agents and the dashboard"
+    href="/docs/configuration"
+  />
+  <Card
+    title="Security"
+    description="Understand security features and best practices"
+    href="/docs/security"
+  />
+  <Card
+    title="Troubleshooting"
+    description="Common issues and their solutions"
+    href="/docs/troubleshooting"
+  />
+</Cards>

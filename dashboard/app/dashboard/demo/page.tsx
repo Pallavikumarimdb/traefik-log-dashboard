@@ -6,6 +6,7 @@ import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters';
 import Header from '@/components/ui/Header';
 import { generateTimeSeriesLogs } from '@/lib/demo';
 import { TraefikLog } from '@/lib/types';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function DemoDashboardPage() {
   const [logs, setLogs] = useState<TraefikLog[]>([]);
@@ -53,7 +54,10 @@ export default function DemoDashboardPage() {
         demoMode={true}
         lastUpdate={lastUpdate}
       />
-      <DashboardWithFilters logs={logs} demoMode={true} /> 
+      {/* BEST PRACTICE FIX: Wrap dashboard with error boundary */}
+      <ErrorBoundary>
+        <DashboardWithFilters logs={logs} demoMode={true} />
+      </ErrorBoundary>
     </div>
   );
 }

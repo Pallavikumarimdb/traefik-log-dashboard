@@ -2,31 +2,7 @@
 
 import { TraefikLog } from '../types';
 import { FilterSettings, FilterCondition } from '../types/filter';
-
-/**
- * Check if an IP is private
- */
-function isPrivateIP(ip: string): boolean {
-  const parts = ip.split('.');
-  if (parts.length !== 4) return false;
-
-  const first = parseInt(parts[0]);
-  const second = parseInt(parts[1]);
-
-  // 10.0.0.0/8
-  if (first === 10) return true;
-
-  // 172.16.0.0/12
-  if (first === 172 && second >= 16 && second <= 31) return true;
-
-  // 192.168.0.0/16
-  if (first === 192 && second === 168) return true;
-
-  // 127.0.0.0/8 (localhost)
-  if (first === 127) return true;
-
-  return false;
-}
+import { isPrivateIP } from './ip-utils';
 
 /**
  * Extract real IP from headers based on proxy settings

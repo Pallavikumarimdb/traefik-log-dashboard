@@ -1,14 +1,12 @@
 // dashboard/app/dashboard/page.tsx
 'use client';
 
-// dashboard/app/dashboard/page.tsx
-'use client';
-
 import DashboardWithFilters from '@/components/dashboard/DashboardWithFilters';
 import Header from '@/components/ui/Header';
 import { Button } from '@/components/ui/button';
 import { Pause, Play, ServerOff } from 'lucide-react';
 import { useLogFetcher } from '@/lib/hooks/useLogFetcher';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function DashboardPage() {
   const {
@@ -143,7 +141,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <DashboardWithFilters logs={logs} demoMode={false} agentId={agentId || undefined} agentName={agentName || undefined} />
+      {/* BEST PRACTICE FIX: Wrap dashboard with error boundary to catch component errors */}
+      <ErrorBoundary>
+        <DashboardWithFilters logs={logs} demoMode={false} agentId={agentId || undefined} agentName={agentName || undefined} />
+      </ErrorBoundary>
     </div>
   );
 }

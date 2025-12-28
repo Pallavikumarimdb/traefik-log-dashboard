@@ -13,6 +13,7 @@ import { useMetricsProcessing } from '@/lib/hooks/useMetricsProcessing';
 import { useGeoLocation } from '@/lib/hooks/useGeoLocation';
 import { useSystemStats } from '@/lib/hooks/useSystemStats';
 import { calculateMetrics, getEmptyMetrics } from '@/lib/utils/metric-calculator';
+import { sortLogsByTime } from '@/lib/utils/log-utils';
 
 interface DashboardProps {
   logs: TraefikLog[];
@@ -26,17 +27,9 @@ export default function Dashboard({ logs, demoMode = false, agentId, agentName }
   const systemStats = useSystemStats(demoMode);
 
   // PERFORMANCE FIX: Memoize sorted logs separately to prevent re-sorting on geoLocations change
+  // REDUNDANCY FIX: Use shared utility function
   const sortedLogs = useMemo(() => {
-    if (logs.length === 0) return [];
-
-    // Sort logs by most recent first and keep latest 1000 entries
-    return [...logs]
-      .sort((a, b) => {
-        const timeA = new Date(a.StartUTC || a.StartLocal).getTime();
-        const timeB = new Date(b.StartUTC || b.StartLocal).getTime();
-        return timeB - timeA; // Most recent first
-      })
-      .slice(0, 1000);
+    return sortLogsByTime(logs, 1000);
   }, [logs]);
 
   // PERFORMANCE FIX: Calculate metrics using memoized sortedLogs
@@ -67,62 +60,5 @@ export default function Dashboard({ logs, demoMode = false, agentId, agentName }
   );
 }
 
-function calculateTimeSpan(logs: TraefikLog[]): number {
-  if (logs.length < 2) return 0;
-
-  const timestamps = logs
-    .map(l => new Date(l.StartUTC || l.StartLocal).getTime())
-    .filter(t => !isNaN(t))
-    .sort((a, b) => a - b);
-
-  if (timestamps.length < 2) return 0;
-
-  const span = (timestamps[timestamps.length - 1] - timestamps[0]) / 1000;
-  return span;
-}
-
-function generateTimeline(logs: TraefikLog[]): { timestamp: string; value: number; label: string }[] {
-  if (logs.length < 2) {
-    return [];
-  }
-
-  const timestamps = logs
-    .map(l => new Date(l.StartUTC || l.StartLocal).getTime())
-    .filter(t => !isNaN(t));
-
-  if (timestamps.length < 2) {
-    return [];
-  }
-
-  const minTime = Math.min(...timestamps);
-  const maxTime = Math.max(...timestamps);
-  const points = 20;
-
-  const effectiveMaxTime = Math.max(maxTime, minTime + 60 * 1000);
-  const totalTimeSpan = effectiveMaxTime - minTime;
-  const interval = Math.ceil(totalTimeSpan / points);
-
-  const buckets: Map<number, number> = new Map();
-  timestamps.forEach(logTime => {
-    const bucketTime = Math.floor(logTime / interval) * interval;
-    buckets.set(bucketTime, (buckets.get(bucketTime) || 0) + 1);
-  });
-
-  const startTime = Math.floor(minTime / interval) * interval;
-  const endTime = Math.floor(maxTime / interval) * interval;
-
-  const timelineData = [];
-
-  for (let currentTime = startTime; currentTime <= endTime; currentTime += interval) {
-    timelineData.push({
-      timestamp: new Date(currentTime).toISOString(),
-      value: buckets.get(currentTime) || 0,
-      label: new Date(currentTime).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    });
-  }
-
-  return timelineData;
-}
+// REDUNDANCY FIX: Removed unused calculateTimeSpan and generateTimeline functions
+// These functions were never called and were dead code

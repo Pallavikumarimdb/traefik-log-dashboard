@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { TimeSeriesPoint } from '@/lib/types';
+import { commonTooltipConfig } from '@/lib/utils/chart-config';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -21,8 +22,18 @@ interface TimeSeriesChartProps {
   data: TimeSeriesPoint[];
 }
 
-export default function TimeSeriesChart({ data }: TimeSeriesChartProps) {
+function TimeSeriesChart({ data }: TimeSeriesChartProps) {
   const chartRef = useRef<ChartJS<'line'>>(null);
+
+  // MEMORY LEAK FIX: Cleanup chart instance on unmount
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, []);
 
   const labels = data.map(point => {
     const date = new Date(point.timestamp);
@@ -48,20 +59,16 @@ export default function TimeSeriesChart({ data }: TimeSeriesChartProps) {
     ],
   };
 
+  // REDUNDANCY FIX: Use shared chart configuration
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: {
+        ...commonTooltipConfig,
         mode: 'index' as const,
         intersect: false,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        padding: 12,
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1,
       },
     },
     scales: {
@@ -80,3 +87,6 @@ export default function TimeSeriesChart({ data }: TimeSeriesChartProps) {
 
   return <Line ref={chartRef} data={chartData} options={options} />;
 }
+
+// BEST PRACTICE FIX: Memoize expensive chart component
+export default React.memo(TimeSeriesChart);

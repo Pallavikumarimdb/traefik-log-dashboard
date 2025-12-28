@@ -8,6 +8,7 @@ import { Badge } from './badge';
 import AgentSelector from './AgentSelector';
 import { useAgents } from '@/lib/contexts/AgentContext';
 import { useEffect, useState } from 'react';
+import { useTabVisibility } from '@/lib/hooks/useTabVisibility';
 
 
 interface HeaderProps {
@@ -27,30 +28,28 @@ export default function Header({
 }: HeaderProps) {
   const { selectedAgent } = useAgents();
   const [alertCount, setAlertCount] = useState<number>(0);
-  const [isTabVisible, setIsTabVisible] = useState(true);
-
-  // PERFORMANCE FIX: Pause polling when tab is not visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabVisible(!document.hidden);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  
+  // REDUNDANCY FIX: Use shared visibility hook
+  const isTabVisible = useTabVisibility();
 
   useEffect(() => {
     if (demoMode || !isTabVisible) return;
 
+    let isMounted = true;
+    const abortController = new AbortController();
+
     const fetchAlertStats = async () => {
       try {
-        const res = await fetch('/api/alerts/stats');
-        if (res.ok) {
+        const res = await fetch('/api/alerts/stats', { signal: abortController.signal });
+        if (res.ok && isMounted) {
           const data = await res.json();
           setAlertCount(data.last24h || 0);
         }
       } catch (error) {
-        console.error('Failed to fetch alert stats:', error);
+        // Don't log abort errors as they're expected
+        if (error instanceof Error && error.name !== 'AbortError' && isMounted) {
+          console.error('Failed to fetch alert stats:', error);
+        }
       }
     };
 
@@ -58,7 +57,11 @@ export default function Header({
     // PERFORMANCE FIX: Increased from 60s to 120s to reduce load
     const interval = setInterval(fetchAlertStats, 120000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      abortController.abort();
+      clearInterval(interval);
+    };
   }, [demoMode, isTabVisible]);
 
   return (

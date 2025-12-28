@@ -252,28 +252,34 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       });
 
       // FIXED: Add timeout to prevent hanging
+      // MEMORY LEAK FIX: AbortController already implemented
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch('/api/agents/check-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentUrl: agent.url, agentToken: agent.token }),
-        signal: controller.signal,
-      });
+      try {
+        const response = await fetch('/api/agents/check-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agentUrl: agent.url, agentToken: agent.token }),
+          signal: controller.signal,
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      const data = await response.json();
-      const isOnline = response.ok && data.online;
+        const data = await response.json();
+        const isOnline = response.ok && data.online;
 
-      // FIXED: Single state update instead of multiple sequential updates
-      await updateAgent(id, {
-        status: isOnline ? 'online' : 'offline',
-        lastSeen: isOnline ? new Date() : undefined,
-      });
+        // FIXED: Single state update instead of multiple sequential updates
+        await updateAgent(id, {
+          status: isOnline ? 'online' : 'offline',
+          lastSeen: isOnline ? new Date() : undefined,
+        });
 
-      return isOnline;
+        return isOnline;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
     } catch (error) {
       // IMPROVED: Better error logging and handling
       if (error instanceof Error && error.name === 'AbortError') {

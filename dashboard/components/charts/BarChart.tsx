@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
 	Chart as ChartJS,
 	CategoryScale,
@@ -11,6 +11,7 @@ import {
 	Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { commonTooltipConfig, getComputedStyleSafe } from '@/lib/utils/chart-config';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -26,27 +27,30 @@ interface BarChartProps {
 	height?: number;
 }
 
-export default function BarChart({ labels, datasets, height = 300 }: BarChartProps) {
+function BarChart({ labels, datasets, height = 300 }: BarChartProps) {
 	const chartRef = useRef<ChartJS<'bar'>>(null);
+
+	// MEMORY LEAK FIX: Cleanup chart instance on unmount
+	useEffect(() => {
+		return () => {
+			if (chartRef.current) {
+				chartRef.current.destroy();
+				chartRef.current = null;
+			}
+		};
+	}, []);
 
 	const chartData = { labels, datasets };
 
 	const grid = `hsla(${getComputedStyleSafe('--muted-foreground', '0 0 0')} / 0.1)`;
-	const tooltipBg = 'rgba(0, 0, 0, 0.8)';
 
+	// REDUNDANCY FIX: Use shared chart configuration
 	const options = {
 		responsive: true,
 		maintainAspectRatio: false,
 		plugins: {
 			legend: { display: datasets.length > 1, position: 'top' as const },
-			tooltip: {
-				backgroundColor: tooltipBg,
-				padding: 12,
-				titleColor: '#fff',
-				bodyColor: '#fff',
-				borderColor: 'rgba(255, 255, 255, 0.1)',
-				borderWidth: 1,
-			},
+			tooltip: commonTooltipConfig,
 		},
 		scales: {
 			x: { grid: { display: false } },
@@ -61,9 +65,5 @@ export default function BarChart({ labels, datasets, height = 300 }: BarChartPro
 	);
 }
 
-function getComputedStyleSafe(variableName: string, fallbackHsl: string): string {
-	if (typeof window === 'undefined') return fallbackHsl;
-	const root = getComputedStyle(document.documentElement);
-	const value = root.getPropertyValue(variableName).trim();
-	return value || fallbackHsl;
-}
+// BEST PRACTICE FIX: Memoize expensive chart component
+export default React.memo(BarChart);

@@ -39,6 +39,8 @@ export class APIClient {
       ...options,
       headers,
       cache: 'no-store', // Prevent browser caching
+      // MEMORY LEAK FIX: Support abort signal from options
+      signal: options.signal,
     });
 
     if (!response.ok) {
@@ -61,13 +63,14 @@ export class APIClient {
    */
   async getAccessLogs(
     position: number = 0,
-    lines: number = 1000
+    lines: number = 1000,
+    options: { signal?: AbortSignal } = {}
   ): Promise<LogsResponse> {
     const params = new URLSearchParams({
       position: position.toString(),
       lines: lines.toString(),
     });
-    return this.fetch<LogsResponse>(`/api/logs/access?${params}`);
+    return this.fetch<LogsResponse>(`/api/logs/access?${params}`, { signal: options.signal });
   }
 
   /**

@@ -14,7 +14,6 @@ import TopClientIPsCard from './cards/TopClientIPsCard';
 import TopRequestHostsCard from './cards/TopRequestHostsCard';
 import TopRequestAddressesCard from './cards/TopRequestAddressesCard';
 import UserAgentsCard from './cards/UserAgentsCard';
-import GeographicDistributionCard from './cards/GeographicDistributionCard';
 import RecentLogsTable from './cards/RecentLogsTable';
 import ErrorsCard from './cards/ErrorsCard';
 import StatusCodesCard from './cards/StatusCodesCard';
@@ -24,9 +23,11 @@ import BackendsCard from './cards/BackendsCard';
 import InteractiveGeoMap from './cards/InteractiveGeoMap';
 import { CPUCard, MemoryCard, DiskCard } from './cards/SystemInfoCards';
 
+import { SystemStats } from '@/lib/hooks/useSystemStats';
+
 interface DashboardGridProps {
   metrics: DashboardMetrics;
-  systemStats?: any; // System stats from agent
+  systemStats?: SystemStats; // BEST PRACTICE FIX: Use proper type instead of any
   demoMode?: boolean;
 }
 
@@ -103,9 +104,9 @@ export default function DashboardGrid({ metrics, systemStats, demoMode = false }
         <UserAgentsCard userAgents={metrics.userAgents} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* FIX for Issue #140: Removed redundant GeographicDistributionCard - InteractiveGeoMap already shows geographic distribution */}
+      <div className="grid grid-cols-1 gap-6">
         <InteractiveGeoMap locations={metrics.geoLocations} />
-        <GeographicDistributionCard locations={metrics.geoLocations} />
       </div>
 
       <div className="grid grid-cols-1 gap-6">

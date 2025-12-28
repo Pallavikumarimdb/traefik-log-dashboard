@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -9,6 +9,7 @@ import {
 } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import type { TooltipItem } from 'chart.js';
+import { commonTooltipConfig } from '@/lib/utils/chart-config';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -19,7 +20,7 @@ interface PieChartProps {
   height?: number;
 }
 
-export default function PieChart({ 
+function PieChart({ 
   labels, 
   data, 
   backgroundColor = [
@@ -34,6 +35,16 @@ export default function PieChart({
 }: PieChartProps) {
   const chartRef = useRef<ChartJS<'pie'>>(null);
 
+  // MEMORY LEAK FIX: Cleanup chart instance on unmount
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, []);
+
   const chartData = {
     labels,
     datasets: [
@@ -46,8 +57,7 @@ export default function PieChart({
     ],
   };
 
-  const tooltipBg = 'rgba(0, 0, 0, 0.8)';
-
+  // REDUNDANCY FIX: Use shared chart configuration
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -61,12 +71,7 @@ export default function PieChart({
         },
       },
       tooltip: {
-        backgroundColor: tooltipBg,
-        padding: 12,
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1,
+        ...commonTooltipConfig,
         callbacks: {
           label: function(context: any) {
             const label = context.label || '';
@@ -86,3 +91,6 @@ export default function PieChart({
     </div>
   );
 }
+
+// BEST PRACTICE FIX: Memoize expensive chart component
+export default React.memo(PieChart);

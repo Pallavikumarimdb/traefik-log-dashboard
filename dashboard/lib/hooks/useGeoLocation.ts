@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { TraefikLog, GeoLocation } from '@/lib/types';
 import { aggregateGeoLocations } from '@/lib/location';
+import { sortLogsByTime } from '@/lib/utils/log-utils';
 
 export function useGeoLocation(logs: TraefikLog[]) {
   const [geoLocations, setGeoLocations] = useState<GeoLocation[]>([]);
@@ -17,16 +18,9 @@ export function useGeoLocation(logs: TraefikLog[]) {
   }, [logs]);
 
   // PERFORMANCE FIX: Memoize sorted logs to prevent re-sorting on every render
+  // REDUNDANCY FIX: Use shared utility function
   const sortedLogs = useMemo(() => {
-    if (debouncedLogs.length === 0) return [];
-
-    return [...debouncedLogs]
-      .sort((a, b) => {
-        const timeA = new Date(a.StartUTC || a.StartLocal).getTime();
-        const timeB = new Date(b.StartUTC || b.StartLocal).getTime();
-        return timeB - timeA;
-      })
-      .slice(0, 1000);
+    return sortLogsByTime(debouncedLogs, 1000);
   }, [debouncedLogs]);
 
   // Fetch GeoIP data

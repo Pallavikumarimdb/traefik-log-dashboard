@@ -93,8 +93,17 @@ export class ArchivalService {
   /**
    * Update metrics cache for an agent
    * This should be called from the dashboard when metrics are calculated
+   * CONCURRENCY FIX: Safe write operation
    */
   updateMetricsCache(agentId: string, metrics: DashboardMetrics): void {
+    // Defensive: limit cache size to prevent memory leaks
+    if (this.metricsCache.size > 100) {
+      // Remove oldest entry (simple FIFO, could be improved with LRU)
+      const firstKey = this.metricsCache.keys().next().value;
+      if (firstKey) {
+        this.metricsCache.delete(firstKey);
+      }
+    }
     this.metricsCache.set(agentId, metrics);
   }
 

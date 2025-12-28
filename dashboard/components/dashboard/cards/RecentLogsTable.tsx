@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { List, ChevronDown } from 'lucide-react';
 import Card from '@/components/ui/DashboardCard';
 import { TraefikLog } from '@/lib/types';
+import { sortLogsByTime } from '@/lib/utils/log-utils';
 
 interface Props {
   logs: TraefikLog[];
@@ -56,14 +57,9 @@ export default function RecentLogsTable({ logs }: Props) {
     ...optionalColumns.filter(col => visibleOptionalColumns.has(col.id))
   ];
 
+  // REDUNDANCY FIX: Use shared utility function
   const sortedLogs = useMemo(() => {
-    return [...logs]
-      .sort((a, b) => {
-        const timeA = new Date(a.StartUTC || a.StartLocal).getTime();
-        const timeB = new Date(b.StartUTC || b.StartLocal).getTime();
-        return timeB - timeA;
-      })
-      .slice(0, 1000);
+    return sortLogsByTime(logs, 1000);
   }, [logs]);
 
   const formatDuration = (durationNs: number): string => {

@@ -1,0 +1,53 @@
+---
+title: Troubleshooting & FAQ
+description: Common issues, configuration nuances, and frequently asked questions.
+---
+
+## Configuration
+
+### Environment Agent vs. Manual Agents
+
+One of the most important concepts to understand in Traefik Log Dashboard is the distinction between the **Environment Agent** and **Manual Agents**.
+
+> [!IMPORTANT]
+> **At least one agent must be configured via environment variables.**
+>
+> When you deploy the dashboard using `docker-compose.yml`, the agent configured via `AGENT_API_URL` and `AGENT_API_TOKEN` becomes the **Environment Agent**.
+>
+> - This agent **cannot** be modified or deleted from the Dashboard UI.
+> - If you remove these environment variables, the dashboard will revert to default values or fail to connect.
+> - This is by design to ensure there is always a "source of truth" agent that persists across container recreations.
+
+To add more agents that you *can* manage entirely from the UI:
+1. Keep your primary agent defined in `docker-compose.yml`.
+2. Use the **Settings > Agents** page in the dashboard to add secondary agents. These "Manual Agents" are stored in the SQLite database and can be edited/deleted freely.
+
+## Common Issues
+
+### Is it possible to connect remote agents without exposing port 5000?
+
+**No, not currently.**
+
+The dashboard architecture relies on direct HTTP communication with the agent's API.
+- The dashboard (running in your browser or Next.js server) needs to send HTTP requests to the Agent.
+- The Agent must expose its API port (default `5000`) to be reachable by the Dashboard.
+
+If security is a concern, we recommend:
+1. **VPN/Tunneling**: Use a VPN (like Tailscale or WireGuard) to connect the Dashboard and Agent securely without exposing ports to the public internet.
+2. **Reverse Proxy**: Put the Agent behind a reverse proxy (like Traefik itself) with Basic Auth or IP allow-listing, and configure the Dashboard to use that proxied URL.
+
+*(Ref: Issue #147)*
+
+### Dashboard Feature Requests & Planned Improvements
+
+We are actively working on improving the UI and UX. Some frequently requested features include:
+
+#### 1. Filter Logs by Clicking
+**Request:** Allow filtering logs by simply clicking on headers (e.g., clicking a status code `500` filters for all errors).
+**Status:** Planned. We are looking into adding interactive headers to the log table for quicker filtering.
+
+#### 2. Enhanced GeoIP Integration
+**Request:** Better integration between the Interactive Map and log filters (e.g., clicking a country on the map filters logs).
+**Status:** Under consideration for future releases.
+
+*(Ref: Issue #140)*

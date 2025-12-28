@@ -13,7 +13,11 @@ import { DashboardMetrics } from '../types';
 import { MetricSnapshot } from '../types/metrics-snapshot';
 
 // Track last execution time for each alert rule
+// MEMORY LEAK FIX: TTL-based cleanup to prevent unbounded growth
 const lastExecutionTimes = new Map<string, number>();
+const MAX_CACHE_AGE = 24 * 60 * 60 * 1000; // 24 hours
+const MAX_CACHE_SIZE = 1000; // Maximum number of entries
+const CLEANUP_INTERVAL = 60 * 60 * 1000; // Cleanup every hour
 
 // Track alert execution intervals in milliseconds
 const intervalMap: Record<AlertInterval, number> = {
@@ -25,6 +29,47 @@ const intervalMap: Record<AlertInterval, number> = {
   '12h': 12 * 60 * 60 * 1000,
   '24h': 24 * 60 * 60 * 1000,
 };
+
+// Start periodic cleanup
+let cleanupInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Cleanup old entries from lastExecutionTimes map
+ */
+function cleanupExecutionTimes(): void {
+  const now = Date.now();
+  const entriesToDelete: string[] = [];
+
+  // Remove entries older than MAX_CACHE_AGE
+  for (const [alertId, timestamp] of lastExecutionTimes.entries()) {
+    if (now - timestamp > MAX_CACHE_AGE) {
+      entriesToDelete.push(alertId);
+    }
+  }
+
+  entriesToDelete.forEach(id => lastExecutionTimes.delete(id));
+
+  // If still too large, remove oldest entries (LRU strategy)
+  if (lastExecutionTimes.size > MAX_CACHE_SIZE) {
+    const sortedEntries = Array.from(lastExecutionTimes.entries())
+      .sort((a, b) => a[1] - b[1]); // Sort by timestamp (oldest first)
+    
+    const toRemove = sortedEntries.slice(0, lastExecutionTimes.size - MAX_CACHE_SIZE);
+    toRemove.forEach(([id]) => lastExecutionTimes.delete(id));
+    
+    console.log(`[AlertEngine] Cleaned up ${toRemove.length} old execution time entries`);
+  }
+
+  if (entriesToDelete.length > 0) {
+    console.log(`[AlertEngine] Cleaned up ${entriesToDelete.length} expired execution time entries`);
+  }
+}
+
+// Initialize cleanup interval (only in server context)
+if (typeof window === 'undefined') {
+  cleanupInterval = setInterval(cleanupExecutionTimes, CLEANUP_INTERVAL);
+  console.log('[AlertEngine] Execution times cleanup initialized (runs every hour)');
+}
 
 /**
  * Alert Evaluation Engine
@@ -346,6 +391,25 @@ export class AlertEngine {
    */
   getLastExecutionTime(alertId: string): number | undefined {
     return lastExecutionTimes.get(alertId);
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): { size: number; maxSize: number; oldestEntry: number | null } {
+    const entries = Array.from(lastExecutionTimes.values());
+    return {
+      size: lastExecutionTimes.size,
+      maxSize: MAX_CACHE_SIZE,
+      oldestEntry: entries.length > 0 ? Math.min(...entries) : null,
+    };
+  }
+
+  /**
+   * Manually trigger cleanup
+   */
+  cleanup(): void {
+    cleanupExecutionTimes();
   }
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
 	Chart as ChartJS,
 	CategoryScale,
@@ -9,6 +9,7 @@ import {
 	LineElement,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { getComputedStyleSafe } from '@/lib/utils/chart-config';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement);
 
@@ -18,8 +19,18 @@ interface SparklineProps {
 	height?: number;
 }
 
-export default function Sparkline({ data, color, height = 50 }: SparklineProps) {
+function Sparkline({ data, color, height = 50 }: SparklineProps) {
 	const chartRef = useRef<ChartJS<'line'>>(null);
+
+	// MEMORY LEAK FIX: Cleanup chart instance on unmount
+	useEffect(() => {
+		return () => {
+			if (chartRef.current) {
+				chartRef.current.destroy();
+				chartRef.current = null;
+			}
+		};
+	}, []);
 
 	const stroke = color || `hsl(${getComputedStyleSafe('--primary', '59 130 246')})`;
 	const fill = color
@@ -59,9 +70,5 @@ export default function Sparkline({ data, color, height = 50 }: SparklineProps) 
 	);
 }
 
-function getComputedStyleSafe(variableName: string, fallbackHsl: string): string {
-	if (typeof window === 'undefined') return fallbackHsl;
-	const root = getComputedStyle(document.documentElement);
-	const value = root.getPropertyValue(variableName).trim();
-	return value || fallbackHsl;
-}
+// BEST PRACTICE FIX: Memoize expensive chart component
+export default React.memo(Sparkline);
