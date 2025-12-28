@@ -14,7 +14,6 @@ export function useLogFetcher() {
   const [isPaused, setIsPaused] = useState(false);
   const [agentId, setAgentId] = useState<string | null>(null);
   const [agentName, setAgentName] = useState<string | null>(null);
-  const [isTabVisible, setIsTabVisible] = useState(true);
 
   const positionRef = useRef<number>(-1);
   const isFirstFetch = useRef(true);
