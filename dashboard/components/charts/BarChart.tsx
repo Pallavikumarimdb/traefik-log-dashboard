@@ -1,69 +1,107 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import {
-	Chart as ChartJS,
-	CategoryScale,
-	LinearScale,
-	BarElement,
-	Title,
-	Tooltip,
-	Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
-import { commonTooltipConfig, getComputedStyleSafe } from '@/lib/utils/chart-config';
+  Bar,
+  BarChart as RechartsBarChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from 'recharts';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+interface Dataset {
+  label: string;
+  data: number[];
+  backgroundColor?: string | string[];
+  borderColor?: string | string[];
+  borderWidth?: number;
+}
 
 interface BarChartProps {
-	labels: string[];
-	datasets: {
-		label: string;
-		data: number[];
-		backgroundColor?: string | string[];
-		borderColor?: string | string[];
-		borderWidth?: number;
-	}[];
-	height?: number;
+  labels: string[];
+  datasets: Dataset[];
+  height?: number;
 }
 
 function BarChart({ labels, datasets, height = 300 }: BarChartProps) {
-	const chartRef = useRef<ChartJS<'bar'>>(null);
+  // Transform data to Recharts format
+  const chartData = labels.map((label, index) => {
+    const point: Record<string, string | number> = { name: label };
+    datasets.forEach(dataset => {
+      point[dataset.label] = dataset.data[index] || 0;
+    });
+    return point;
+  });
 
-	// MEMORY LEAK FIX: Cleanup chart instance on unmount
-	useEffect(() => {
-		return () => {
-			if (chartRef.current) {
-				chartRef.current.destroy();
-				chartRef.current = null;
-			}
-		};
-	}, []);
+  // Default colors using CSS variables
+  const defaultColors = [
+    'hsl(var(--primary))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+  ];
 
-	const chartData = { labels, datasets };
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="hsl(var(--border))"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tickMargin={8}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tickMargin={8}
+            allowDecimals={false}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'hsl(var(--background))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            }}
+            labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 500 }}
+            cursor={{ fill: 'hsl(var(--muted))' }}
+          />
+          {datasets.length > 1 && (
+            <Legend
+              wrapperStyle={{ paddingTop: 20 }}
+              iconType="circle"
+            />
+          )}
+          {datasets.map((dataset, idx) => {
+            const fill = Array.isArray(dataset.backgroundColor)
+              ? dataset.backgroundColor[0]
+              : dataset.backgroundColor || defaultColors[idx % defaultColors.length];
 
-	const grid = `hsla(${getComputedStyleSafe('--muted-foreground', '0 0 0')} / 0.1)`;
-
-	// REDUNDANCY FIX: Use shared chart configuration
-	const options = {
-		responsive: true,
-		maintainAspectRatio: false,
-		plugins: {
-			legend: { display: datasets.length > 1, position: 'top' as const },
-			tooltip: commonTooltipConfig,
-		},
-		scales: {
-			x: { grid: { display: false } },
-			y: { beginAtZero: true, grid: { color: grid }, ticks: { precision: 0 } },
-		},
-	};
-
-	return (
-		<div style={{ height }}>
-			<Bar ref={chartRef} data={chartData} options={options} />
-		</div>
-	);
+            return (
+              <Bar
+                key={dataset.label}
+                dataKey={dataset.label}
+                fill={fill}
+                radius={[4, 4, 0, 0]}
+              />
+            );
+          })}
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
-// BEST PRACTICE FIX: Memoize expensive chart component
 export default React.memo(BarChart);

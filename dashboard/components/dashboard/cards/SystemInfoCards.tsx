@@ -20,24 +20,24 @@ function formatBytes(bytes: number): string {
 }
 
 function getStatusColor(percent: number): string {
-  if (isNaN(percent)) return 'text-gray-600';
-  if (percent >= 90) return 'text-red-600';
-  if (percent >= 75) return 'text-yellow-600';
-  return 'text-green-600';
+  if (isNaN(percent)) return 'text-muted-foreground';
+  if (percent >= 90) return 'text-destructive';
+  if (percent >= 75) return 'text-yellow-600 dark:text-yellow-400';
+  return 'text-green-600 dark:text-green-400';
 }
 
 function getProgressBarColor(percent: number): string {
-  if (isNaN(percent)) return 'bg-gray-500';
-  if (percent >= 90) return 'bg-red-500';
-  if (percent >= 75) return 'bg-yellow-500';
-  return 'bg-green-500';
+  if (isNaN(percent)) return 'bg-muted';
+  if (percent >= 90) return 'bg-destructive';
+  if (percent >= 75) return 'bg-yellow-500 dark:bg-yellow-600';
+  return 'bg-green-500 dark:bg-green-600';
 }
 
 function ProgressBar({ percent }: { percent: number }) {
   const safePercent = isNaN(percent) ? 0 : Math.min(100, Math.max(0, percent));
-  
+
   return (
-    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
       <div
         className={`h-full ${getProgressBarColor(safePercent)} transition-all duration-300`}
         style={{ width: `${safePercent}%` }}
@@ -51,7 +51,7 @@ export function CPUCard({ stats }: Props) {
   if (!stats?.cpu || typeof stats.cpu.usage_percent !== 'number') {
     return (
       <Card title="CPU" icon={<Cpu className="w-5 h-5 text-blue-600" />}>
-        <div className="text-center text-gray-500 py-4">
+        <div className="text-center text-muted-foreground py-4">
           System monitoring disabled
         </div>
       </Card>
@@ -69,14 +69,14 @@ export function CPUCard({ stats }: Props) {
           <div className={`text-4xl font-bold ${getStatusColor(percent)}`}>
             {percent.toFixed(1)}%
           </div>
-          <div className="text-sm text-gray-500 mb-1">
+          <div className="text-sm text-muted-foreground mb-1">
             {cores} {cores === 1 ? 'core' : 'cores'}
           </div>
         </div>
-        
+
         <ProgressBar percent={percent} />
-        
-        <div className="text-xs text-gray-500">
+
+        <div className="text-xs text-muted-foreground">
           {percent >= 90 && '⚠️ High CPU usage'}
           {percent >= 75 && percent < 90 && '⚠️ Moderate CPU usage'}
           {percent < 75 && '✓ Normal'}
@@ -91,7 +91,7 @@ export function MemoryCard({ stats }: Props) {
   if (!stats?.memory || typeof stats.memory.used_percent !== 'number') {
     return (
       <Card title="Memory" icon={<MemoryStick className="w-5 h-5 text-purple-600" />}>
-        <div className="text-center text-gray-500 py-4">
+        <div className="text-center text-muted-foreground py-4">
           System monitoring disabled
         </div>
       </Card>
@@ -112,17 +112,17 @@ export function MemoryCard({ stats }: Props) {
             {percent.toFixed(1)}%
           </div>
         </div>
-        
+
         <ProgressBar percent={percent} />
-        
-        <div className="text-xs text-gray-600">
+
+        <div className="text-xs">
           <div>{formatBytes(used)} / {formatBytes(total)}</div>
-          <div className="text-gray-500 mt-1">
+          <div className="text-muted-foreground mt-1">
             {formatBytes(available)} available
           </div>
         </div>
-        
-        <div className="text-xs text-gray-500">
+
+        <div className="text-xs text-muted-foreground">
           {percent >= 90 && '⚠️ High memory usage'}
           {percent >= 75 && percent < 90 && '⚠️ Moderate memory usage'}
           {percent < 75 && '✓ Normal'}
@@ -137,7 +137,7 @@ export function DiskCard({ stats }: Props) {
   if (!stats?.disk || typeof stats.disk.used_percent !== 'number') {
     return (
       <Card title="Disk" icon={<HardDrive className="w-5 h-5 text-indigo-600" />}>
-        <div className="text-center text-gray-500 py-4">
+        <div className="text-center text-muted-foreground py-4">
           System monitoring disabled
         </div>
       </Card>
@@ -158,17 +158,17 @@ export function DiskCard({ stats }: Props) {
             {percent.toFixed(1)}%
           </div>
         </div>
-        
+
         <ProgressBar percent={percent} />
-        
-        <div className="text-xs text-gray-600">
+
+        <div className="text-xs">
           <div>{formatBytes(used)} / {formatBytes(total)}</div>
-          <div className="text-gray-500 mt-1">
+          <div className="text-muted-foreground mt-1">
             {formatBytes(free)} free
           </div>
         </div>
-        
-        <div className="text-xs text-gray-500">
+
+        <div className="text-xs text-muted-foreground">
           {percent >= 90 && '❌ Critical - disk almost full'}
           {percent >= 80 && percent < 90 && '⚠️ High disk usage'}
           {percent < 80 && '✓ Normal'}

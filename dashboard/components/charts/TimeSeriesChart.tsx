@@ -1,92 +1,80 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
   Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
+  CartesianGrid,
+} from 'recharts';
 import { TimeSeriesPoint } from '@/lib/types';
-import { commonTooltipConfig } from '@/lib/utils/chart-config';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 interface TimeSeriesChartProps {
   data: TimeSeriesPoint[];
 }
 
 function TimeSeriesChart({ data }: TimeSeriesChartProps) {
-  const chartRef = useRef<ChartJS<'line'>>(null);
+  const chartData = data.map(point => ({
+    time: new Date(point.timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    value: point.value,
+  }));
 
-  // MEMORY LEAK FIX: Cleanup chart instance on unmount
-  useEffect(() => {
-    return () => {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-        chartRef.current = null;
-      }
-    };
-  }, []);
-
-  const labels = data.map(point => {
-    const date = new Date(point.timestamp);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  });
-
-  const values = data.map(point => point.value);
-
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        label: 'Requests',
-        data: values,
-        borderColor: 'rgb(220, 38, 38)',
-        backgroundColor: 'rgba(220, 38, 38, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        borderWidth: 2,
-      },
-    ],
-  };
-
-  // REDUNDANCY FIX: Use shared chart configuration
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        ...commonTooltipConfig,
-        mode: 'index' as const,
-        intersect: false,
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { maxRotation: 0, autoSkipPadding: 20, color: '#6b7280' },
-      },
-      y: {
-        beginAtZero: true,
-        grid: { color: 'rgba(0, 0, 0, 0.05)' },
-        ticks: { precision: 0, color: '#6b7280' },
-      },
-    },
-    interaction: { mode: 'nearest' as const, axis: 'x' as const, intersect: false },
-  };
-
-  return <Line ref={chartRef} data={chartData} options={options} />;
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="hsl(var(--border))"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="time"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+          tickMargin={8}
+        />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+          tickMargin={8}
+          allowDecimals={false}
+        />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'hsl(var(--background))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          }}
+          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 500 }}
+          itemStyle={{ color: 'hsl(var(--primary))' }}
+        />
+        <Area
+          type="monotone"
+          dataKey="value"
+          stroke="hsl(var(--primary))"
+          strokeWidth={2}
+          fill="url(#colorRequests)"
+          dot={false}
+          activeDot={{ r: 4, fill: 'hsl(var(--primary))' }}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
 }
 
-// BEST PRACTICE FIX: Memoize expensive chart component
 export default React.memo(TimeSeriesChart);

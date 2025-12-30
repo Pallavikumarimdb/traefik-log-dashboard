@@ -1,48 +1,62 @@
 /**
- * Shared Chart.js configuration
- * Extracted to reduce duplication across chart components
+ * Shared chart configuration for Recharts
+ * Centralized chart styling utilities
  */
 
 /**
- * Common Chart.js options shared across all charts
+ * Common chart colors using CSS variables
  */
-export const commonChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false,
-    },
-    tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      padding: 12,
-      titleColor: '#fff',
-      bodyColor: '#fff',
-      borderColor: 'rgba(255, 255, 255, 0.1)',
-      borderWidth: 1,
-    },
+export const chartColors = {
+  primary: 'hsl(var(--primary))',
+  secondary: 'hsl(var(--secondary))',
+  muted: 'hsl(var(--muted))',
+  border: 'hsl(var(--border))',
+  foreground: 'hsl(var(--foreground))',
+  mutedForeground: 'hsl(var(--muted-foreground))',
+  chart1: 'hsl(var(--chart-1))',
+  chart2: 'hsl(var(--chart-2))',
+  chart3: 'hsl(var(--chart-3))',
+  chart4: 'hsl(var(--chart-4))',
+  chart5: 'hsl(var(--chart-5))',
+} as const;
+
+/**
+ * Common tooltip styles for Recharts
+ */
+export const tooltipStyles = {
+  contentStyle: {
+    backgroundColor: 'hsl(var(--background))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+  },
+  labelStyle: {
+    color: 'hsl(var(--foreground))',
+    fontWeight: 500,
+  },
+  itemStyle: {
+    color: 'hsl(var(--muted-foreground))',
   },
 } as const;
 
 /**
- * Common tooltip configuration
+ * Common axis styles for Recharts
  */
-export const commonTooltipConfig = {
-  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-  padding: 12,
-  titleColor: '#fff',
-  bodyColor: '#fff',
-  borderColor: 'rgba(255, 255, 255, 0.1)',
-  borderWidth: 1,
+export const axisStyles = {
+  tick: {
+    fill: 'hsl(var(--muted-foreground))',
+    fontSize: 12,
+  },
+  axisLine: false,
+  tickLine: false,
+  tickMargin: 8,
 } as const;
 
 /**
- * Get safe CSS variable value with fallback
+ * Common grid styles for Recharts
  */
-export function getComputedStyleSafe(variableName: string, fallbackHsl: string): string {
-  if (typeof window === 'undefined') return fallbackHsl;
-  const root = getComputedStyle(document.documentElement);
-  const value = root.getPropertyValue(variableName).trim();
-  return value || fallbackHsl;
-}
-
+export const gridStyles = {
+  strokeDasharray: '3 3',
+  stroke: 'hsl(var(--border))',
+  vertical: false,
+} as const;

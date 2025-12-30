@@ -34,12 +34,13 @@ export function useMetricsProcessing(
       return;
     }
 
-    // Create a hash of the current metrics to avoid duplicate processing
+    // PERFORMANCE FIX: Create a hash of current metrics WITHOUT timestamp
+    // Including timestamp caused every call to be treated as new (defeating deduplication)
     const metricsHash = JSON.stringify({
       agentId,
       requestCount: metrics.requests?.total,
       errorRate: metrics.statusCodes?.errorRate,
-      timestamp: Date.now(),
+      avgResponseTime: metrics.responseTime?.average,
     });
 
     // Skip if we just processed the same metrics

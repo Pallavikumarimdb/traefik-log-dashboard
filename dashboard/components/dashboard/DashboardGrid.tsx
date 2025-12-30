@@ -1,27 +1,61 @@
 'use client';
 
 import { Activity, Clock, AlertTriangle, Server } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { DashboardMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
+// Static imports for lightweight components
 import StatCard from './cards/StatCard';
-import TimelineCard from './cards/TimelineCard';
-import StatusCodeDistributionCard from './cards/StatusCodeDistributionCard';
-import TopServicesCard from './cards/TopServicesCard';
 import TopRoutesCard from './cards/TopRoutesCard';
+import TopServicesCard from './cards/TopServicesCard';
 import RoutersCard from './cards/RoutersCard';
 import TopClientIPsCard from './cards/TopClientIPsCard';
 import TopRequestHostsCard from './cards/TopRequestHostsCard';
 import TopRequestAddressesCard from './cards/TopRequestAddressesCard';
-import UserAgentsCard from './cards/UserAgentsCard';
-import RecentLogsTable from './cards/RecentLogsTable';
 import ErrorsCard from './cards/ErrorsCard';
 import StatusCodesCard from './cards/StatusCodesCard';
 import ResponseTimeCard from './cards/ResponseTimeCard';
 import RequestsCard from './cards/RequestsCard';
 import BackendsCard from './cards/BackendsCard';
-import InteractiveGeoMap from './cards/InteractiveGeoMap';
 import { CPUCard, MemoryCard, DiskCard } from './cards/SystemInfoCards';
+
+// Card skeleton for loading states
+function CardSkeleton({ height = 'h-64' }: { height?: string }) {
+  return (
+    <div className={`${height} rounded-lg border bg-card p-6`}>
+      <Skeleton className="h-5 w-32 mb-4" />
+      <Skeleton className="h-full w-full" />
+    </div>
+  );
+}
+
+// Dynamic imports for heavy components (charts, maps, tables)
+const TimelineCard = dynamic(() => import('./cards/TimelineCard'), {
+  loading: () => <CardSkeleton height="h-80" />,
+  ssr: false,
+});
+
+const StatusCodeDistributionCard = dynamic(() => import('./cards/StatusCodeDistributionCard'), {
+  loading: () => <CardSkeleton height="h-72" />,
+  ssr: false,
+});
+
+const UserAgentsCard = dynamic(() => import('./cards/UserAgentsCard'), {
+  loading: () => <CardSkeleton height="h-64" />,
+  ssr: false,
+});
+
+const RecentLogsTable = dynamic(() => import('./cards/RecentLogsTable'), {
+  loading: () => <CardSkeleton height="h-96" />,
+  ssr: false,
+});
+
+const InteractiveGeoMap = dynamic(() => import('./cards/InteractiveGeoMap'), {
+  loading: () => <CardSkeleton height="h-[500px]" />,
+  ssr: false,
+});
 
 import { SystemStats } from '@/lib/types';
 

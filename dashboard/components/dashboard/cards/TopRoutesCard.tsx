@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import { TrendingUp } from 'lucide-react';
 import Card from '@/components/ui/DashboardCard';
 import { RouteMetrics } from '@/lib/types';
@@ -9,46 +10,55 @@ interface Props {
   routes: RouteMetrics[];
 }
 
-export default function TopRoutesCard({ routes }: Props) {
+function TopRoutesCard({ routes }: Props) {
+  // Memoize expensive calculations - hooks must be called before early returns
+  const { maxCount, topRoutes } = useMemo(() => {
+    if (!routes || routes.length === 0) {
+      return { maxCount: 1, topRoutes: [] };
+    }
+    return {
+      maxCount: Math.max(...routes.map(r => r.count), 1),
+      topRoutes: routes.slice(0, 10),
+    };
+  }, [routes]);
+
+  // Early return after hooks
   if (!routes || routes.length === 0) {
     return (
-      <Card title="Top Routes" icon={<TrendingUp className="w-5 h-5 text-red-600" />}>
-        <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+      <Card title="Top Routes" icon={<TrendingUp className="w-5 h-5 text-primary" />}>
+        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
           No route data available
         </div>
       </Card>
     );
   }
 
-  const maxCount = Math.max(...routes.map(r => r.count), 1);
-  const topRoutes = routes.slice(0, 10);
-
   return (
-    <Card title="Top Routes" icon={<TrendingUp className="w-5 h-5 text-red-600" />}>
+    <Card title="Top Routes" icon={<TrendingUp className="w-5 h-5 text-primary" />}>
       <div className="space-y-4">
         {topRoutes.map((route, idx) => (
           <div key={idx} className="space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium bg-red-50 rounded text-red-600">
+                  <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium bg-primary/10 rounded text-primary">
                     {idx + 1}
                   </span>
-                  <span className="font-mono text-xs font-medium truncate text-gray-900" title={route.path}>
+                  <span className="font-mono text-xs font-medium truncate" title={route.path}>
                     {route.path}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-xs text-gray-500 whitespace-nowrap">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap">
                 <span className="font-medium">{formatNumber(route.count)}</span>
-                <span className="text-gray-400">•</span>
+                <span className="opacity-50">•</span>
                 <span>{route.avgDuration.toFixed(0)}ms</span>
               </div>
             </div>
             <div className="ml-8">
-              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-red-500 transition-all duration-500 ease-out"
+                  className="h-full bg-primary transition-all duration-500 ease-out"
                   style={{ width: `${(route.count / maxCount) * 100}%` }}
                 />
               </div>
@@ -59,3 +69,5 @@ export default function TopRoutesCard({ routes }: Props) {
     </Card>
   );
 }
+
+export default memo(TopRoutesCard);
