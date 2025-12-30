@@ -5,7 +5,7 @@ interface UseGlobeInteractionOptions {
   onLocationClick?: (location: { longitude: number; latitude: number }) => void
 }
 
-export function useGlobeInteraction(options: UseGlobeInteractionOptions = {}) {
+export function useGlobeInteraction(_options: UseGlobeInteractionOptions = {}) {
   const { state, setRotation, setZoomLevel } = useGlobeStore()
   const [isDragging, setIsDragging] = useState(false)
   const [lastMouse, setLastMouse] = useState<[number, number]>([0, 0])

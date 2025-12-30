@@ -38,8 +38,8 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 
 ### Geographic Features
 
-<Callout title="Requires GeoIP Database" type="info">
-Geographic features require MaxMind GeoLite2 databases. See [configuration](/docs/configuration) for setup.
+<Callout title="Automatic GeoIP" type="success">
+Geographic features work automatically! The dashboard uses [geolite2-redist](https://www.npmjs.com/package/geolite2-redist) which auto-downloads MaxMind GeoLite2 databases.
 </Callout>
 
 - **Country-level Mapping**: Track requests by country with ISO codes
@@ -102,13 +102,6 @@ Use tags and descriptions to organize large deployments effectively.
 - **Position Tracking**: Only reads new entries, not entire file
 - **Compressed Logs**: Native .gz file support
 - **Large File Handling**: Efficiently processes multi-GB log files
-
-### GeoIP Integration
-
-- **MaxMind Support**: Integrated GeoLite2-City and GeoLite2-Country databases
-- **IP Lookup API**: Expose geolocation as API endpoints
-- **Private IP Handling**: Special treatment for 10.x, 192.168.x, 11.x ranges
-- **Caching**: Intelligent caching for improved performance
 
 ### System Monitoring
 

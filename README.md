@@ -10,27 +10,14 @@
 
 ---
 
-## 📚 Full Documentation
-
-**Visit our comprehensive documentation site:** [https://traefik-log-dashboard.docs.dev](https://traefik-log-dashboard.docs.dev)
-
-Or explore the docs locally:
-```bash
-cd docs
-npm install
-npm run dev
-```
-
----
-
-## ⚡ Quick Start
+## Quick Start
 
 Get started in under 5 minutes with Docker Compose:
 
 ### 1. Create Project Structure
 
 ```bash
-mkdir -p traefik-dashboard/{data/{logs,geoip,positions,dashboard}}
+mkdir -p traefik-dashboard/data/{logs,positions,dashboard}
 cd traefik-dashboard
 ```
 
@@ -46,14 +33,19 @@ services:
       - "5000:5000"
     volumes:
       - ./data/logs:/logs:ro
-      - ./data/geoip:/geoip:ro
       - ./data/positions:/data
     environment:
       - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
+      - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/traefik.log
       - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=your_secure_token_here
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_ENABLED=true
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_CITY_DB=/geoip/GeoLite2-City.mmdb
-      - TRAEFIK_LOG_DASHBOARD_GEOIP_COUNTRY_DB=/geoip/GeoLite2-Country.mmdb
+      - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true
+      - TRAEFIK_LOG_DASHBOARD_LOG_FORMAT=json
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/logs/status"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - traefik-network
 
@@ -61,6 +53,7 @@ services:
     image: hhftechnology/traefik-log-dashboard:latest
     container_name: traefik-log-dashboard
     restart: unless-stopped
+    user: "1001:1001"
     ports:
       - "3000:3000"
     volumes:
@@ -69,8 +62,10 @@ services:
       - AGENT_API_URL=http://traefik-agent:5000
       - AGENT_API_TOKEN=your_secure_token_here
       - AGENT_NAME=Default Agent
+      - NODE_ENV=production
     depends_on:
-      - traefik-agent
+      traefik-agent:
+        condition: service_healthy
     networks:
       - traefik-network
 
@@ -90,6 +85,10 @@ Update both `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN` and `AGENT_API_TOKEN` with this v
 ### 4. Start Services
 
 ```bash
+# Create network if it doesn't exist
+docker network create traefik-network 2>/dev/null || true
+
+# Start services
 docker compose up -d
 ```
 
@@ -99,52 +98,67 @@ Open http://localhost:3000 in your browser.
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-- ✅ **Multi-Agent Architecture** - Manage multiple Traefik instances
-- ✅ **Interactive 3D Globe** - Geographic visualization with map transitions
-- ✅ **Advanced Filtering** - Include/exclude modes, geographic filtering
-- ✅ **Background Alerting** - Discord webhooks, daily summaries
-- ✅ **Enhanced Security** - CVE-2025-55182 patches, rate limiting, request validation
-- ✅ **High Performance** - Go-based agent, optimized log parsing
-- ✅ **Terminal Dashboard** - Beautiful CLI with Bubble Tea
-
----
-
-## 📦 Components
-
-| Component | Description | Documentation |
-|-----------|-------------|---------------|
-| **Agent** | Go-based log parser and API server | [docs/components/agent](./docs/content/docs/components/agent.mdx) |
-| **Dashboard** | Next.js web UI with real-time analytics | [docs/components/dashboard](./docs/content/docs/components/dashboard.mdx) |
-| **CLI** | Terminal-based dashboard (optional) | [docs/components/cli](./docs/content/docs/components/cli.mdx) |
+- **Multi-Agent Architecture** - Manage multiple Traefik instances from a single dashboard
+- **Interactive 3D Globe** - Geographic visualization with smooth map transitions
+- **Automatic GeoIP** - IP geolocation works out of the box (no setup required)
+- **Advanced Filtering** - Include/exclude modes, geographic and custom filters
+- **Background Alerting** - Discord webhooks, daily summaries, threshold alerts
+- **High Performance** - Go-based agent, optimized log parsing, position tracking
+- **Terminal Dashboard** - Beautiful CLI with Bubble Tea (optional)
 
 ---
 
-## 📖 Documentation Links
+## Components
 
-- [Quick Start Guide](./docs/content/docs/quickstart.mdx)
-- [Configuration](./docs/content/docs/configuration/index.mdx)
-- [Features](./docs/content/docs/features.mdx)
-- [Security](./docs/content/docs/security.mdx)
-- [Troubleshooting](./docs/content/docs/troubleshooting.mdx)
-- [Changelog](./docs/content/docs/changelog.mdx)
-
----
-
-## 🔒 Security
-
-**Latest Release (v2.3.0)** includes:
-- CVE-2025-55182 security patches
-- Comprehensive middleware protection
-- Rate limiting and malicious pattern detection
-- Enhanced error handling
-
-See [Security Documentation](./docs/content/docs/security.mdx) for details.
+| Component | Description |
+|-----------|-------------|
+| **Agent** | Lightweight Go service that parses Traefik logs and exposes metrics via REST API |
+| **Dashboard** | Next.js 15 web UI with real-time analytics, charts, and geographic visualization |
+| **CLI** | Terminal-based dashboard using Bubble Tea (optional) |
 
 ---
 
-## 💬 Community & Support
+## Environment Variables
+
+### Agent
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TRAEFIK_LOG_DASHBOARD_ACCESS_PATH` | Path to access log file/directory | `/var/log/traefik/access.log` |
+| `TRAEFIK_LOG_DASHBOARD_ERROR_PATH` | Path to error log file/directory | `/var/log/traefik/traefik.log` |
+| `TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN` | Authentication token | Required |
+| `TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING` | Enable system monitoring | `true` |
+| `TRAEFIK_LOG_DASHBOARD_LOG_FORMAT` | Log format (`json` or `common`) | `json` |
+| `PORT` | Agent listen port | `5000` |
+
+### Dashboard
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AGENT_API_URL` | URL to agent API | Required |
+| `AGENT_API_TOKEN` | Authentication token (must match agent) | Required |
+| `AGENT_NAME` | Display name for the agent | `Environment Agent` |
+| `NEXT_PUBLIC_SHOW_DEMO_PAGE` | Show demo mode link | `true` |
+| `NEXT_PUBLIC_MAX_LOGS_DISPLAY` | Max logs in table | `500` |
+
+> **Note**: GeoIP is automatically handled by the dashboard using [geolite2-redist](https://www.npmjs.com/package/geolite2-redist). No configuration needed.
+
+---
+
+## Documentation
+
+Full documentation available at: **[https://traefik-log-dashboard.docs.dev](https://traefik-log-dashboard.docs.dev)**
+
+Or run locally:
+```bash
+cd docs && npm install && npm run dev
+```
+
+---
+
+## Community & Support
 
 - **Documentation**: [https://traefik-log-dashboard.docs.dev](https://traefik-log-dashboard.docs.dev)
 - **Discord**: [Join our community](https://discord.gg/HDCt9MjyMJ)
@@ -153,7 +167,7 @@ See [Security Documentation](./docs/content/docs/security.mdx) for details.
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE - see the [LICENSE](LICENSE) file for details.
 
@@ -161,10 +175,8 @@ This project is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE - see the [
 
 <div align="center">
 
-**Made with ❤️ for the Traefik community**
+**Made with care for the Traefik community**
 
-[GitHub](https://github.com/hhftechnology/traefik-log-dashboard) • [Discord](https://discord.gg/HDCt9MjyMJ) • [Documentation](https://traefik-log-dashboard.docs.dev)
-
-⭐ Star this repo if you find it helpful!
+[GitHub](https://github.com/hhftechnology/traefik-log-dashboard) | [Discord](https://discord.gg/HDCt9MjyMJ) | [Documentation](https://traefik-log-dashboard.docs.dev)
 
 </div>

@@ -5,6 +5,37 @@ description: Release history and version updates
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
+## v2.4.0 (2025-12-30)
+
+### Architecture Changes
+
+- **GeoIP moved to Dashboard**: Geographic IP lookup now handled entirely by the dashboard using `geolite2-redist` npm package. No configuration required - databases are auto-downloaded.
+- **Agent simplified**: Removed GeoIP configuration from agent. Agent now focuses solely on log parsing and system monitoring.
+
+### Performance Improvements
+
+- **Dashboard rendering**: Added React.memo to card components (StatCard, TopRoutesCard, BackendsCard, TimelineCard, StatusCodeDistributionCard, TopServicesCard, RoutersCard)
+- **Dynamic imports**: Heavy components (TimelineCard, StatusCodeDistributionCard, UserAgentsCard, RecentLogsTable, InteractiveGeoMap) now lazy-loaded with skeleton states
+- **Bundle size reduced**: Dashboard First Load JS reduced from 301 kB to 168 kB (44% reduction)
+- **Agent log parsing**: Fixed O(n^2) tail operation, replaced with O(n) reverse-then-flip approach
+- **Agent sorting**: Replaced bubble sort with sort.Strings (O(n log n))
+- **Agent memory**: Added slice pre-allocation throughout log parsing code
+- **Metrics deduplication**: Fixed timestamp causing redundant API calls
+
+### Documentation
+
+- Updated all documentation to reflect GeoIP architecture change
+- Removed outdated GeoIP configuration from agent docs
+- Simplified quickstart guide
+- Cleaned up redundant files (REFACTORING_*.md, docs/archive/*)
+
+### Breaking Changes
+
+- Agent no longer supports GeoIP environment variables (`TRAEFIK_LOG_DASHBOARD_GEOIP_*`)
+- GeoIP volume mount no longer needed on agent containers
+
+---
+
 ## v2.3.0 (2025-12-14)
 
 <Callout title="Major Release" type="warn">
@@ -13,103 +44,115 @@ This release includes critical security patches and significant feature improvem
 
 ### Security
 
-- ✅ **CVE-2025-55182 Fix**: Updated to Next.js 15.1.9
+- CVE-2025-55182 Fix: Updated to Next.js 15.1.9
 
 ### Features
 
-- ✅ **Interactive Globe**: 3D globe visualization with smooth transitions to geographic maps
-- ✅ **Globe-to-Map Transform**: Seamless animated transitions between 3D and 2D views
-- ✅ **Enhanced Agent Health**: Real-time status tracking with visual health indicators
-- ✅ **Background Schedulers**: Server-side alert processing via Next.js instrumentation
-- ✅ **Advanced Filtering**: Include/exclude modes for precise log filtering
-- ✅ **Geographic Filtering**: Filter by country and city fields
-- ✅ **Custom Filter Editing**: Edit existing filters without recreating them
-- ✅ **Exclude Unknown**: Option to hide logs with "Unknown" router/service
+- Interactive Globe: 3D globe visualization with smooth transitions to geographic maps
+- Globe-to-Map Transform: Seamless animated transitions between 3D and 2D views
+- Enhanced Agent Health: Real-time status tracking with visual health indicators
+- Background Schedulers: Server-side alert processing via Next.js instrumentation
+- Advanced Filtering: Include/exclude modes for precise log filtering
+- Geographic Filtering: Filter by country and city fields
+- Custom Filter Editing: Edit existing filters without recreating them
+- Exclude Unknown: Option to hide logs with "Unknown" router/service
 
 ### Improvements
 
-- ⚡ **Log Parsing**: Optimized parser with better error handling
-- ⚡ **Memory Management**: Reduced memory usage in agent and dashboard
-- ⚡ **GeoIP Lookups**: Faster geolocation with improved caching
-- ⚡ **Agent Context**: Better state management and parallel fetching
-- ⚡ **Private IP Handling**: Special treatment for 11.x.x.x and other private ranges
+- Log Parsing: Optimized parser with better error handling
+- Memory Management: Reduced memory usage in agent and dashboard
+- GeoIP Lookups: Faster geolocation with improved caching
+- Agent Context: Better state management and parallel fetching
+- Private IP Handling: Special treatment for 11.x.x.x and other private ranges
 
 ### Bug Fixes
 
-- 🐛 Fixed Discord notifications not sending when dashboard is closed
-- 🐛 Fixed IP filter behavior (include mode now works correctly)
-- 🐛 Fixed GeoIP incorrectly identifying 11.0.0.0/8 as US
-- 🐛 Fixed agent health status stuck on "checking"
-- 🐛 Fixed date handling in alert stats
-- 🐛 Fixed location API status endpoint
+- Fixed Discord notifications not sending when dashboard is closed
+- Fixed IP filter behavior (include mode now works correctly)
+- Fixed GeoIP incorrectly identifying 11.0.0.0/8 as US
+- Fixed agent health status stuck on "checking"
+- Fixed date handling in alert stats
+- Fixed location API status endpoint
 
 ### Technical Changes
 
-- 📦 Updated to Next.js 15.1.9
-- 📦 Updated React to 19.2.0
-- 📦 Improved middleware architecture
-- 📦 Added global error handling
-- 📦 Enhanced instrumentation
+- Updated to Next.js 15.1.9
+- Updated React to 19.2.0
+- Improved middleware architecture
+- Added global error handling
+- Enhanced instrumentation
+
+---
 
 ## v2.2.3 (2025-12-12)
 
 ### Security
 
-- ✅ CVE-2025-55182 security patches
-- ✅ Updated dependencies
+- CVE-2025-55182 security patches
+- Updated dependencies
+
+---
 
 ## v2.2.2 (2025-12-11)
 
 ### Features
 
-- ✅ Discord alert bug fixes
-- ✅ UI improvements for agent management
+- Discord alert bug fixes
+- UI improvements for agent management
+
+---
 
 ## v2.2.1 (2025-12-10)
 
 ### Bug Fixes
 
-- 🐛 Fixed alert processing issues
-- 🐛 UI refinements
+- Fixed alert processing issues
+- UI refinements
+
+---
 
 ## v2.2.0 (2025-12)
 
 ### Features
 
-- ✅ **Daily Summary Alerts**: Scheduled daily reports
-- ✅ **Alert Statistics**: View alert trigger history
-- ✅ **Test Notifications**: Verify webhook configuration
-- ✅ **Historical Data**: Long-term metrics storage
+- Daily Summary Alerts: Scheduled daily reports
+- Alert Statistics: View alert trigger history
+- Test Notifications: Verify webhook configuration
+- Historical Data: Long-term metrics storage
 
 ### Improvements
 
-- ⚡ Better alert engine performance
-- ⚡ Improved notification delivery
+- Better alert engine performance
+- Improved notification delivery
+
+---
 
 ## v2.1.0 (2024)
 
 ### Features
 
-- ✅ **Alert System**: Threshold-based alerting
-- ✅ **Discord Webhooks**: Native Discord integration
-- ✅ **Custom Notifications**: Generic webhook support
-- ✅ **Filter Improvements**: Better UI for filter management
+- Alert System: Threshold-based alerting
+- Discord Webhooks: Native Discord integration
+- Custom Notifications: Generic webhook support
+- Filter Improvements: Better UI for filter management
+
+---
 
 ## v2.0.0 (2024)
 
 <Callout title="Breaking Changes" type="error">
-Major architectural changes. See [Migration Guide](/docs/migration-v1-to-v2) for upgrade instructions.
+Major architectural changes. See Migration Guide for upgrade instructions.
 </Callout>
 
 ### Features
 
-- ✅ **Multi-Agent Architecture**: Manage multiple Traefik instances
-- ✅ **SQLite Database**: Persistent agent configuration
-- ✅ **Environment Protection**: Prevent deletion of docker-compose agents
-- ✅ **Agent Import/Export**: Backup and restore configurations
-- ✅ **Bulk Operations**: Manage multiple agents simultaneously
-- ✅ **Enhanced Error Handling**: Better error messages
-- ✅ **Performance Improvements**: Parallel fetching and optimized state
+- Multi-Agent Architecture: Manage multiple Traefik instances
+- SQLite Database: Persistent agent configuration
+- Environment Protection: Prevent deletion of docker-compose agents
+- Agent Import/Export: Backup and restore configurations
+- Bulk Operations: Manage multiple agents simultaneously
+- Enhanced Error Handling: Better error messages
+- Performance Improvements: Parallel fetching and optimized state
 
 ### Breaking Changes
 
@@ -118,18 +161,34 @@ Major architectural changes. See [Migration Guide](/docs/migration-v1-to-v2) for
 - Database schema changes
 - API endpoint modifications
 
+---
+
 ## v1.x (2023-2024)
 
 ### Features
 
-- ✅ Initial release with single agent support
-- ✅ Real-time log monitoring
-- ✅ Basic filtering and analytics
-- ✅ GeoIP integration
-- ✅ CLI dashboard
-- ✅ Docker support
+- Initial release with single agent support
+- Real-time log monitoring
+- Basic filtering and analytics
+- GeoIP integration
+- CLI dashboard
+- Docker support
+
+---
 
 ## Upgrade Notes
+
+### Upgrading to v2.4.0
+
+1. Remove GeoIP volumes and environment variables from agent containers
+2. Pull latest images:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+GeoIP will work automatically in the dashboard without any configuration.
 
 ### Upgrading to v2.3.0
 
@@ -142,12 +201,9 @@ docker compose up -d
 
 ### Upgrading from v1.x to v2.x
 
-See the [Migration Guide](/archive/migration-v1-to-v2) for detailed instructions.
+See the Migration Guide in docs/MigrationV1toV2.md for detailed instructions.
 
-
-## Contributing
-
-We welcome contributions! See our [Contributing Guide](https://github.com/hhftechnology/traefik-log-dashboard/blob/main/CONTRIBUTING.md) for details.
+---
 
 ## Versioning
 
@@ -159,6 +215,6 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## Support
 
-- 📖 [Documentation](/docs)
-- 💬 [Discord Community](https://discord.gg/HDCt9MjyMJ)
-- 🐛 [GitHub Issues](https://github.com/hhftechnology/traefik-log-dashboard/issues)
+- [Documentation](/docs)
+- [Discord Community](https://discord.gg/HDCt9MjyMJ)
+- [GitHub Issues](https://github.com/hhftechnology/traefik-log-dashboard/issues)

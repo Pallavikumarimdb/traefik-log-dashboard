@@ -1,6 +1,5 @@
 import * as d3 from 'd3'
 import { GeoLocation } from '@/lib/types'
-import type { GeoFeature } from './globeStore'
 
 /**
  * Interpolates between two D3 projection functions

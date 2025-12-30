@@ -114,6 +114,17 @@ function GlobeToMapTransformInner({ locations = [] }: Props) {
     const { projection: proj, alpha } = projection
     const path = d3.geoPath(proj)
 
+    // Add ocean background (for globe mode)
+    svg
+      .append("circle")
+      .attr("cx", width / 2 + state.translation[0])
+      .attr("cy", height / 2 + state.translation[1])
+      .attr("r", getProjectionScale(projection.alpha, state.zoomLevel))
+      .attr("fill", "#f1f5f9") // Slate-100 for ocean
+      .attr("stroke", "#94a3b8") // Slate-400 for outline
+      .attr("stroke-width", 1)
+      .attr("opacity", 1 - projection.alpha) // Fade out as we transition to map
+
     // Add graticule (grid lines)
     try {
       const graticule = d3.geoGraticule()
@@ -124,15 +135,15 @@ function GlobeToMapTransformInner({ locations = [] }: Props) {
           .datum(graticule())
           .attr("d", graticulePath)
           .attr("fill", "none")
-          .attr("stroke", "#cccccc")
-          .attr("stroke-width", 1)
-          .attr("opacity", 0.2)
+          .attr("stroke", "#94a3b8") // Slate-400 for visibility
+          .attr("stroke-width", 0.5)
+          .attr("opacity", 0.3)
       }
     } catch (error) {
       console.error("[Globe] Error creating graticule:", error)
     }
 
-    // Add countries
+    // Add countries with visible fill and stroke
     svg
       .selectAll(".country")
       .data(worldData)
@@ -148,13 +159,19 @@ function GlobeToMapTransformInner({ locations = [] }: Props) {
           return ""
         }
       })
-      .attr("fill", "none")
-      .attr("stroke", "#cccccc")
-      .attr("stroke-width", 1.0)
+      .attr("fill", "#e2e8f0") // Light slate fill for visibility
+      .attr("stroke", "#64748b") // Slate-500 stroke for borders
+      .attr("stroke-width", 0.5)
       .attr("opacity", 1.0)
       .style("visibility", function () {
         const pathData = d3.select(this).attr("d")
         return pathData && pathData.length > 0 && !pathData.includes("NaN") ? "visible" : "hidden"
+      })
+      .on("mouseenter", function () {
+        d3.select(this).attr("fill", "#cbd5e1").attr("stroke-width", 1)
+      })
+      .on("mouseleave", function () {
+        d3.select(this).attr("fill", "#e2e8f0").attr("stroke-width", 0.5)
       })
 
     // Add locations with tooltips
@@ -234,7 +251,7 @@ function GlobeToMapTransformInner({ locations = [] }: Props) {
     const zoom = d3
       .zoom()
       .scaleExtent([0.5, 8])
-      .on("zoom", (event) => {
+      .on("zoom", () => {
         // Zoom is handled by the interaction hook
         // This is just for D3's internal state
       })
@@ -251,14 +268,26 @@ function GlobeToMapTransformInner({ locations = [] }: Props) {
     return () => {
       svg.on(".zoom", null)
     }
-  }, [worldData, projection, locations, radiusScale])
+  }, [worldData, projection, locations, radiusScale, state.zoomLevel, state.translation])
+
+  // Show loading state while world data is being fetched
+  if (worldData.length === 0) {
+    return (
+      <div className="relative flex items-center justify-center w-full h-[500px]">
+        <div className="flex flex-col items-center gap-3 text-gray-500">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-red-600 rounded-full animate-spin" />
+          <span className="text-sm">Loading map data...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative flex items-center justify-center w-full h-[500px]">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-full border rounded-lg bg-transparent border-neutral-800 cursor-grab active:cursor-grabbing"
+        className="w-full h-full border rounded-lg bg-slate-50 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 cursor-grab active:cursor-grabbing"
         preserveAspectRatio="xMidYMid meet"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -273,7 +302,7 @@ function GlobeToMapTransformInner({ locations = [] }: Props) {
         role="application"
         aria-label="Interactive Globe/Map Visualization. Use arrow keys to rotate, +/- to zoom."
       />
-      
+
       {/* Tooltip */}
       <div
         ref={tooltipRef}
@@ -281,7 +310,7 @@ function GlobeToMapTransformInner({ locations = [] }: Props) {
         style={{ display: "none" }}
         role="tooltip"
       />
-      
+
       <GlobeControls onAnimate={handleAnimate} />
     </div>
   )

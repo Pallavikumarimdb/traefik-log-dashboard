@@ -8,8 +8,8 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-<Callout title="Latest Release: v2.3.0" type="info">
-Enhanced security, interactive globe visualization, and improved performance.
+<Callout title="Latest Release: v2.4.0" type="info">
+GeoIP simplified, performance optimizations, and reduced bundle size.
 </Callout>
 
 # Traefik Log Dashboard
@@ -28,7 +28,7 @@ Go-based backend API that parses logs and exposes metrics with high performance 
 
 <Step>
 ### Dashboard
-Next.js web UI with interactive charts, real-time updates, and beautiful visualizations including 3D globe and geographic maps.
+Next.js web UI with interactive charts, real-time updates, and beautiful visualizations including 3D globe and geographic maps. Includes automatic GeoIP lookup.
 </Step>
 
 <Step>
@@ -37,29 +37,22 @@ Beautiful terminal-based dashboard for monitoring directly from your command lin
 </Step>
 </Steps>
 
-## What's New in v2.3
+## What's New in v2.4
 
-<Callout title="Security First" type="warn">
-This release includes critical security patches (CVE-2025-55182) and comprehensive middleware protection.
-</Callout>
+- **GeoIP Simplified** - Geographic IP lookup now automatic in dashboard (no configuration needed)
+- **Performance Optimizations** - 44% reduction in bundle size, React.memo on components
+- **Agent Improvements** - Fixed O(n^2) operations, added slice pre-allocation
+- **Documentation Updated** - Simplified deployment guides, removed outdated info
 
-- ✅ **Enhanced Security** - Comprehensive middleware protection with request validation, rate limiting, and malicious pattern detection
-- ✅ **Interactive Globe Visualization** - 3D globe with smooth transitions to geographic maps
-- ✅ **Improved Agent Health Monitoring** - Real-time status tracking with visual health indicators
-- ✅ **Background Schedulers** - Server-side alert processing for notifications even when dashboard is closed
-- ✅ **Advanced Filtering** - Include/exclude modes, country/city filtering, and custom filter editing
-- ✅ **CVE-2025-55182 Fix** - Updated to Next.js 15.1.9 for security patches
-- ✅ **Optimized Performance** - Better log parsing, reduced memory usage, and faster geo-location lookups
+## Core Features
 
-## Core Features from v2.x
-
-- ✅ **Multi-Agent Architecture** - Manage multiple Traefik instances from a single dashboard
-- ✅ **Persistent Agent Database** - SQLite-based storage for agent configurations
-- ✅ **Environment-Protected Agents** - Agents defined in docker-compose.yml cannot be deleted from UI
-- ✅ **Enhanced Error Handling** - Better error messages and user feedback
-- ✅ **Improved Performance** - Parallel fetching and optimized state management
-- ✅ **Fixed Date Handling** - Proper ISO string and Date object conversion
-- ✅ **Better Agent Status Tracking** - lastSeen timestamp with proper persistence
+- **Multi-Agent Architecture** - Manage multiple Traefik instances from a single dashboard
+- **Interactive Globe Visualization** - 3D globe with smooth transitions to geographic maps
+- **Automatic GeoIP** - IP geolocation works out of the box
+- **Advanced Filtering** - Include/exclude modes, country/city filtering, custom conditions
+- **Background Alerting** - Discord webhooks, daily summaries, threshold alerts
+- **Persistent Agent Database** - SQLite-based storage for agent configurations
+- **High Performance** - Optimized log parsing, parallel fetching, lazy loading
 
 ## Architecture
 
@@ -129,9 +122,9 @@ Explore all [Features](/docs/features) including filtering, alerting, and geogra
     href="/docs/configuration"
   />
   <Card
-    title="Security"
-    description="Understand security features and best practices"
-    href="/docs/security"
+    title="Features"
+    description="Explore all dashboard capabilities"
+    href="/docs/features"
   />
   <Card
     title="Troubleshooting"

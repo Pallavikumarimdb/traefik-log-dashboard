@@ -18,15 +18,10 @@ export default function InteractiveGeoMap({ locations }: Props) {
     return (
       <Card title="Interactive Geographic Map" icon={<Globe className="w-5 h-5 text-red-600" />}>
         <div className="space-y-4">
-           {/* Show globe even if no data, or just show the empty message? 
-               User request implies adding the globe. 
-               But "No geographic data available" suggests we shouldn't show a map that pretends to have data.
-               However, the globe is interactive. 
-               Let's render it but maybe with a note, or just keep the empty state separate.
-               Actually, let's put it in the main block. If no locations, maybe we don't show the component?
-               Let's stick to the main block for now.
-           */}
-           <div className="text-center py-8 text-gray-500">No geographic data available</div>
+          <div className="w-full border rounded-lg overflow-hidden bg-slate-50 mb-4">
+            <GlobeToMapTransform locations={[]} />
+          </div>
+          <div className="text-center py-4 text-gray-500">No geographic data available yet</div>
         </div>
       </Card>
     );
@@ -95,7 +90,7 @@ export default function InteractiveGeoMap({ locations }: Props) {
     <Card title="Interactive Geographic Map" icon={<Globe className="w-5 h-5 text-red-600" />}>
       <div className="space-y-4">
         {/* Globe Visualization */}
-        <div className="w-full border rounded-lg overflow-hidden bg-neutral-50 mb-4">
+        <div className="w-full border rounded-lg overflow-hidden bg-slate-50 dark:bg-neutral-900 mb-4">
           <GlobeToMapTransform locations={validLocations} />
         </div>
 
