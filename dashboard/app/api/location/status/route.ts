@@ -6,31 +6,37 @@ import fs from 'fs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Possible GeoIP database locations (in priority order)
+const DB_PATHS = [
+  process.env.GEOIP_DB_PATH,
+  // Docker standalone location
+  path.join(process.cwd(), 'geoip', 'GeoLite2-City.mmdb'),
+  // Development (node_modules)
+  path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dbs', 'GeoLite2-City.mmdb'),
+].filter(Boolean) as string[];
+
 /**
- * REFACTOR: Changed to check local GeoIP database instead of calling agent
- * Dashboard now handles all GeoIP lookups locally
+ * Check GeoIP database status
  */
 export async function GET() {
   try {
-    // Check for GeoIP database locally
-    const dbPath = process.env.GEOIP_DB_PATH || path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dist', 'GeoLite2-City.mmdb');
-
     let available = false;
     let dbLocation = '';
 
-    // Check if database file exists
-    try {
-      if (fs.existsSync(dbPath)) {
-        // Try to open it to verify it's valid
-        const reader = await maxmind.open(dbPath);
-        if (reader) {
-          available = true;
-          dbLocation = dbPath;
+    // Check each possible location
+    for (const dbPath of DB_PATHS) {
+      try {
+        if (fs.existsSync(dbPath)) {
+          const reader = await maxmind.open(dbPath);
+          if (reader) {
+            available = true;
+            dbLocation = dbPath;
+            break;
+          }
         }
+      } catch {
+        // Try next path
       }
-    } catch (err) {
-      console.error('GeoIP database check failed:', err);
-      available = false;
     }
 
     const data = {

@@ -1,25 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import maxmind from 'maxmind';
 import path from 'path';
+import fs from 'fs';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 let reader: Awaited<ReturnType<typeof maxmind.open>> | null = null;
 
+// Possible GeoIP database locations (in priority order)
+const DB_PATHS = [
+  process.env.GEOIP_DB_PATH,
+  // Docker standalone location
+  path.join(process.cwd(), 'geoip', 'GeoLite2-City.mmdb'),
+  // Development (node_modules)
+  path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dbs', 'GeoLite2-City.mmdb'),
+].filter(Boolean) as string[];
+
 async function getReader() {
   if (reader) return reader;
-  
-  try {
-    // Try to locate the database file
-    // Check environment variable first, then fallback to node_modules
-    const dbPath = process.env.GEOIP_DB_PATH || path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dist', 'GeoLite2-City.mmdb');
-    reader = await maxmind.open(dbPath);
-    return reader;
-  } catch (error) {
-    console.error('Failed to open GeoIP database:', error);
-    return null;
+
+  // Find first available database
+  for (const dbPath of DB_PATHS) {
+    try {
+      if (fs.existsSync(dbPath)) {
+        reader = await maxmind.open(dbPath);
+        console.warn('[GeoIP] Database loaded from:', dbPath);
+        return reader;
+      }
+    } catch (error) {
+      console.warn('[GeoIP] Failed to open database at', dbPath, error);
+    }
   }
+
+  console.error('[GeoIP] No database found in any location:', DB_PATHS);
+  return null;
 }
 
 export async function POST(request: NextRequest) {
