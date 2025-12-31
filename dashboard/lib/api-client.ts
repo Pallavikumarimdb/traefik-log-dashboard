@@ -35,20 +35,33 @@ export class APIClient {
     // Add timestamp to prevent caching
     const url = `${this.baseURL}${endpoint}${endpoint.includes('?') ? '&' : '?'}_t=${Date.now()}`;
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      cache: 'no-store', // Prevent browser caching
-      // MEMORY LEAK FIX: Support abort signal from options
-      signal: options.signal,
-    });
+    // FIX: Add timeout to prevent infinite hanging
+    // Use provided signal or create a new AbortController with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`API Error: ${response.status} - ${error}`);
+    // Combine signals if one was provided
+    if (options.signal) {
+      options.signal.addEventListener('abort', () => controller.abort());
     }
 
-    return response.json();
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        cache: 'no-store', // Prevent browser caching
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`API Error: ${response.status} - ${error}`);
+      }
+
+      return response.json();
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   /**
@@ -157,20 +170,28 @@ async lookupLocations(ips: string[]): Promise<{
   }>;
   count?: number;
 }> {
-  // Call Dashboard's own location API instead of agent
-  const response = await fetch('/api/location/lookup', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ ips }),
-  });
+  // FIX: Add timeout to prevent infinite hanging
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-  if (!response.ok) {
-    throw new Error(`Location lookup failed: ${response.statusText}`);
+  try {
+    const response = await fetch('/api/location/lookup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ips }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Location lookup failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 /**

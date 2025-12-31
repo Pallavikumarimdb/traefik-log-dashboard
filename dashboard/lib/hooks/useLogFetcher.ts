@@ -69,8 +69,14 @@ export function useLogFetcher() {
           });
 
           if (newUniqueLogs.length > 0) {
-            const enrichedLogs = await enrichLogsWithGeoLocation(newUniqueLogs);
-            
+            // FIX: Handle geolocation lookup failure gracefully - don't let it block dashboard
+            let enrichedLogs = newUniqueLogs;
+            try {
+              enrichedLogs = await enrichLogsWithGeoLocation(newUniqueLogs);
+            } catch (geoError) {
+              console.warn('GeoLocation enrichment failed, continuing without geo data:', geoError);
+            }
+
             if (!isMounted) return;
 
             setLogs((prevLogs: TraefikLog[]) => {
