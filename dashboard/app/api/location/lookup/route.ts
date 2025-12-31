@@ -1,40 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import maxmind from 'maxmind';
-import path from 'path';
-import fs from 'fs';
+import maxmind, { CityResponse, Reader } from 'maxmind';
+import * as geolite2 from 'geolite2-redist';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-let reader: Awaited<ReturnType<typeof maxmind.open>> | null = null;
+let reader: Reader<CityResponse> | null = null;
+let readerPromise: Promise<Reader<CityResponse>> | null = null;
 
-// Possible GeoIP database locations (in priority order)
-const DB_PATHS = [
-  process.env.GEOIP_DB_PATH,
-  // Docker standalone location
-  path.join(process.cwd(), 'geoip', 'GeoLite2-City.mmdb'),
-  // Development (node_modules)
-  path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dbs', 'GeoLite2-City.mmdb'),
-].filter(Boolean) as string[];
-
-async function getReader() {
+async function getReader(): Promise<Reader<CityResponse>> {
+  // Return cached reader
   if (reader) return reader;
 
-  // Find first available database
-  for (const dbPath of DB_PATHS) {
-    try {
-      if (fs.existsSync(dbPath)) {
-        reader = await maxmind.open(dbPath);
-        console.warn('[GeoIP] Database loaded from:', dbPath);
-        return reader;
-      }
-    } catch (error) {
-      console.warn('[GeoIP] Failed to open database at', dbPath, error);
-    }
-  }
+  // Return in-progress promise to avoid race conditions
+  if (readerPromise) return readerPromise;
 
-  console.error('[GeoIP] No database found in any location:', DB_PATHS);
-  return null;
+  // Create new reader using geolite2-redist API
+  readerPromise = geolite2.open<Reader<CityResponse>>('GeoLite2-City' as geolite2.GeoIpDbName, (path) =>
+    maxmind.open<CityResponse>(path)
+  );
+
+  try {
+    reader = await readerPromise;
+    console.warn('[GeoIP] Database loaded successfully');
+    return reader;
+  } catch (error) {
+    console.error('[GeoIP] Failed to load database:', error);
+    readerPromise = null;
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -57,8 +51,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const lookup = await getReader();
-    
+    let lookup: Reader<CityResponse> | null = null;
+
+    try {
+      lookup = await getReader();
+    } catch {
+      return NextResponse.json(
+        { error: 'GeoIP database not available' },
+        { status: 503 }
+      );
+    }
+
     if (!lookup) {
       return NextResponse.json(
         { error: 'GeoIP database not available' },
@@ -70,19 +73,15 @@ export async function POST(request: NextRequest) {
 
     for (const ip of ips) {
       try {
-        // Skip private IPs check here as the library handles standard IPs
-        // But we can add a quick check if needed, though the reader just returns null for private/unknown
         const result = lookup.get(ip);
 
-        // Type guard to check if result is a CityResponse
-        if (result && 'country' in result && result.country) {
-          const cityResponse = result as { country?: { iso_code?: string }; city?: { names?: { en?: string } }; location?: { latitude?: number; longitude?: number } };
+        if (result && result.country) {
           locations.push({
             ipAddress: ip,
-            country: cityResponse.country?.iso_code,
-            city: cityResponse.city?.names?.en,
-            latitude: cityResponse.location?.latitude,
-            longitude: cityResponse.location?.longitude,
+            country: result.country.iso_code,
+            city: result.city?.names?.en,
+            latitude: result.location?.latitude,
+            longitude: result.location?.longitude,
           });
         }
       } catch {
@@ -90,10 +89,10 @@ export async function POST(request: NextRequest) {
         continue;
       }
     }
-    
+
     const res = NextResponse.json({ locations });
     res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    
+
     return res;
   } catch (error) {
     console.error('Location lookup API error:', error);

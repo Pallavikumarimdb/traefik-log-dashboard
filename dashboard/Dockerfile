@@ -53,8 +53,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 
-# Copy GeoIP database from geolite2-redist (auto-downloaded during npm install)
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules/geolite2-redist/dbs ./geoip
+# GeoIP: geolite2-redist downloads databases on first use (lazy loading)
+# Create geoip directory for runtime database storage
+RUN mkdir -p /app/geoip && chown nodejs:nodejs /app/geoip
 
 # Copy entrypoint script
 COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/

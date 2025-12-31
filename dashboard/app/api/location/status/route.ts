@@ -1,19 +1,9 @@
 import { NextResponse } from 'next/server';
-import maxmind from 'maxmind';
-import path from 'path';
-import fs from 'fs';
+import maxmind, { CityResponse, Reader } from 'maxmind';
+import * as geolite2 from 'geolite2-redist';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-// Possible GeoIP database locations (in priority order)
-const DB_PATHS = [
-  process.env.GEOIP_DB_PATH,
-  // Docker standalone location
-  path.join(process.cwd(), 'geoip', 'GeoLite2-City.mmdb'),
-  // Development (node_modules)
-  path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dbs', 'GeoLite2-City.mmdb'),
-].filter(Boolean) as string[];
 
 /**
  * Check GeoIP database status
@@ -21,31 +11,30 @@ const DB_PATHS = [
 export async function GET() {
   try {
     let available = false;
-    let dbLocation = '';
+    let dbLocation = 'geolite2-redist (lazy loading)';
 
-    // Check each possible location
-    for (const dbPath of DB_PATHS) {
-      try {
-        if (fs.existsSync(dbPath)) {
-          const reader = await maxmind.open(dbPath);
-          if (reader) {
-            available = true;
-            dbLocation = dbPath;
-            break;
-          }
-        }
-      } catch {
-        // Try next path
+    try {
+      // Try to open the database using geolite2-redist
+      const reader = await geolite2.open<Reader<CityResponse>>('GeoLite2-City' as geolite2.GeoIpDbName, (path) => {
+        dbLocation = path;
+        return maxmind.open<CityResponse>(path);
+      });
+
+      if (reader) {
+        available = true;
       }
+    } catch (err) {
+      console.error('[GeoIP] Database check failed:', err);
+      available = false;
     }
 
     const data = {
-      enabled: true, // Always enabled in dashboard
+      enabled: true,
       available: available,
       database: dbLocation,
       message: available
-        ? 'GeoIP database available (local)'
-        : 'GeoIP database not found. Install geolite2-redist npm package or set GEOIP_DB_PATH',
+        ? 'GeoIP database available (geolite2-redist)'
+        : 'GeoIP database will be downloaded on first use',
     };
 
     const res = NextResponse.json(data);

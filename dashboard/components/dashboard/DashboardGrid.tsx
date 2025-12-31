@@ -138,7 +138,6 @@ export default function DashboardGrid({ metrics, systemStats }: DashboardGridPro
         <UserAgentsCard userAgents={metrics.userAgents} />
       </div>
 
-      {/* FIX for Issue #140: Removed redundant GeographicDistributionCard - InteractiveGeoMap already shows geographic distribution */}
       <div className="grid grid-cols-1 gap-6">
         <InteractiveGeoMap locations={metrics.geoLocations} />
       </div>
