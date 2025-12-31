@@ -25,7 +25,12 @@ async function getReader(): Promise<Reader<CityResponse>> {
     console.warn('[GeoIP] Database loaded successfully');
     return reader;
   } catch (error) {
-    console.error('[GeoIP] Failed to load database:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[GeoIP] Failed to load database:', errorMessage);
+    // Log additional details for directory permission issues
+    if (errorMessage.includes('ENOENT') || errorMessage.includes('mkdir')) {
+      console.error('[GeoIP] Directory creation issue detected. Ensure /app/node_modules/geolite2-redist/dbs-tmp exists and is writable.');
+    }
     readerPromise = null;
     throw error;
   }
