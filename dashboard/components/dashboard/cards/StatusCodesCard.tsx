@@ -75,7 +75,7 @@ export default function StatusCodesCard({ metrics }: Props) {
                 {status.percentage.toFixed(1)}%
               </span>
             </div>
-            <div className="text-xs text-muted-foreground mb-1">{status.label}</div>
+            <div className="text-xs text-foreground/70 dark:text-muted-foreground mb-1">{status.label}</div>
             <div className={`text-lg font-semibold ${status.color}`}>
               {formatNumber(status.count)}
             </div>

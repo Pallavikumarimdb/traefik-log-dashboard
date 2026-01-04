@@ -78,7 +78,7 @@ function BackendsCard({ backends }: Props) {
                   <div className="flex items-start gap-2 flex-1 min-w-0">
                     <StatusIcon className={`w-5 h-5 ${status.color} flex-shrink-0 mt-0.5`} />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate" title={backend.name}>
+                      <div className="font-semibold text-sm truncate text-foreground" title={backend.name}>
                         {backend.name}
                       </div>
                       {backend.url && (
@@ -95,16 +95,16 @@ function BackendsCard({ backends }: Props) {
 
                 <div className="grid grid-cols-3 gap-2 mt-3">
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Requests</div>
-                    <div className="text-sm font-bold">{formatNumber(backend.requests)}</div>
-                    <div className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</div>
+                    <div className="text-xs text-foreground/70 dark:text-muted-foreground">Requests</div>
+                    <div className="text-sm font-bold text-foreground">{formatNumber(backend.requests)}</div>
+                    <div className="text-xs text-foreground/60 dark:text-muted-foreground">{percentage.toFixed(1)}%</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Avg Time</div>
-                    <div className="text-sm font-bold">{backend.avgDuration.toFixed(0)}ms</div>
+                    <div className="text-xs text-foreground/70 dark:text-muted-foreground">Avg Time</div>
+                    <div className="text-sm font-bold text-foreground">{backend.avgDuration.toFixed(0)}ms</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Error Rate</div>
+                    <div className="text-xs text-foreground/70 dark:text-muted-foreground">Error Rate</div>
                     <div className={`text-sm font-bold ${status.color}`}>{backend.errorRate.toFixed(1)}%</div>
                   </div>
                 </div>

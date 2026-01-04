@@ -36,7 +36,7 @@ export default function ResponseTimeCard({ metrics }: Props) {
           <div key={idx} className={`p-4 rounded-lg border ${getPerformanceBg(percentile.value)} transition-all hover:shadow-md`}>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <div className="text-sm font-semibold">{percentile.label}</div>
+                <div className="text-sm font-semibold text-foreground">{percentile.label}</div>
                 <div className="text-xs text-muted-foreground">{percentile.description}</div>
               </div>
               <div className={`text-3xl font-bold ${getPerformanceColor(percentile.value)}`}>
