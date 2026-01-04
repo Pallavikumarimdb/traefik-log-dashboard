@@ -57,11 +57,11 @@ COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 # Create geoip directory for runtime database storage
 RUN mkdir -p /app/geoip && chown nodejs:nodejs /app/geoip
 
-# Create geolite2-redist cache directory structure with proper ownership
-# This directory is needed for geolite2-redist to download and cache GeoLite2 databases
-# Must be created after copying standalone build (which includes node_modules)
-RUN mkdir -p /app/node_modules/geolite2-redist/dbs-tmp && \
-    chown -R nodejs:nodejs /app/node_modules/geolite2-redist/dbs-tmp || true
+RUN if [ -d "/app/node_modules/geolite2-redist" ]; then \
+      mkdir -p /app/node_modules/geolite2-redist/dbs-tmp && \
+      mkdir -p /app/node_modules/geolite2-redist/dbs && \
+      chown -R nodejs:nodejs /app/node_modules/geolite2-redist; \
+    fi
 
 # Copy entrypoint script
 COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/

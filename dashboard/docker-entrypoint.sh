@@ -4,19 +4,21 @@ set -e
 # Create data directory if it doesn't exist
 mkdir -p /app/data 2>/dev/null || true
 
-# Create geolite2-redist cache directory with proper permissions
-# This directory is needed for geolite2-redist to download and cache GeoLite2 databases
-# The directory must exist and be writable for geolite2-redist to download databases
+# Verify geolite2-redist directories exist and are writable
+# Note: Main permission fix happens in Dockerfile with chown
+# This is a fallback check for runtime issues
 if [ -d "/app/node_modules/geolite2-redist" ]; then
+  # Create required directories if they don't exist
   mkdir -p /app/node_modules/geolite2-redist/dbs-tmp 2>/dev/null || true
-  chmod 755 /app/node_modules/geolite2-redist/dbs-tmp 2>/dev/null || true
-  # Ensure the directory is writable (fix permissions if needed)
-  chmod -R u+w /app/node_modules/geolite2-redist/dbs-tmp 2>/dev/null || true
-else
-  # If geolite2-redist directory doesn't exist, create it
-  # This can happen if the package structure is different
-  mkdir -p /app/node_modules/geolite2-redist/dbs-tmp 2>/dev/null || true
-  chmod 755 /app/node_modules/geolite2-redist/dbs-tmp 2>/dev/null || true
+  mkdir -p /app/node_modules/geolite2-redist/dbs 2>/dev/null || true
+
+  # Test write permission
+  if ! touch /app/node_modules/geolite2-redist/dbs-tmp/.write-test 2>/dev/null; then
+    echo "WARNING: geolite2-redist/dbs-tmp is not writable. GeoIP lookups may fail."
+    echo "This is usually a Docker permission issue. Rebuild the image to fix."
+  else
+    rm -f /app/node_modules/geolite2-redist/dbs-tmp/.write-test
+  fi
 fi
 
 # Execute the command
