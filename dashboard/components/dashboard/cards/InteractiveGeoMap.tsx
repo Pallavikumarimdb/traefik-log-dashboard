@@ -1,31 +1,84 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MapPin, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { GeoLocation } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
-import { Map, MapControls, MapClusterLayer, MapPopup } from '@/components/ui/map';
+import { ResponsiveGeoMap } from '@nivo/geo';
+import { useTheme } from 'next-themes';
+import { feature } from 'topojson-client';
+import type { Topology, GeometryCollection } from 'topojson-specification';
 
 interface Props {
   locations: GeoLocation[];
 }
 
-interface LocationProperties {
-  country: string;
-  city?: string;
-  count: number;
-}
+// Country coordinates for marker placement
+const COUNTRY_COORDS: Record<string, [number, number]> = {
+  'US': [-95.7129, 37.0902],
+  'GB': [-3.4360, 55.3781],
+  'DE': [10.4515, 51.1657],
+  'FR': [2.2137, 46.2276],
+  'ES': [-3.7492, 40.4637],
+  'IT': [12.5674, 41.8719],
+  'NL': [5.2913, 52.1326],
+  'PL': [19.1451, 51.9194],
+  'CN': [104.1954, 35.8617],
+  'AU': [133.7751, -25.2744],
+  'SG': [103.8198, 1.3521],
+  'JP': [138.2529, 36.2048],
+  'IN': [78.9629, 20.5937],
+  'KR': [127.7669, 35.9078],
+  'BR': [-51.9253, -14.2350],
+  'ZA': [22.9375, -30.5595],
+  'EG': [30.8025, 26.8206],
+  'HK': [114.1694, 22.3193],
+  'CA': [-106.3468, 56.1304],
+  'MX': [-102.5528, 23.6345],
+  'TR': [35.2433, 38.9637],
+  'RU': [105.3188, 61.5240],
+  'SE': [18.6435, 60.1282],
+  'NO': [8.4689, 60.4720],
+  'FI': [25.7482, 61.9241],
+  'CH': [8.2275, 46.8182],
+  'AT': [14.5501, 47.5162],
+  'BE': [4.4699, 50.5039],
+  'PT': [-8.2245, 39.3999],
+  'IE': [-8.2439, 53.4129],
+  'TW': [120.9605, 23.6978],
+  'TH': [100.9925, 15.8700],
+  'VN': [108.2772, 14.0583],
+  'ID': [113.9213, -0.7893],
+  'MY': [101.9758, 4.2105],
+  'PH': [121.7740, 12.8797],
+  'NZ': [174.8860, -40.9006],
+};
 
 export default function InteractiveGeoMap({ locations }: Props) {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [popupInfo, setPopupInfo] = useState<{
-    longitude: number;
-    latitude: number;
-    country: string;
-    city?: string;
-    count: number;
-  } | null>(null);
+  const [worldFeatures, setWorldFeatures] = useState<GeoJSON.Feature[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { resolvedTheme } = useTheme();
+
+  // Load world map data
+  useEffect(() => {
+    const loadWorldData = async () => {
+      try {
+        const response = await fetch('/world-map.json');
+        const topology = await response.json() as Topology<{ countries: GeometryCollection }>;
+        const geojson = feature(topology, topology.objects.countries);
+        if ('features' in geojson) {
+          setWorldFeatures(geojson.features);
+        }
+      } catch (error) {
+        console.error('Failed to load world map:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadWorldData();
+  }, []);
 
   const validLocations = useMemo(() =>
     locations.filter(
@@ -34,39 +87,31 @@ export default function InteractiveGeoMap({ locations }: Props) {
     [locations]
   );
 
-  const locationsWithCoords = useMemo(() =>
-    validLocations.filter(loc => loc.latitude && loc.longitude),
+  const totalRequests = useMemo(() =>
+    validLocations.reduce((sum, loc) => sum + loc.count, 0),
     [validLocations]
   );
 
-  const geoJsonData = useMemo((): GeoJSON.FeatureCollection<GeoJSON.Point, LocationProperties> => ({
-    type: 'FeatureCollection',
-    features: locationsWithCoords.map(loc => ({
-      type: 'Feature' as const,
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [loc.longitude!, loc.latitude!]
-      },
-      properties: {
-        country: loc.country,
-        city: loc.city,
-        count: loc.count
-      }
-    }))
-  }), [locationsWithCoords]);
+  const maxCount = useMemo(() =>
+    Math.max(...validLocations.map(loc => loc.count), 1),
+    [validLocations]
+  );
 
-  const totalRequests = validLocations.reduce((sum, loc) => sum + loc.count, 0);
-  const maxCount = Math.max(...validLocations.map(loc => loc.count), 1);
-  const topLocations = validLocations.slice(0, 15);
-  const selectedLocation = selectedCountry
-    ? validLocations.find(loc => loc.country === selectedCountry)
-    : null;
+  const topLocations = useMemo(() =>
+    validLocations.slice(0, 15),
+    [validLocations]
+  );
+
+  const selectedLocation = useMemo(() =>
+    selectedCountry ? validLocations.find(loc => loc.country === selectedCountry) : null,
+    [selectedCountry, validLocations]
+  );
 
   const getCountryCode = (country: string): string => {
     if (country && country.length === 2) {
       return country.toUpperCase();
     }
-    const codes: { [key: string]: string } = {
+    const codes: Record<string, string> = {
       'United States': 'US',
       'United Kingdom': 'GB',
       'Germany': 'DE',
@@ -105,34 +150,47 @@ export default function InteractiveGeoMap({ locations }: Props) {
     return 'text-red-300';
   };
 
-  const handlePointClick = (
-    feature: GeoJSON.Feature<GeoJSON.Point, LocationProperties>,
-    coordinates: [number, number]
-  ) => {
-    setPopupInfo({
-      longitude: coordinates[0],
-      latitude: coordinates[1],
-      country: feature.properties.country,
-      city: feature.properties.city,
-      count: feature.properties.count
-    });
-    setSelectedCountry(feature.properties.country);
+  // Get marker size based on count
+  const getMarkerRadius = (count: number): number => {
+    const minRadius = 4;
+    const maxRadius = 20;
+    const ratio = count / maxCount;
+    return minRadius + (maxRadius - minRadius) * Math.sqrt(ratio);
   };
+
+  // Markers for locations with coordinates
+  const markers = useMemo(() => {
+    return validLocations
+      .map(loc => {
+        const code = getCountryCode(loc.country);
+        const coords = loc.latitude && loc.longitude
+          ? [loc.longitude, loc.latitude] as [number, number]
+          : COUNTRY_COORDS[code];
+
+        if (!coords) return null;
+
+        return {
+          id: loc.country,
+          coordinates: coords,
+          count: loc.count,
+          city: loc.city,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+  }, [validLocations]);
 
   if (!locations || locations.length === 0) {
     return (
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-semibold uppercase tracking-wide">Interactive Geographic Map</CardTitle>
+          <CardTitle className="text-sm font-semibold uppercase tracking-wide">Geographic Distribution</CardTitle>
           <div className="text-primary"><Globe className="w-5 h-5" /></div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="w-full h-[400px] border rounded-lg overflow-hidden bg-slate-50 dark:bg-neutral-900 flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No geographic data available yet</p>
-              </div>
+          <div className="w-full h-[350px] border rounded-lg overflow-hidden bg-slate-50 dark:bg-neutral-900 flex items-center justify-center">
+            <div className="text-center text-gray-500">
+              <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No geographic data available yet</p>
             </div>
           </div>
         </CardContent>
@@ -140,57 +198,78 @@ export default function InteractiveGeoMap({ locations }: Props) {
     );
   }
 
+  const isDark = resolvedTheme === 'dark';
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide">Interactive Geographic Map</CardTitle>
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide">Geographic Distribution</CardTitle>
         <div className="text-primary"><Globe className="w-5 h-5 text-red-600" /></div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {/* Map Visualization */}
-          <div className="w-full h-[400px] border rounded-lg overflow-hidden">
-            <Map
-              center={[0, 20]}
-              zoom={1.5}
-              minZoom={1}
-              maxZoom={18}
-            >
-              <MapControls
-                position="bottom-right"
-                showZoom={true}
-                showFullscreen={true}
+          <div className="w-full h-[350px] border rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
+            {isLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                  <div className="w-8 h-8 border-2 border-muted border-t-primary rounded-full animate-spin" />
+                  <span className="text-sm">Loading map...</span>
+                </div>
+              </div>
+            ) : worldFeatures.length > 0 ? (
+              <ResponsiveGeoMap
+                features={worldFeatures}
+                margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                projectionType="mercator"
+                projectionScale={120}
+                projectionTranslation={[0.5, 0.65]}
+                fillColor={isDark ? '#374151' : '#e5e7eb'}
+                borderWidth={0.5}
+                borderColor={isDark ? '#4b5563' : '#9ca3af'}
+                enableGraticule={true}
+                graticuleLineWidth={0.5}
+                graticuleLineColor={isDark ? '#1f2937' : '#d1d5db'}
               />
-              {geoJsonData.features.length > 0 && (
-                <MapClusterLayer<LocationProperties>
-                  data={geoJsonData}
-                  clusterRadius={50}
-                  clusterMaxZoom={14}
-                  clusterColors={['#f87171', '#ef4444', '#dc2626']}
-                  clusterThresholds={[10, 100]}
-                  pointColor="#dc2626"
-                  onPointClick={handlePointClick}
-                />
-              )}
-              {popupInfo && (
-                <MapPopup
-                  longitude={popupInfo.longitude}
-                  latitude={popupInfo.latitude}
-                  onClose={() => setPopupInfo(null)}
-                  closeButton
-                >
-                  <div className="min-w-[150px]">
-                    <div className="font-semibold text-sm">{popupInfo.country}</div>
-                    {popupInfo.city && (
-                      <div className="text-xs text-muted-foreground">{popupInfo.city}</div>
-                    )}
-                    <div className="mt-2 text-lg font-bold text-red-600">
-                      {formatNumber(popupInfo.count)} requests
-                    </div>
-                  </div>
-                </MapPopup>
-              )}
-            </Map>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                Failed to load map
+              </div>
+            )}
+
+            {/* SVG Overlay for markers */}
+            {!isLoading && worldFeatures.length > 0 && (
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 10 }}>
+                {markers.map((marker) => {
+                  // Simple Mercator projection calculation
+                  const [lon, lat] = marker.coordinates;
+                  const x = ((lon + 180) / 360) * 100;
+                  const latRad = (lat * Math.PI) / 180;
+                  const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+                  const y = 50 - (mercN / Math.PI) * 32.5;
+
+                  const radius = getMarkerRadius(marker.count);
+                  const isSelected = selectedCountry === marker.id;
+
+                  return (
+                    <g key={marker.id} style={{ pointerEvents: 'auto' }}>
+                      <circle
+                        cx={`${x}%`}
+                        cy={`${y}%`}
+                        r={radius}
+                        fill={isSelected ? '#dc2626' : '#ef4444'}
+                        fillOpacity={0.7}
+                        stroke="#fff"
+                        strokeWidth={isSelected ? 2 : 1}
+                        className="cursor-pointer transition-all hover:fill-opacity-100"
+                        onClick={() => setSelectedCountry(isSelected ? null : marker.id)}
+                      />
+                      <title>{`${marker.id}${marker.city ? ` - ${marker.city}` : ''}: ${formatNumber(marker.count)} requests`}</title>
+                    </g>
+                  );
+                })}
+              </svg>
+            )}
           </div>
 
           {/* Stats Summary */}
