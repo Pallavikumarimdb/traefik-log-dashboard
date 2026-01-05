@@ -1,7 +1,7 @@
 'use client';
 
 import { Clock } from 'lucide-react';
-import Card from '@/components/ui/DashboardCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ResponseTimeMetrics } from '@/lib/types';
 
 interface Props {
@@ -30,43 +30,49 @@ export default function ResponseTimeCard({ metrics }: Props) {
   ];
 
   return (
-    <Card title="Response Time" icon={<Clock className="w-5 h-5 text-primary" />}>
-      <div className="space-y-3">
-        {percentiles.map((percentile, idx) => (
-          <div key={idx} className={`p-4 rounded-lg border ${getPerformanceBg(percentile.value)} transition-all hover:shadow-md`}>
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <div className="text-sm font-semibold text-foreground">{percentile.label}</div>
-                <div className="text-xs text-muted-foreground">{percentile.description}</div>
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide">Response Time</CardTitle>
+        <div className="text-primary"><Clock className="w-5 h-5" /></div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {percentiles.map((percentile, idx) => (
+            <div key={idx} className={`p-4 rounded-lg border ${getPerformanceBg(percentile.value)} transition-all hover:shadow-md`}>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{percentile.label}</div>
+                  <div className="text-xs text-muted-foreground">{percentile.description}</div>
+                </div>
+                <div className={`text-3xl font-bold ${getPerformanceColor(percentile.value)}`}>
+                  {percentile.value.toFixed(0)}
+                  <span className="text-sm ml-1">ms</span>
+                </div>
               </div>
-              <div className={`text-3xl font-bold ${getPerformanceColor(percentile.value)}`}>
-                {percentile.value.toFixed(0)}
-                <span className="text-sm ml-1">ms</span>
+              <div className="mt-2">
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      percentile.value < 100 ? 'bg-green-500' :
+                      percentile.value < 300 ? 'bg-yellow-500' :
+                      percentile.value < 1000 ? 'bg-orange-500' : 'bg-destructive'
+                    }`}
+                    style={{ width: `${Math.min((percentile.value / 2000) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
-            <div className="mt-2">
-              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ${
-                    percentile.value < 100 ? 'bg-green-500' :
-                    percentile.value < 300 ? 'bg-yellow-500' :
-                    percentile.value < 1000 ? 'bg-orange-500' : 'bg-destructive'
-                  }`}
-                  style={{ width: `${Math.min((percentile.value / 2000) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 pt-4 border-t text-center">
-        <div className="text-xs text-muted-foreground mb-1">Performance Score</div>
-        <div className={`text-2xl font-bold ${getPerformanceColor(metrics.average)}`}>
-          {metrics.average < 100 ? 'Excellent' :
-           metrics.average < 300 ? 'Good' :
-           metrics.average < 1000 ? 'Fair' : 'Poor'}
+          ))}
         </div>
-      </div>
+        <div className="mt-4 pt-4 border-t text-center">
+          <div className="text-xs text-muted-foreground mb-1">Performance Score</div>
+          <div className={`text-2xl font-bold ${getPerformanceColor(metrics.average)}`}>
+            {metrics.average < 100 ? 'Excellent' :
+             metrics.average < 300 ? 'Good' :
+             metrics.average < 1000 ? 'Fair' : 'Poor'}
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 }

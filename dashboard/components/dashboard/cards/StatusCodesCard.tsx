@@ -1,7 +1,7 @@
 'use client';
 
 import { Activity } from 'lucide-react';
-import Card from '@/components/ui/DashboardCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { StatusCodeMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 
@@ -14,10 +14,16 @@ export default function StatusCodesCard({ metrics }: Props) {
 
   if (total === 0) {
     return (
-      <Card title="Status Codes" icon={<Activity className="w-5 h-5 text-primary" />}>
-        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-          No status code data available
-        </div>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wide">Status Codes</CardTitle>
+          <div className="text-primary"><Activity className="w-5 h-5" /></div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            No status code data available
+          </div>
+        </CardContent>
       </Card>
     );
   }
@@ -62,36 +68,42 @@ export default function StatusCodesCard({ metrics }: Props) {
   ];
 
   return (
-    <Card title="Status Codes" icon={<Activity className="w-5 h-5 text-primary" />}>
-      <div className="grid grid-cols-2 gap-4">
-        {statusData.map((status, idx) => (
-          <div
-            key={idx}
-            className={`p-4 rounded-lg border ${status.borderColor} ${status.bgColor} hover:shadow-md transition-all`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className={`text-2xl font-bold ${status.color}`}>{status.range}</span>
-              <span className={`text-xs font-semibold ${status.color}`}>
-                {status.percentage.toFixed(1)}%
-              </span>
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide">Status Codes</CardTitle>
+        <div className="text-primary"><Activity className="w-5 h-5" /></div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4">
+          {statusData.map((status, idx) => (
+            <div
+              key={idx}
+              className={`p-4 rounded-lg border ${status.borderColor} ${status.bgColor} hover:shadow-md transition-all`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-2xl font-bold ${status.color}`}>{status.range}</span>
+                <span className={`text-xs font-semibold ${status.color}`}>
+                  {status.percentage.toFixed(1)}%
+                </span>
+              </div>
+              <div className="text-xs text-foreground/70 dark:text-muted-foreground mb-1">{status.label}</div>
+              <div className={`text-lg font-semibold ${status.color}`}>
+                {formatNumber(status.count)}
+              </div>
             </div>
-            <div className="text-xs text-foreground/70 dark:text-muted-foreground mb-1">{status.label}</div>
-            <div className={`text-lg font-semibold ${status.color}`}>
-              {formatNumber(status.count)}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 pt-4 border-t flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Total Requests</span>
-        <span className="text-lg font-bold">{formatNumber(total)}</span>
-      </div>
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Error Rate</span>
-        <span className={`text-lg font-bold ${metrics.errorRate > 5 ? 'text-destructive' : 'text-green-600'}`}>
-          {metrics.errorRate.toFixed(2)}%
-        </span>
-      </div>
+          ))}
+        </div>
+        <div className="mt-4 pt-4 border-t flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Total Requests</span>
+          <span className="text-lg font-bold">{formatNumber(total)}</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Error Rate</span>
+          <span className={`text-lg font-bold ${metrics.errorRate > 5 ? 'text-destructive' : 'text-green-600'}`}>
+            {metrics.errorRate.toFixed(2)}%
+          </span>
+        </div>
+      </CardContent>
     </Card>
   );
 }

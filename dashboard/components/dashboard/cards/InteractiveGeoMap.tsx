@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { MapPin, Globe } from 'lucide-react';
-import Card from '@/components/ui/DashboardCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { GeoLocation } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 import { Map, MapControls, MapClusterLayer, MapPopup } from '@/components/ui/map';
@@ -121,82 +121,166 @@ export default function InteractiveGeoMap({ locations }: Props) {
 
   if (!locations || locations.length === 0) {
     return (
-      <Card title="Interactive Geographic Map" icon={<Globe className="w-5 h-5 text-red-600" />}>
-        <div className="space-y-4">
-          <div className="w-full h-[400px] border rounded-lg overflow-hidden bg-slate-50 dark:bg-neutral-900 flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>No geographic data available yet</p>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wide">Interactive Geographic Map</CardTitle>
+          <div className="text-primary"><Globe className="w-5 h-5" /></div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="w-full h-[400px] border rounded-lg overflow-hidden bg-slate-50 dark:bg-neutral-900 flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No geographic data available yet</p>
+              </div>
             </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card title="Interactive Geographic Map" icon={<Globe className="w-5 h-5 text-red-600" />}>
-      <div className="space-y-4">
-        {/* Map Visualization */}
-        <div className="w-full h-[400px] border rounded-lg overflow-hidden">
-          <Map
-            center={[0, 20]}
-            zoom={1.5}
-            minZoom={1}
-            maxZoom={18}
-          >
-            <MapControls
-              position="bottom-right"
-              showZoom={true}
-              showFullscreen={true}
-            />
-            {geoJsonData.features.length > 0 && (
-              <MapClusterLayer<LocationProperties>
-                data={geoJsonData}
-                clusterRadius={50}
-                clusterMaxZoom={14}
-                clusterColors={['#f87171', '#ef4444', '#dc2626']}
-                clusterThresholds={[10, 100]}
-                pointColor="#dc2626"
-                onPointClick={handlePointClick}
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide">Interactive Geographic Map</CardTitle>
+        <div className="text-primary"><Globe className="w-5 h-5 text-red-600" /></div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Map Visualization */}
+          <div className="w-full h-[400px] border rounded-lg overflow-hidden">
+            <Map
+              center={[0, 20]}
+              zoom={1.5}
+              minZoom={1}
+              maxZoom={18}
+            >
+              <MapControls
+                position="bottom-right"
+                showZoom={true}
+                showFullscreen={true}
               />
-            )}
-            {popupInfo && (
-              <MapPopup
-                longitude={popupInfo.longitude}
-                latitude={popupInfo.latitude}
-                onClose={() => setPopupInfo(null)}
-                closeButton
-              >
-                <div className="min-w-[150px]">
-                  <div className="font-semibold text-sm">{popupInfo.country}</div>
-                  {popupInfo.city && (
-                    <div className="text-xs text-muted-foreground">{popupInfo.city}</div>
-                  )}
-                  <div className="mt-2 text-lg font-bold text-red-600">
-                    {formatNumber(popupInfo.count)} requests
+              {geoJsonData.features.length > 0 && (
+                <MapClusterLayer<LocationProperties>
+                  data={geoJsonData}
+                  clusterRadius={50}
+                  clusterMaxZoom={14}
+                  clusterColors={['#f87171', '#ef4444', '#dc2626']}
+                  clusterThresholds={[10, 100]}
+                  pointColor="#dc2626"
+                  onPointClick={handlePointClick}
+                />
+              )}
+              {popupInfo && (
+                <MapPopup
+                  longitude={popupInfo.longitude}
+                  latitude={popupInfo.latitude}
+                  onClose={() => setPopupInfo(null)}
+                  closeButton
+                >
+                  <div className="min-w-[150px]">
+                    <div className="font-semibold text-sm">{popupInfo.country}</div>
+                    {popupInfo.city && (
+                      <div className="text-xs text-muted-foreground">{popupInfo.city}</div>
+                    )}
+                    <div className="mt-2 text-lg font-bold text-red-600">
+                      {formatNumber(popupInfo.count)} requests
+                    </div>
                   </div>
-                </div>
-              </MapPopup>
-            )}
-          </Map>
-        </div>
+                </MapPopup>
+              )}
+            </Map>
+          </div>
 
-        {/* Stats Summary */}
-        <div className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-neutral-900 rounded-lg p-6 border border-red-200 dark:border-red-900/50">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Total Locations</div>
-              <div className="text-3xl font-bold text-red-600">{validLocations.length}</div>
+          {/* Stats Summary */}
+          <div className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-neutral-900 rounded-lg p-6 border border-red-200 dark:border-red-900/50">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Total Locations</div>
+                <div className="text-3xl font-bold text-red-600">{validLocations.length}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Total Requests</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(totalRequests)}</div>
+              </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600 dark:text-gray-400">Total Requests</div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(totalRequests)}</div>
+
+            {/* Country Grid */}
+            <div className="grid grid-cols-5 gap-2">
+              {topLocations.map((location, idx) => {
+                const percentage = (location.count / totalRequests) * 100;
+                const isSelected = selectedCountry === location.country;
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedCountry(isSelected ? null : location.country)}
+                    className={`
+                      relative group p-3 rounded-lg border-2 transition-all transform hover:scale-105
+                      ${isSelected
+                        ? 'bg-red-600 border-red-700 shadow-lg scale-105'
+                        : `${getHeatColor(location.count)} hover:shadow-md`
+                      }
+                    `}
+                    title={`${location.country}: ${formatNumber(location.count)} requests (${percentage.toFixed(1)}%)`}
+                  >
+                    <div className={`text-xs font-bold mb-1 ${isSelected ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>
+                      {getCountryCode(location.country)}
+                    </div>
+                    <div className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
+                      {(percentage).toFixed(0)}%
+                    </div>
+                    <div className={`text-xs ${isSelected ? 'text-white opacity-90' : 'text-gray-600 dark:text-gray-400'}`}>
+                      {formatNumber(location.count)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Heat legend */}
+            <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>Heat: </span>
+              <div className="flex-1 mx-3 h-2 rounded-full bg-gradient-to-r from-red-300 via-red-500 to-red-600"></div>
+              <span>Low → High</span>
             </div>
           </div>
 
-          {/* Country Grid */}
-          <div className="grid grid-cols-5 gap-2">
+          {/* Selected Location Details */}
+          {selectedLocation && (
+            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border-2 border-red-600 shadow-md">
+              <div className="flex items-center gap-3 mb-3">
+                <MapPin className="w-5 h-5 text-red-600" />
+                <div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{selectedLocation.country}</div>
+                  {selectedLocation.city && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{selectedLocation.city}</div>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-600 dark:text-gray-400">Requests</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(selectedLocation.count)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-600 dark:text-gray-400">Percentage</div>
+                  <div className="text-2xl font-bold text-red-600">
+                    {((selectedLocation.count / totalRequests) * 100).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+              {selectedLocation.latitude && selectedLocation.longitude && (
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                  📍 {selectedLocation.latitude.toFixed(4)}°, {selectedLocation.longitude.toFixed(4)}°
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Location List */}
+          <div className="space-y-2">
             {topLocations.map((location, idx) => {
               const percentage = (location.count / totalRequests) * 100;
               const isSelected = selectedCountry === location.country;
@@ -206,120 +290,48 @@ export default function InteractiveGeoMap({ locations }: Props) {
                   key={idx}
                   onClick={() => setSelectedCountry(isSelected ? null : location.country)}
                   className={`
-                    relative group p-3 rounded-lg border-2 transition-all transform hover:scale-105
+                    w-full text-left p-3 rounded-lg border transition-all
                     ${isSelected
-                      ? 'bg-red-600 border-red-700 shadow-lg scale-105'
-                      : `${getHeatColor(location.count)} hover:shadow-md`
+                      ? 'bg-red-100 dark:bg-red-950/30 border-red-600 shadow-md'
+                      : 'bg-white dark:bg-neutral-900 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300'
                     }
                   `}
-                  title={`${location.country}: ${formatNumber(location.count)} requests (${percentage.toFixed(1)}%)`}
                 >
-                  <div className={`text-xs font-bold mb-1 ${isSelected ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>
-                    {getCountryCode(location.country)}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded ${
+                        isSelected ? 'bg-red-600 text-white' : 'bg-red-50 dark:bg-red-900/30 text-red-600'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <span className={`font-semibold ${isSelected ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'}`}>
+                        {location.country}
+                      </span>
+                      {location.city && (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">• {location.city}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-gray-600 dark:text-gray-400">{formatNumber(location.count)}</span>
+                      <span className={`font-bold ${getTextColor(location.count)}`}>
+                        {percentage.toFixed(1)}%
+                      </span>
+                    </div>
                   </div>
-                  <div className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
-                    {(percentage).toFixed(0)}%
-                  </div>
-                  <div className={`text-xs ${isSelected ? 'text-white opacity-90' : 'text-gray-600 dark:text-gray-400'}`}>
-                    {formatNumber(location.count)}
+                  <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        isSelected ? 'bg-red-600' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${(location.count / maxCount) * 100}%` }}
+                    />
                   </div>
                 </button>
               );
             })}
           </div>
-
-          {/* Heat legend */}
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>Heat: </span>
-            <div className="flex-1 mx-3 h-2 rounded-full bg-gradient-to-r from-red-300 via-red-500 to-red-600"></div>
-            <span>Low → High</span>
-          </div>
         </div>
-
-        {/* Selected Location Details */}
-        {selectedLocation && (
-          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border-2 border-red-600 shadow-md">
-            <div className="flex items-center gap-3 mb-3">
-              <MapPin className="w-5 h-5 text-red-600" />
-              <div>
-                <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{selectedLocation.country}</div>
-                {selectedLocation.city && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{selectedLocation.city}</div>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-gray-600 dark:text-gray-400">Requests</div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(selectedLocation.count)}</div>
-              </div>
-              <div>
-                <div className="text-gray-600 dark:text-gray-400">Percentage</div>
-                <div className="text-2xl font-bold text-red-600">
-                  {((selectedLocation.count / totalRequests) * 100).toFixed(2)}%
-                </div>
-              </div>
-            </div>
-            {selectedLocation.latitude && selectedLocation.longitude && (
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                📍 {selectedLocation.latitude.toFixed(4)}°, {selectedLocation.longitude.toFixed(4)}°
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Location List */}
-        <div className="space-y-2">
-          {topLocations.map((location, idx) => {
-            const percentage = (location.count / totalRequests) * 100;
-            const isSelected = selectedCountry === location.country;
-
-            return (
-              <button
-                key={idx}
-                onClick={() => setSelectedCountry(isSelected ? null : location.country)}
-                className={`
-                  w-full text-left p-3 rounded-lg border transition-all
-                  ${isSelected
-                    ? 'bg-red-100 dark:bg-red-950/30 border-red-600 shadow-md'
-                    : 'bg-white dark:bg-neutral-900 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300'
-                  }
-                `}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-bold rounded ${
-                      isSelected ? 'bg-red-600 text-white' : 'bg-red-50 dark:bg-red-900/30 text-red-600'
-                    }`}>
-                      {idx + 1}
-                    </span>
-                    <span className={`font-semibold ${isSelected ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'}`}>
-                      {location.country}
-                    </span>
-                    {location.city && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">• {location.city}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">{formatNumber(location.count)}</span>
-                    <span className={`font-bold ${getTextColor(location.count)}`}>
-                      {percentage.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-                <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 ${
-                      isSelected ? 'bg-red-600' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${(location.count / maxCount) * 100}%` }}
-                  />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }

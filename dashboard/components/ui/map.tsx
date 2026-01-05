@@ -42,6 +42,9 @@ const defaultStyles = {
   light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
 };
 
+// Public fallback that does not need an API key (prevents blank maps if primary styles fail)
+const fallbackStyle = "https://demotiles.maplibre.org/style.json";
+
 type MapStyleOption = string | MapLibreGL.StyleSpecification;
 
 type MapProps = {
@@ -73,14 +76,24 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   const [mapInstance, setMapInstance] = useState<MapLibreGL.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
+  const [styleError, setStyleError] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
+
+  const envStyles = useMemo(
+    () => ({
+      light: process.env.NEXT_PUBLIC_MAP_STYLE_LIGHT,
+      dark: process.env.NEXT_PUBLIC_MAP_STYLE_DARK,
+    }),
+    []
+  );
 
   const mapStyles = useMemo(
     () => ({
-      dark: styles?.dark ?? defaultStyles.dark,
-      light: styles?.light ?? defaultStyles.light,
+      dark: styles?.dark ?? envStyles.dark ?? defaultStyles.dark ?? fallbackStyle,
+      light:
+        styles?.light ?? envStyles.light ?? defaultStyles.light ?? fallbackStyle,
     }),
-    [styles]
+    [styles, envStyles]
   );
 
   useImperativeHandle(ref, () => mapInstance as MapLibreGL.Map, [mapInstance]);
@@ -90,6 +103,8 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
 
     const mapStyle =
       resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
+
+    setStyleError(null);
 
     const mapInstance = new MapLibreGL.Map({
       container: containerRef.current,
@@ -103,18 +118,27 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
 
     const styleDataHandler = () => setIsStyleLoaded(true);
     const loadHandler = () => setIsLoaded(true);
+    const errorHandler = (event: { error?: Error }) => {
+      const message =
+        event?.error?.message ||
+        "Map tiles failed to load. Check your basemap URL or network connection.";
+      setStyleError(message);
+    };
 
     mapInstance.on("load", loadHandler);
     mapInstance.on("styledata", styleDataHandler);
+    mapInstance.on("error", errorHandler);
     setMapInstance(mapInstance);
 
     return () => {
       mapInstance.off("load", loadHandler);
       mapInstance.off("styledata", styleDataHandler);
+      mapInstance.off("error", errorHandler);
       mapInstance.remove();
       setIsLoaded(false);
       setIsStyleLoaded(false);
       setMapInstance(null);
+      setStyleError(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -124,6 +148,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
 
     const rafId = requestAnimationFrame(() => {
       setIsStyleLoaded(false);
+      setStyleError(null);
       mapInstance.setStyle(
         resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light,
         { diff: true }
@@ -147,6 +172,17 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     <MapContext.Provider value={contextValue}>
       <div ref={containerRef} className="relative w-full h-full">
         {isLoading && <DefaultLoader />}
+        {styleError && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/90 text-center px-4">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground max-w-md">
+              <p className="font-semibold">Map tiles could not be loaded.</p>
+              <p className="mt-1 text-muted-foreground">
+                Check connectivity or set accessible basemap URLs via
+                NEXT_PUBLIC_MAP_STYLE_LIGHT / NEXT_PUBLIC_MAP_STYLE_DARK.
+              </p>
+            </div>
+          </div>
+        )}
         {/* SSR-safe: children render only when map is loaded on client */}
         {mapInstance && children}
       </div>

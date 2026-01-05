@@ -1,7 +1,7 @@
 'use client';
 
 import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
-import Card from '@/components/ui/DashboardCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { RequestMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 
@@ -31,58 +31,64 @@ export default function RequestsCard({ metrics }: Props) {
   const minValue = Math.min(...sparklineData);
 
   return (
-    <Card title="Requests" icon={<Activity className="w-5 h-5 text-primary" />}>
-      <div className="space-y-6">
-        <div className="text-center">
-          <div className="text-5xl font-bold mb-2">
-            {formatNumber(metrics.total)}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Requests</div>
-          {metrics.change !== undefined && metrics.change !== 0 && (
-            <div className={`flex items-center justify-center gap-1 mt-2 ${getTrendColor()}`}>
-              {getTrendIcon()}
-              <span className="text-sm font-semibold">
-                {Math.abs(metrics.change).toFixed(1)}% {metrics.change > 0 ? 'increase' : 'decrease'}
-              </span>
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide">Requests</CardTitle>
+        <div className="text-primary"><Activity className="w-5 h-5" /></div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          <div className="text-center">
+            <div className="text-5xl font-bold mb-2">
+              {formatNumber(metrics.total)}
             </div>
-          )}
-        </div>
+            <div className="text-sm text-muted-foreground">Total Requests</div>
+            {metrics.change !== undefined && metrics.change !== 0 && (
+              <div className={`flex items-center justify-center gap-1 mt-2 ${getTrendColor()}`}>
+                {getTrendIcon()}
+                <span className="text-sm font-semibold">
+                  {Math.abs(metrics.change).toFixed(1)}% {metrics.change > 0 ? 'increase' : 'decrease'}
+                </span>
+              </div>
+            )}
+          </div>
 
-        <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Requests per Second</span>
-            <span className="text-2xl font-bold text-primary">{metrics.perSecond.toFixed(2)}</span>
+          <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Requests per Second</span>
+              <span className="text-2xl font-bold text-primary">{metrics.perSecond.toFixed(2)}</span>
+            </div>
+            <div className="h-12 flex items-end gap-0.5 mt-3">
+              {sparklineData.map((value, idx) => {
+                const height = ((value - minValue) / (maxValue - minValue)) * 100;
+                return (
+                  <div
+                    key={idx}
+                    className="flex-1 bg-primary rounded-t transition-all hover:bg-primary/80"
+                    style={{ height: `${height}%`, minHeight: '4px' }}
+                    title={`${value.toFixed(2)} req/s`}
+                  />
+                );
+              })}
+            </div>
           </div>
-          <div className="h-12 flex items-end gap-0.5 mt-3">
-            {sparklineData.map((value, idx) => {
-              const height = ((value - minValue) / (maxValue - minValue)) * 100;
-              return (
-                <div
-                  key={idx}
-                  className="flex-1 bg-primary rounded-t transition-all hover:bg-primary/80"
-                  style={{ height: `${height}%`, minHeight: '4px' }}
-                  title={`${value.toFixed(2)} req/s`}
-                />
-              );
-            })}
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-card rounded-lg p-3 border">
-            <div className="text-xs text-muted-foreground mb-1">Per Minute</div>
-            <div className="text-xl font-bold text-primary">
-              {formatNumber(Math.round(metrics.perSecond * 60))}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-card rounded-lg p-3 border">
+              <div className="text-xs text-muted-foreground mb-1">Per Minute</div>
+              <div className="text-xl font-bold text-primary">
+                {formatNumber(Math.round(metrics.perSecond * 60))}
+              </div>
             </div>
-          </div>
-          <div className="bg-card rounded-lg p-3 border">
-            <div className="text-xs text-muted-foreground mb-1">Per Hour</div>
-            <div className="text-xl font-bold text-primary">
-              {formatNumber(Math.round(metrics.perSecond * 3600))}
+            <div className="bg-card rounded-lg p-3 border">
+              <div className="text-xs text-muted-foreground mb-1">Per Hour</div>
+              <div className="text-xl font-bold text-primary">
+                {formatNumber(Math.round(metrics.perSecond * 3600))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }
