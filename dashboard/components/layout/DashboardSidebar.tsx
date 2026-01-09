@@ -139,11 +139,11 @@ export function DashboardSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="sm">
               <a
-                href="https://github.com/traefik/traefik"
+                href="https://github.com/hhftechnology/traefik-log-dashboard"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span className="text-xs text-muted-foreground">v2.0.0</span>
+                <span className="text-xs text-muted-foreground">v3.0.0</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
