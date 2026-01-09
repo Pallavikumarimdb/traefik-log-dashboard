@@ -2,7 +2,7 @@
 
 import { Moon, Sun, Wifi, WifiOff, Pause, Play, RefreshCw } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarTrigger } from '@/components/ui/ui-sidebar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {

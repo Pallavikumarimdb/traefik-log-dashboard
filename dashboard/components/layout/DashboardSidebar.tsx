@@ -24,7 +24,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
   SidebarRail,
-} from '@/components/ui/sidebar';
+} from '@/components/ui/ui-sidebar';
 
 const mainNavItems = [
   {
