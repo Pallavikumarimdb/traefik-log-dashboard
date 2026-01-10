@@ -74,7 +74,6 @@ services:
       - "3000:3000"
     volumes:
       - ./data/dashboard:/app/data
-      - ./data/geoip:/geoip:ro  # MaxMind GeoIP databases
       - ./data/positions:/data
     environment:
       # Agent Configuration - REPLACE WITH YOUR TOKEN
