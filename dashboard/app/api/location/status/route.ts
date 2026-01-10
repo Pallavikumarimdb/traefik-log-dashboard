@@ -1,45 +1,40 @@
 import { NextResponse } from 'next/server';
-import maxmind from 'maxmind';
-import path from 'path';
-import fs from 'fs';
+import maxmind, { CityResponse, Reader } from 'maxmind';
+import * as geolite2 from 'geolite2-redist';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 /**
- * REFACTOR: Changed to check local GeoIP database instead of calling agent
- * Dashboard now handles all GeoIP lookups locally
+ * Check GeoIP database status
  */
 export async function GET() {
   try {
-    // Check for GeoIP database locally
-    const dbPath = process.env.GEOIP_DB_PATH || path.join(process.cwd(), 'node_modules', 'geolite2-redist', 'dist', 'GeoLite2-City.mmdb');
-
     let available = false;
-    let dbLocation = '';
+    let dbLocation = 'geolite2-redist (lazy loading)';
 
-    // Check if database file exists
     try {
-      if (fs.existsSync(dbPath)) {
-        // Try to open it to verify it's valid
-        const reader = await maxmind.open(dbPath);
-        if (reader) {
-          available = true;
-          dbLocation = dbPath;
-        }
+      // Try to open the database using geolite2-redist
+      const reader = await geolite2.open<Reader<CityResponse>>('GeoLite2-City' as geolite2.GeoIpDbName, (path) => {
+        dbLocation = path;
+        return maxmind.open<CityResponse>(path);
+      });
+
+      if (reader) {
+        available = true;
       }
     } catch (err) {
-      console.error('GeoIP database check failed:', err);
+      console.error('[GeoIP] Database check failed:', err);
       available = false;
     }
 
     const data = {
-      enabled: true, // Always enabled in dashboard
+      enabled: true,
       available: available,
       database: dbLocation,
       message: available
-        ? 'GeoIP database available (local)'
-        : 'GeoIP database not found. Install geolite2-redist npm package or set GEOIP_DB_PATH',
+        ? 'GeoIP database available (geolite2-redist)'
+        : 'GeoIP database will be downloaded on first use',
     };
 
     const res = NextResponse.json(data);

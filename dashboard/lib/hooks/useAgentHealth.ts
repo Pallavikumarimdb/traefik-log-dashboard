@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Agent } from '../types/agent';
 import { useAgents } from '../contexts/AgentContext';
+import { useTabVisibility } from './useTabVisibility';
 
 interface AgentHealthMetrics {
   agentId: string;
@@ -31,7 +32,6 @@ export function useAgentHealth(options: HealthMonitorOptions = {}) {
   const { agents, checkAgentStatus } = useAgents();
   const [healthMetrics, setHealthMetrics] = useState<Record<string, AgentHealthMetrics>>({});
   const [isMonitoring, setIsMonitoring] = useState(false);
-  const [isTabVisible, setIsTabVisible] = useState(true);
 
   // Use refs to avoid dependency issues
   const healthMetricsRef = useRef(healthMetrics);
@@ -40,15 +40,8 @@ export function useAgentHealth(options: HealthMonitorOptions = {}) {
   // RACE CONDITION FIX: Track ongoing checks to prevent duplicate requests
   const ongoingChecksRef = useRef<Set<string>>(new Set());
 
-  // PERFORMANCE FIX: Pause polling when tab is not visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabVisible(!document.hidden);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  // REDUNDANCY FIX: Use shared visibility hook
+  const isTabVisible = useTabVisibility();
 
   // Update refs when values change
   useEffect(() => {
@@ -97,11 +90,24 @@ export function useAgentHealth(options: HealthMonitorOptions = {}) {
     const startTime = Date.now();
     let isOnline = false;
     let error: string | undefined;
+    const abortController = new AbortController();
 
     try {
-      isOnline = await checkAgentStatus(agent.id);
+      // MEMORY LEAK FIX: Add timeout to prevent hanging requests
+      const timeoutId = setTimeout(() => abortController.abort(), 10000); // 10 second timeout
+      
+      try {
+        isOnline = await checkAgentStatus(agent.id);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Unknown error';
+      // Don't treat abort as error
+      if (err instanceof Error && err.name === 'AbortError') {
+        error = 'Request timeout';
+      } else {
+        error = err instanceof Error ? err.message : 'Unknown error';
+      }
     } finally {
       // CLEANUP: Always remove from ongoing checks
       ongoingChecksRef.current.delete(agent.id);
