@@ -47,30 +47,39 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - traefik-network
+      - pangolin
 
   traefik-dashboard:
     image: hhftechnology/traefik-log-dashboard:latest
     container_name: traefik-log-dashboard
     restart: unless-stopped
-    user: "1001:1001"
     ports:
       - "3000:3000"
     volumes:
       - ./data/dashboard:/app/data
+      - ./data/geoip:/geoip:ro  # MaxMind GeoIP databases
+      - ./data/positions:/data
     environment:
+      # Agent Configuration - REPLACE WITH YOUR TOKEN
       - AGENT_API_URL=http://traefik-agent:5000
-      - AGENT_API_TOKEN=your_secure_token_here
+      - AGENT_API_TOKEN=d41d8cd98f00b204e9800998ecf8427e
       - AGENT_NAME=Default Agent
+      
+      # Node Environment
       - NODE_ENV=production
+      - PORT=3000
+      
+      # Display Configuration
+      - NEXT_PUBLIC_SHOW_DEMO_PAGE=true
+      - NEXT_PUBLIC_MAX_LOGS_DISPLAY=500
     depends_on:
       traefik-agent:
         condition: service_healthy
     networks:
-      - traefik-network
+      - pangolin
 
 networks:
-  traefik-network:
+  pangolin:
     external: true
 ```
 
