@@ -149,7 +149,7 @@ Open http://localhost:3000 in your browser.
 
 ## Documentation
 
-Full documentation available at: **[https://traefik-log-dashboard.docs.dev](https://traefik-log-dashboard.docs.dev)**
+Full documentation available at: **[https://traefik-log-dashboard.hhf.technology](https://traefik-log-dashboard.hhf.technology)**
 
 Or run locally:
 ```bash
@@ -160,7 +160,7 @@ cd docs && npm install && npm run dev
 
 ## Community & Support
 
-- **Documentation**: [https://traefik-log-dashboard.docs.dev](https://traefik-log-dashboard.docs.dev)
+- **Documentation**: [https://traefik-log-dashboard.hhf.technology](https://traefik-log-dashboard.hhf.technology)
 - **Discord**: [Join our community](https://discord.gg/HDCt9MjyMJ)
 - **GitHub Issues**: [Report bugs](https://github.com/hhftechnology/traefik-log-dashboard/issues)
 - **Docker Hub**: [Agent](https://hub.docker.com/r/hhftechnology/traefik-log-dashboard-agent) | [Dashboard](https://hub.docker.com/r/hhftechnology/traefik-log-dashboard)
@@ -175,8 +175,10 @@ This project is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE - see the [
 
 <div align="center">
 
-**Made with care for the Traefik community**
+**Made with ❤️ for the Traefik community**
 
-[GitHub](https://github.com/hhftechnology/traefik-log-dashboard) | [Discord](https://discord.gg/HDCt9MjyMJ) | [Documentation](https://traefik-log-dashboard.docs.dev)
+⭐ Star this repo if you find it helpful!
+
+[GitHub](https://github.com/hhftechnology/traefik-log-dashboard) | [Discord](https://discord.gg/HDCt9MjyMJ) | [Documentation](https://traefik-log-dashboard.hhf.technology)
 
 </div>

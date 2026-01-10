@@ -143,7 +143,7 @@ export function DashboardSidebar() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span className="text-xs text-muted-foreground">v3.0.0</span>
+                <span className="text-xs text-muted-foreground">v2.4.0</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

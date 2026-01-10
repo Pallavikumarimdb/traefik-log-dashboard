@@ -14,7 +14,7 @@ A beautiful terminal-based dashboard for analyzing Traefik access logs in real-t
 -  **Rich Metrics** - Request rates, response times, status codes, error rates, and more
 -  **Beautiful UI** - Clean, modern interface with color-coded indicators and progress bars
 -  **Fast & Efficient** - Optimized log parsing with incremental reading and gzip support
--  **GeoIP Support** - Geographic distribution of requests (when GeoIP database available)
+-  **Geographic Distribution** - Request origin tracking by country and city
 -  **System Monitoring** - CPU, memory, and disk usage statistics
 -  **Responsive Layout** - Adapts to terminal size with intelligent card arrangement
 
@@ -52,10 +52,10 @@ traefik-log-dashboard --demo
 traefik-log-dashboard --file /var/log/traefik/access.log
 ```
 
-### Connect to Traefik Analytics Agent
+### Connect to Traefik Log Dashboard Agent
 
 ```bash
-traefik-log-dashboard --url http://localhost:8080
+traefik-log-dashboard --url http://localhost:5000
 ```
 
 ### All Options
@@ -65,7 +65,7 @@ traefik-log-dashboard [OPTIONS]
 
 Options:
   --file PATH         Path to Traefik access log file
-  --url URL           URL of Traefik Log Dashboard Agent (default: http://localhost:8080)
+  --url URL           URL of Traefik Log Dashboard Agent (default: http://localhost:5000)
   --demo              Run with demo data
   --period DURATION   Time period to analyze (default: 1h)
                       Examples: 5m, 1h, 24h, 7d
@@ -135,7 +135,7 @@ The CLI dashboard includes the following cards:
 
 ### Geographic Distribution
 
-- Request origins by country (requires GeoIP database)
+- Request origins by country
 - Top countries by request count
 
 ## Keyboard Controls
@@ -152,16 +152,13 @@ The CLI dashboard includes the following cards:
 
 ```bash
 # Agent URL
-export TRAEFIK_AGENT_URL=http://localhost:8080
+export TRAEFIK_LOG_DASHBOARD_AGENT_URL=http://localhost:5000
 
-# Log file path
-export TRAEFIK_LOG_FILE=/var/log/traefik/access.log
+# Agent authentication token
+export TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=your-secret-token
 
-# GeoIP database path
-export GEOIP_DB=/usr/share/GeoIP/GeoLite2-City.mmdb
-
-# Refresh interval
-export REFRESH_INTERVAL=5s
+# Log file path (for file mode)
+export TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/var/log/traefik/access.log
 ```
 
 ### Log Format Support
@@ -182,12 +179,11 @@ make run
 2. Connect the CLI:
 
 ```bash
-traefik-log-dashboard --url http://localhost:8080
+traefik-log-dashboard --url http://localhost:5000
 ```
 
 The agent provides additional features:
 
 - System resource monitoring
 - Real-time log streaming
-- GeoIP lookups
 - Compressed log support

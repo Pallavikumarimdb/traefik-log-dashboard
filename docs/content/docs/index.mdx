@@ -8,17 +8,13 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 
-<Callout title="Latest Release: v2.4.0" type="info">
-GeoIP simplified, performance optimizations, and reduced bundle size.
-</Callout>
-
 # Traefik Log Dashboard
 
 A comprehensive analytics platform for Traefik access logs with three deployment options: a Go-based API agent, a modern Next.js web dashboard, and a beautiful terminal-based CLI.
 
 ## Overview
 
-Traefik Log Dashboard is a powerful analytics platform that provides real-time insights into your Traefik reverse proxy traffic. It consists of three components that work together:
+Traefik Log Dashboard provides real-time insights into your Traefik reverse proxy traffic. It consists of three components:
 
 <Steps>
 <Step>
@@ -28,7 +24,7 @@ Go-based backend API that parses logs and exposes metrics with high performance 
 
 <Step>
 ### Dashboard
-Next.js web UI with interactive charts, real-time updates, and beautiful visualizations including 3D globe and geographic maps. Includes automatic GeoIP lookup.
+Next.js 15 web UI with interactive charts, real-time updates, and beautiful visualizations including 3D globe and geographic maps. Includes automatic GeoIP lookup.
 </Step>
 
 <Step>
@@ -36,13 +32,6 @@ Next.js web UI with interactive charts, real-time updates, and beautiful visuali
 Beautiful terminal-based dashboard for monitoring directly from your command line.
 </Step>
 </Steps>
-
-## What's New in v2.4
-
-- **GeoIP Simplified** - Geographic IP lookup now automatic in dashboard (no configuration needed)
-- **Performance Optimizations** - 44% reduction in bundle size, React.memo on components
-- **Agent Improvements** - Fixed O(n^2) operations, added slice pre-allocation
-- **Documentation Updated** - Simplified deployment guides, removed outdated info
 
 ## Core Features
 

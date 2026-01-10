@@ -5,7 +5,24 @@ description: Release history and version updates
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-## v2.4.0 (2025-12-30)
+## v2.4.0 (2026-01)
+
+### Bug Fixes
+
+- **Dark Mode**: Fixed various dark mode styling issues across components
+- **Sidebar**: Improved navigation and renamed menu items for clarity
+- **Interactive Map**: Fixed D3.js map rendering and geolocation display issues
+- **UI Polish**: Various bug fixes for cards, charts, and dashboard layout
+
+### Improvements
+
+- Enhanced map transitions between globe and flat map views
+- Improved responsive design for dashboard components
+- Better error handling in geolocation lookups
+
+---
+
+## v2.3.0 (2025-12-30)
 
 ### Architecture Changes
 
@@ -177,6 +194,15 @@ Major architectural changes. See Migration Guide for upgrade instructions.
 ---
 
 ## Upgrade Notes
+
+### Upgrading to v2.4.1
+
+No breaking changes. Simply pull the latest images:
+
+```bash
+docker compose pull
+docker compose up -d
+```
 
 ### Upgrading to v2.4.0
 
