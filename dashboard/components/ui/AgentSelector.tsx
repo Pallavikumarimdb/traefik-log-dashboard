@@ -24,14 +24,17 @@ interface AgentSelectorProps {
 export default function AgentSelector({ className }: AgentSelectorProps) {
   const { agents, selectedAgent, selectAgent, checkAgentStatus } = useAgents();
   const [isChecking, setIsChecking] = React.useState<Record<string, boolean>>({});
+  const hasCheckedRef = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
-    // Check status of all agents on mount
-    agents.forEach(agent => {
-      handleCheckStatus(agent.id);
-    });
+    // Only check status of selected agent on mount (not all agents)
+    // This prevents sending too many requests which can trigger rate limiting
+    if (selectedAgent && !hasCheckedRef.current.has(selectedAgent.id)) {
+      hasCheckedRef.current.add(selectedAgent.id);
+      handleCheckStatus(selectedAgent.id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedAgent?.id]);
 
   const handleCheckStatus = async (agentId: string) => {
     setIsChecking(prev => ({ ...prev, [agentId]: true }));

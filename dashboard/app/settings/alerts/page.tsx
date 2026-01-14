@@ -21,6 +21,7 @@ import { Webhook, AlertRule } from '@/lib/types/alerting';
 import { Agent } from '@/lib/types/agent';
 import WebhookFormModal from '@/components/WebhookFormModal';
 import AlertRuleFormModal from '@/components/AlertRuleFormModal';
+import { buildUrl } from '@/lib/utils/base-url';
 
 type TabType = 'webhooks' | 'alerts';
 
@@ -49,10 +50,10 @@ export default function AlertsSettingsPage() {
     try {
       setLoading(true);
       const [webhooksRes, alertsRes, agentsRes, statsRes] = await Promise.all([
-        fetch('/api/webhooks'),
-        fetch('/api/alerts'),
-        fetch('/api/agents'),
-        fetch('/api/alerts/stats'),
+        fetch(buildUrl('/api/webhooks')),
+        fetch(buildUrl('/api/alerts')),
+        fetch(buildUrl('/api/agents')),
+        fetch(buildUrl('/api/alerts/stats')),
       ]);
 
       if (webhooksRes.ok) {
@@ -101,7 +102,7 @@ export default function AlertsSettingsPage() {
         ? { id: editingWebhook.id, ...webhookData }
         : webhookData;
 
-      const response = await fetch(url, {
+      const response = await fetch(buildUrl(url), {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -122,7 +123,7 @@ export default function AlertsSettingsPage() {
   const handleTestWebhook = async (webhookId: string) => {
     setTestingWebhook(webhookId);
     try {
-      const response = await fetch('/api/webhooks/test', {
+      const response = await fetch(buildUrl('/api/webhooks/test'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ webhook_id: webhookId }),
@@ -144,7 +145,7 @@ export default function AlertsSettingsPage() {
 
   const handleToggleWebhook = async (webhook: Webhook) => {
     try {
-      const response = await fetch('/api/webhooks', {
+      const response = await fetch(buildUrl('/api/webhooks'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -166,7 +167,7 @@ export default function AlertsSettingsPage() {
     if (!confirm(`Delete webhook "${webhook.name}"?`)) return;
 
     try {
-      const response = await fetch(`/api/webhooks?id=${webhook.id}`, {
+      const response = await fetch(buildUrl(`/api/webhooks?id=${webhook.id}`), {
         method: 'DELETE',
       });
 
@@ -198,7 +199,7 @@ export default function AlertsSettingsPage() {
         ? { id: editingAlert.id, ...alertData }
         : alertData;
 
-      const response = await fetch(url, {
+      const response = await fetch(buildUrl(url), {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -219,7 +220,7 @@ export default function AlertsSettingsPage() {
 
   const handleToggleAlert = async (alert: AlertRule) => {
     try {
-      const response = await fetch('/api/alerts', {
+      const response = await fetch(buildUrl('/api/alerts'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -251,7 +252,7 @@ export default function AlertsSettingsPage() {
         return;
       }
 
-      const response = await fetch('/api/alerts/test-trigger', {
+      const response = await fetch(buildUrl('/api/alerts/test-trigger'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

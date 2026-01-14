@@ -1,9 +1,22 @@
 /** @type {import('next').NextConfig} */
+const rawBasePath = process.env.BASE_PATH || process.env.NEXT_PUBLIC_BASE_PATH || '';
+const basePath = rawBasePath ? `/${rawBasePath.replace(/^\/|\/$/g, '')}` : '';
+const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || process.env.BASE_DOMAIN || '').replace(/\/$/, '');
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
   output: 'standalone',
+
+  // Enable reverse-proxy deployments with subpaths and optional absolute domain
+  basePath: basePath || undefined,
+  assetPrefix: baseDomain ? `${baseDomain}${basePath}` : undefined,
+
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+    NEXT_PUBLIC_BASE_DOMAIN: baseDomain,
+  },
 
   serverExternalPackages: ['better-sqlite3'],
   

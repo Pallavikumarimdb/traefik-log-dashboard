@@ -19,7 +19,7 @@ import {
 
 export default function AgentHealthDashboard() {
   const { agents } = useAgents();
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   // PERFORMANCE FIX: Increased interval from 30s to 5min to reduce load
   const {

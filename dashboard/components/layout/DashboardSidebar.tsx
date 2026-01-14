@@ -26,18 +26,24 @@ import {
   SidebarRail,
 } from '@/components/ui/ui-sidebar';
 
-const mainNavItems = [
+// Check if demo page should be shown (respects NEXT_PUBLIC_SHOW_DEMO_PAGE env var)
+const showDemoPage = process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE !== 'false';
+
+const baseNavItems = [
   {
     title: 'Dashboard',
     url: '/dashboard',
     icon: LayoutDashboard,
   },
-  {
-    title: 'Demo Mode',
-    url: '/dashboard/demo',
-    icon: Play,
-  },
 ];
+
+const demoNavItem = {
+  title: 'Demo Mode',
+  url: '/dashboard/demo',
+  icon: Play,
+};
+
+const mainNavItems = showDemoPage ? [...baseNavItems, demoNavItem] : baseNavItems;
 
 const settingsNavItems = [
   {

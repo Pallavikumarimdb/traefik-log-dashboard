@@ -2,6 +2,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Support deployments behind a reverse proxy/subpath
+const rawBasePath = process.env.NEXT_PUBLIC_BASE_PATH || process.env.BASE_PATH || '';
+const BASE_PATH = rawBasePath ? `/${rawBasePath.replace(/^\/|\/$/g, '')}` : '';
+
 // SECURITY: Malicious patterns to block
 const MALICIOUS_PATTERNS = [
   /\/bin\/bash/i,
@@ -32,8 +36,8 @@ const SUSPICIOUS_ACTION_PATTERNS = [
 
 // SECURITY: Rate limiting map (simple in-memory, consider Redis for production)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 100; // Max requests per window
+const RATE_LIMIT_WINDOW = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000); // default: 1 minute
+const RATE_LIMIT_MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 1000); // Max requests per window (raised to reduce false 429s)
 
 /**
  * Check if request contains malicious patterns
@@ -83,14 +87,56 @@ function getClientIP(request: NextRequest): string {
   );
 }
 
+// Internal API routes that should have relaxed rate limiting
+const INTERNAL_API_ROUTES = [
+  '/api/logs/',
+  '/api/agents/',
+  '/api/system/',
+  '/api/services/',
+  '/api/alerts/',
+  '/api/historical/',
+  '/api/location/',
+];
+
+// Health check routes should never trigger aggressive rate limiting
+const HEALTH_CHECK_PATHS = ['/health', '/api/health', '/status', '/up', '/api/logs/status'];
+
+function stripBasePath(pathname: string): string {
+  if (!BASE_PATH) return pathname;
+  return pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname;
+}
+
+function isInternalApiRoute(pathname: string): boolean {
+  return INTERNAL_API_ROUTES.some(route => pathname.startsWith(route));
+}
+
+function isHealthCheck(pathname: string): boolean {
+  return HEALTH_CHECK_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+  const pathWithoutBase = stripBasePath(pathname);
+
+  // Respect demo toggle: block demo route when disabled
+  const showDemoPage = (process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE ?? process.env.SHOW_DEMO_PAGE ?? 'true') !== 'false';
+  if (!showDemoPage && pathWithoutBase.startsWith('/dashboard/demo')) {
+    const target = `${BASE_PATH || ''}/dashboard`.replace(/\/+/g, '/');
+    return NextResponse.redirect(new URL(target, request.url));
+  }
 
   // SECURITY: Get client IP for rate limiting
   const clientIP = getClientIP(request);
 
-  // SECURITY: Rate limiting
-  if (isRateLimited(clientIP)) {
+  // SECURITY: Skip rate limiting for internal dashboard API routes
+  // These are legitimate dashboard requests and should not be rate limited aggressively
+  if (
+    request.method !== 'OPTIONS' &&
+    request.method !== 'HEAD' &&
+    !isInternalApiRoute(pathWithoutBase) &&
+    !isHealthCheck(pathWithoutBase) &&
+    isRateLimited(clientIP)
+  ) {
     console.warn(`[Security] Rate limit exceeded for IP: ${clientIP}`);
     return new NextResponse('Too Many Requests', {
       status: 429,
@@ -105,7 +151,7 @@ export async function middleware(request: NextRequest) {
   if (nextAction && isSuspiciousServerAction(nextAction)) {
     console.error(`[Security] Blocked suspicious Server Action from ${clientIP}:`, {
       action: nextAction,
-      path: pathname,
+      path: pathWithoutBase,
     });
     return new NextResponse('Forbidden', { status: 403 });
   }
@@ -113,7 +159,7 @@ export async function middleware(request: NextRequest) {
   // SECURITY: Validate URL and search params for malicious content
   const fullUrl = request.url;
   if (containsMaliciousContent(fullUrl)) {
-    console.error(`[Security] Blocked malicious URL from ${clientIP}:`, pathname);
+    console.error(`[Security] Blocked malicious URL from ${clientIP}:`, pathWithoutBase);
     return new NextResponse('Forbidden', { status: 403 });
   }
 
@@ -141,7 +187,7 @@ export async function middleware(request: NextRequest) {
         // Check body for malicious content
         if (containsMaliciousContent(body)) {
           console.error(`[Security] Blocked malicious request body from ${clientIP}:`, {
-            path: pathname,
+            path: pathWithoutBase,
             bodyPreview: body.substring(0, 200),
           });
           return new NextResponse('Forbidden', { status: 403 });

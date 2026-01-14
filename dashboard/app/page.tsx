@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Activity, BarChart3, Terminal, Server, Gauge, Shield, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   const showDemoPage = process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE !== 'false';
 

@@ -6,6 +6,9 @@ import Providers from '@/components/providers/Providers'; // MODIFIED LINE 4
 export const metadata = {
   title: 'Traefik Log Dashboard',
   description: 'Real-time analytics and monitoring for Traefik reverse proxy logs',
+  metadataBase: process.env.NEXT_PUBLIC_BASE_DOMAIN || process.env.BASE_DOMAIN
+    ? new URL(process.env.NEXT_PUBLIC_BASE_DOMAIN || process.env.BASE_DOMAIN || '')
+    : undefined,
 };
 
 export default function RootLayout({

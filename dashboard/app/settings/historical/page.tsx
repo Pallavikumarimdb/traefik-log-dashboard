@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HistoricalConfig } from '@/lib/types/historical';
+import { buildUrl } from '@/lib/utils/base-url';
 
 interface HistoricalStats {
   total_entries: number;
@@ -39,7 +40,7 @@ export default function HistoricalSettingsPage() {
 
   const fetchConfig = async () => {
     try {
-      const response = await fetch('/api/historical/config');
+      const response = await fetch(buildUrl('/api/historical/config'));
       if (response.ok) {
         const data = await response.json();
         setConfig(data.config);
@@ -54,7 +55,7 @@ export default function HistoricalSettingsPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/historical/data');
+      const response = await fetch(buildUrl('/api/historical/data'));
       if (response.ok) {
         const data = await response.json();
         setStats(data.stats);
@@ -69,7 +70,7 @@ export default function HistoricalSettingsPage() {
 
     setSaving(true);
     try {
-      const response = await fetch('/api/historical/config', {
+      const response = await fetch(buildUrl('/api/historical/config'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
@@ -93,7 +94,7 @@ export default function HistoricalSettingsPage() {
 
     setCleaning(true);
     try {
-      const response = await fetch('/api/historical/data?action=cleanup', {
+      const response = await fetch(buildUrl('/api/historical/data?action=cleanup'), {
         method: 'POST',
       });
 
@@ -113,7 +114,7 @@ export default function HistoricalSettingsPage() {
 
   const handleExport = async () => {
     try {
-      const response = await fetch('/api/historical/data?action=export', {
+      const response = await fetch(buildUrl('/api/historical/data?action=export'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: {} }),
