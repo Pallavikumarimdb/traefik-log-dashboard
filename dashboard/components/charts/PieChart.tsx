@@ -21,12 +21,12 @@ function PieChart({
   labels,
   data,
   backgroundColor = [
-    'hsl(var(--primary))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
-    'hsl(var(--muted))',
+    'var(--primary)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
+    'var(--muted)',
   ],
   height = 300,
 }: PieChartProps) {
@@ -45,17 +45,17 @@ function PieChart({
       return (
         <div
           style={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
+            backgroundColor: 'var(--background)',
+            border: '1px solid var(--border)',
             borderRadius: '8px',
             padding: '8px 12px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }}
         >
-          <p style={{ color: 'hsl(var(--foreground))', fontWeight: 500, margin: 0 }}>
+          <p style={{ color: 'var(--foreground)', fontWeight: 500, margin: 0 }}>
             {item.name}
           </p>
-          <p style={{ color: 'hsl(var(--muted-foreground))', margin: '4px 0 0 0', fontSize: '14px' }}>
+          <p style={{ color: 'var(--muted-foreground)', margin: '4px 0 0 0', fontSize: '14px' }}>
             {item.value.toLocaleString()} ({percentage}%)
           </p>
         </div>
@@ -76,7 +76,7 @@ function PieChart({
             outerRadius={80}
             paddingAngle={2}
             dataKey="value"
-            stroke="hsl(var(--background))"
+            stroke="var(--background)"
             strokeWidth={2}
           >
             {chartData.map((_, index) => (
@@ -94,7 +94,7 @@ function PieChart({
             iconType="circle"
             iconSize={8}
             formatter={(value) => (
-              <span style={{ color: 'hsl(var(--foreground))', fontSize: '12px' }}>
+              <span style={{ color: 'var(--foreground)', fontSize: '12px' }}>
                 {value}
               </span>
             )}

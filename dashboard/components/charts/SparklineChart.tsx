@@ -13,7 +13,7 @@ interface SparklineProps {
   height?: number;
 }
 
-function Sparkline({ data, color = 'hsl(var(--primary))', height = 50 }: SparklineProps) {
+function Sparkline({ data, color = 'var(--primary)', height = 50 }: SparklineProps) {
   const chartData = data.map((value, index) => ({
     index,
     value,
