@@ -5,6 +5,26 @@ description: Release history and version updates
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
+## v2.4.1 (2026-01)
+
+### Bug Fixes
+
+- **Dark Mode**: Fixed various dark mode styling issues across components
+- **UI Polish**: Various bug fixes for cards, charts, and dashboard layout
+- **Issue**
+- Fix #166: SHOW_DEMO_PAGE env var - sidebar now respects NEXT_PUBLIC_SHOW_DEMO_PAGE=false
+- Fix #165: Health check rate limiting - only check selected agent status on mount, not all agents
+- Fix #163: Rate limit too restrictive - increased limit to 500/min and exclude internal API routes
+- Fix #159: MAX_LOGS_DISPLAY not working - use NEXT_PUBLIC_MAX_LOGS_DISPLAY env var for log limits
+- Disable auto-refresh in agent health dashboard by default to prevent excessive API requests
+
+### Improvements
+
+- Enhanced map transitions between globe and flat map views
+- Improved responsive design for dashboard components
+
+---
+
 ## v2.4.0 (2026-01)
 
 ### Bug Fixes
