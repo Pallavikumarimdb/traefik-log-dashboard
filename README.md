@@ -9,23 +9,14 @@
 </div>
 
 ---
-<img width="1906" height="787" alt="image" src="https://github.com/user-attachments/assets/31361bac-ee2a-4325-a74f-8da8eb6f36b8" />
-
-<img width="1735" height="1798" alt="image" src="https://github.com/user-attachments/assets/644cd774-0fae-47b1-916e-80f9fed4590f" />
-
-<img width="1735" height="1010" alt="image" src="https://github.com/user-attachments/assets/f724b0db-2d6f-49b3-8dba-ad9af010f894" />
-
-<img width="1735" height="1715" alt="image" src="https://github.com/user-attachments/assets/8b899027-5f38-420d-a5db-825720be6819" />
-
-<img width="1735" height="802" alt="image" src="https://github.com/user-attachments/assets/ac470f18-7307-4ab6-b442-6192a12842aa" />
-
-<img width="1735" height="1200" alt="image" src="https://github.com/user-attachments/assets/97aa1bb4-c5f8-4b7e-b760-c4e10806cdec" />
-
-<img width="1735" height="974" alt="image" src="https://github.com/user-attachments/assets/bc1e9f22-e8e6-42d6-9822-9acf3fff5cb7" />
-
-<img width="1735" height="802" alt="image" src="https://github.com/user-attachments/assets/5693ca19-92b8-478c-b2a9-7de7e8dd1030" />
-
-<img width="1735" height="1536" alt="image" src="https://github.com/user-attachments/assets/f0c86b42-7d7c-4ed0-9cad-5da6824b4f24" />
+<img width="1920" height="1440" alt="dashboard" src="https://github.com/user-attachments/assets/711a026b-c779-4b56-8be6-8471b9a7c144" />
+<img width="1920" height="1440" alt="client_dashboard" src="https://github.com/user-attachments/assets/8b3e9c85-00bb-473d-a0d8-695829b8e7d0" />
+<img width="1920" height="1440" alt="traffic_dashboard" src="https://github.com/user-attachments/assets/0077490c-4677-4c5a-87d2-d1ea25c42899" />
+<img width="1920" height="1440" alt="system_dashboard" src="https://github.com/user-attachments/assets/d769d9be-5232-4360-9d40-605ead33a7e4" />
+<img width="1920" height="1440" alt="overview_dashboard" src="https://github.com/user-attachments/assets/e9abfc8b-cea3-4913-86db-e8efdd8879e8" />
+<img width="1920" height="1440" alt="maps_dashboard" src="https://github.com/user-attachments/assets/1ddfa5fd-eb15-43fd-a36a-39341d8c22ae" />
+<img width="1920" height="1440" alt="logs_dashboard" src="https://github.com/user-attachments/assets/ad535e44-d0f7-491e-be2f-de0a409597f6" />
+<img width="1920" height="1440" alt="filter_dashboard" src="https://github.com/user-attachments/assets/8412d9ce-e7df-404a-be66-d8639be0115d" />
 
 ## Quick Start
 
