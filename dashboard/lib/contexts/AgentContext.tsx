@@ -9,6 +9,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { Agent } from '../types/agent';
 import { toast } from 'sonner';
+import { buildUrl } from '../utils/base-url';
 
 interface AgentContextType {
   agents: Agent[];
@@ -31,7 +32,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // Fetch all agents
   const fetchAgents = useCallback(async () => {
     try {
-      const response = await fetch('/api/agents');
+      const response = await fetch(buildUrl('/api/agents'));
       if (!response.ok) throw new Error('Failed to fetch agents');
       
       const data = await response.json();
@@ -49,7 +50,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // Fetch selected agent - FIXED: Removed agents dependency
   const fetchSelectedAgent = useCallback(async () => {
     try {
-      const response = await fetch('/api/agents/selected');
+      const response = await fetch(buildUrl('/api/agents/selected'));
       if (response.ok) {
         const data = await response.json();
         setSelectedAgent(data.agent);
@@ -91,7 +92,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // Select agent
   const selectAgent = useCallback(async (id: string) => {
     try {
-      const response = await fetch('/api/agents/selected', {
+      const response = await fetch(buildUrl('/api/agents/selected'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agentId: id }),
@@ -119,7 +120,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // Add agent
   const addAgent = useCallback(async (agent: Omit<Agent, 'id' | 'number'>): Promise<Agent> => {
     try {
-      const response = await fetch('/api/agents', {
+      const response = await fetch(buildUrl('/api/agents'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(agent),
@@ -149,7 +150,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // Update agent
   const updateAgent = useCallback(async (id: string, updates: Partial<Agent>) => {
     try {
-      const response = await fetch('/api/agents', {
+      const response = await fetch(buildUrl('/api/agents'), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...updates }),
@@ -185,7 +186,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   // FIXED: Enhanced delete agent with better error messages
   const deleteAgent = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`/api/agents?id=${id}`, {
+      const response = await fetch(buildUrl(`/api/agents?id=${id}`), {
         method: 'DELETE',
       });
 
@@ -257,7 +258,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       try {
-        const response = await fetch('/api/agents/check-status', {
+        const response = await fetch(buildUrl('/api/agents/check-status'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ agentUrl: agent.url, agentToken: agent.token }),

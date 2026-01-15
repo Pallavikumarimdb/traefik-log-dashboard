@@ -38,11 +38,11 @@ function BarChart({ labels, datasets, height = 300 }: BarChartProps) {
 
   // Default colors using CSS variables
   const defaultColors = [
-    'hsl(var(--primary))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
+    'var(--primary)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
   ];
 
   return (
@@ -51,32 +51,32 @@ function BarChart({ labels, datasets, height = 300 }: BarChartProps) {
         <RechartsBarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="hsl(var(--border))"
+            stroke="var(--border)"
             vertical={false}
           />
           <XAxis
             dataKey="name"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
             tickMargin={8}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
             tickMargin={8}
             allowDecimals={false}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'hsl(var(--background))',
-              border: '1px solid hsl(var(--border))',
+              backgroundColor: 'var(--background)',
+              border: '1px solid var(--border)',
               borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             }}
-            labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 500 }}
-            cursor={{ fill: 'hsl(var(--muted))' }}
+            labelStyle={{ color: 'var(--foreground)', fontWeight: 500 }}
+            cursor={{ fill: 'var(--muted)' }}
           />
           {datasets.length > 1 && (
             <Legend

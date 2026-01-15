@@ -30,47 +30,47 @@ function TimeSeriesChart({ data }: TimeSeriesChartProps) {
       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="hsl(var(--border))"
+          stroke="var(--border)"
           vertical={false}
         />
         <XAxis
           dataKey="time"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
           tickMargin={8}
         />
         <YAxis
           axisLine={false}
           tickLine={false}
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+          tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
           tickMargin={8}
           allowDecimals={false}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
+            backgroundColor: 'var(--background)',
+            border: '1px solid var(--border)',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }}
-          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 500 }}
-          itemStyle={{ color: 'hsl(var(--primary))' }}
+          labelStyle={{ color: 'var(--foreground)', fontWeight: 500 }}
+          itemStyle={{ color: 'var(--primary)' }}
         />
         <Area
           type="monotone"
           dataKey="value"
-          stroke="hsl(var(--primary))"
+          stroke="var(--primary)"
           strokeWidth={2}
           fill="url(#colorRequests)"
           dot={false}
-          activeDot={{ r: 4, fill: 'hsl(var(--primary))' }}
+          activeDot={{ r: 4, fill: 'var(--primary)' }}
         />
       </AreaChart>
     </ResponsiveContainer>

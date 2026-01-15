@@ -7,17 +7,17 @@
  * Common chart colors using CSS variables
  */
 export const chartColors = {
-  primary: 'hsl(var(--primary))',
-  secondary: 'hsl(var(--secondary))',
-  muted: 'hsl(var(--muted))',
-  border: 'hsl(var(--border))',
-  foreground: 'hsl(var(--foreground))',
-  mutedForeground: 'hsl(var(--muted-foreground))',
-  chart1: 'hsl(var(--chart-1))',
-  chart2: 'hsl(var(--chart-2))',
-  chart3: 'hsl(var(--chart-3))',
-  chart4: 'hsl(var(--chart-4))',
-  chart5: 'hsl(var(--chart-5))',
+  primary: 'var(--primary)',
+  secondary: 'var(--secondary)',
+  muted: 'var(--muted)',
+  border: 'var(--border)',
+  foreground: 'var(--foreground)',
+  mutedForeground: 'var(--muted-foreground)',
+  chart1: 'var(--chart-1)',
+  chart2: 'var(--chart-2)',
+  chart3: 'var(--chart-3)',
+  chart4: 'var(--chart-4)',
+  chart5: 'var(--chart-5)',
 } as const;
 
 /**
@@ -25,17 +25,17 @@ export const chartColors = {
  */
 export const tooltipStyles = {
   contentStyle: {
-    backgroundColor: 'hsl(var(--background))',
-    border: '1px solid hsl(var(--border))',
+    backgroundColor: 'var(--background)',
+    border: '1px solid var(--border)',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
   },
   labelStyle: {
-    color: 'hsl(var(--foreground))',
+    color: 'var(--foreground)',
     fontWeight: 500,
   },
   itemStyle: {
-    color: 'hsl(var(--muted-foreground))',
+    color: 'var(--muted-foreground)',
   },
 } as const;
 
@@ -44,7 +44,7 @@ export const tooltipStyles = {
  */
 export const axisStyles = {
   tick: {
-    fill: 'hsl(var(--muted-foreground))',
+    fill: 'var(--muted-foreground)',
     fontSize: 12,
   },
   axisLine: false,
@@ -57,6 +57,6 @@ export const axisStyles = {
  */
 export const gridStyles = {
   strokeDasharray: '3 3',
-  stroke: 'hsl(var(--border))',
+  stroke: 'var(--border)',
   vertical: false,
 } as const;

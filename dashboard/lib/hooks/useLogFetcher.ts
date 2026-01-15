@@ -5,6 +5,9 @@ import { enrichLogsWithGeoLocation } from '@/lib/location';
 import { apiClient } from '@/lib/api-client';
 import { useTabVisibility } from './useTabVisibility';
 
+// Get max logs display from environment variable (default: 1000)
+const MAX_LOGS_DISPLAY = parseInt(process.env.NEXT_PUBLIC_MAX_LOGS_DISPLAY || '1000', 10);
+
 export function useLogFetcher() {
   const [logs, setLogs] = useState<TraefikLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +21,7 @@ export function useLogFetcher() {
   const positionRef = useRef<number>(-1);
   const isFirstFetch = useRef(true);
   const seenLogsRef = useRef<Set<string>>(new Set());
-  const maxSeenLogs = 2000; // Limit seen logs cache to prevent infinite growth
+  const maxSeenLogs = MAX_LOGS_DISPLAY * 2; // Limit seen logs cache to prevent infinite growth
 
   // REDUNDANCY FIX: Use shared visibility hook
   const isTabVisible = useTabVisibility();
@@ -84,7 +87,7 @@ export function useLogFetcher() {
                 isFirstFetch.current = false;
                 return enrichedLogs;
               }
-              return [...prevLogs, ...enrichedLogs].slice(-1000);
+              return [...prevLogs, ...enrichedLogs].slice(-MAX_LOGS_DISPLAY);
             });
           }
         }

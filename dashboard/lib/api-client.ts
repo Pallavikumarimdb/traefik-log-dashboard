@@ -4,16 +4,21 @@ import {
   LogSizesResponse,
   StatusResponse,
 } from './types';
+import { getBaseOrigin, withBasePath } from './utils/base-url';
 
 export class APIClient {
-  private baseURL: string;
+  private baseOrigin: string;
   private authToken?: string;
 
   constructor(baseURL?: string, authToken?: string) {
-    // Default to empty string to use relative URLs (dashboard's own API routes)
-    // The dashboard's API routes will then proxy to the agent
-    this.baseURL = baseURL || '';
+    // Default to empty string to use same-origin unless a base domain is provided
+    this.baseOrigin = (baseURL || getBaseOrigin()).replace(/\/$/, '');
     this.authToken = authToken;
+  }
+
+  private buildApiUrl(endpoint: string): string {
+    const path = withBasePath(endpoint);
+    return `${this.baseOrigin}${path}`;
   }
 
   private async fetch<T>(
@@ -32,8 +37,9 @@ export class APIClient {
       headers['Authorization'] = `Bearer ${this.authToken}`;
     }
 
+    const url = this.buildApiUrl(endpoint);
     // Add timestamp to prevent caching
-    const url = `${this.baseURL}${endpoint}${endpoint.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+    const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
 
     // FIX: Add timeout to prevent infinite hanging
     // Use provided signal or create a new AbortController with timeout
@@ -46,7 +52,7 @@ export class APIClient {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(urlWithTimestamp, {
         ...options,
         headers,
         cache: 'no-store', // Prevent browser caching
@@ -153,7 +159,7 @@ export class APIClient {
    * Set base URL
    */
   setBaseURL(url: string) {
-    this.baseURL = url;
+    this.baseOrigin = url.replace(/\/$/, '');
   }
 
   /**
@@ -175,7 +181,7 @@ async lookupLocations(ips: string[]): Promise<{
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
   try {
-    const response = await fetch('/api/location/lookup', {
+    const response = await fetch(this.buildApiUrl('/api/location/lookup'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
