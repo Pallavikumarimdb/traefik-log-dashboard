@@ -17,6 +17,7 @@ export interface ProxySettings {
   enableXForwardedFor: boolean;
   enableXRealIP: boolean;
   customHeaders: string[];
+  replaceClientIP: boolean;
 }
 
 export interface FilterSettings {
@@ -41,6 +42,7 @@ export const defaultFilterSettings: FilterSettings = {
     enableXForwardedFor: true,
     enableXRealIP: true,
     customHeaders: [],
+    replaceClientIP: false,
   },
   customConditions: [],
   excludeStatusCodes: [],
