@@ -144,12 +144,30 @@ function parseJSONLog(logLine: string): TraefikLog | null {
 
     // CRITICAL FIX: Handle request_ prefix fields with both hyphen and underscore
     // Traefik uses hyphen in header names: request_User-Agent, not request_User_Agent
+    const requestReferer = parsed['request_Referer'] ||
+                         parsed['request_referer'] ||
+                         parsed['RequestReferer'] ||
+                         parsed['Referer'] ||
+                         '';
+
     const requestUserAgent = parsed['request_User-Agent'] ||
                            parsed['request_User_Agent'] ||
                            parsed['RequestUserAgent'] ||
                            parsed['User-Agent'] ||
                            parsed['UserAgent'] ||
                            '';
+
+    const requestCFConnectingIP = parsed['request_CF-Connecting-IP'] ||
+                                parsed['request_CF_Connecting_IP'] ||
+                                parsed['RequestCFConnectingIP'] ||
+                                parsed['CF-Connecting-IP'] ||
+                                parsed['CFConnectingIP'] ||
+                                parsed['request_CF-Connecting-Ip'] ||
+                                parsed['request_CF_Connecting_Ip'] ||
+                                parsed['RequestCFConnectingIp'] ||
+                                parsed['CF-Connecting-Ip'] ||
+                                parsed['CFConnectingIp'] ||
+                                '';
 
     const requestXForwardedFor = parsed['request_X-Forwarded-For'] ||
                                parsed['request_X_Forwarded_For'] ||
@@ -170,6 +188,33 @@ function parseJSONLog(logLine: string): TraefikLog | null {
                          parsed['XRealIp'] ||
                          '';
 
+    // Extract ALL request_* headers dynamically for custom header support
+    // Exclude the ones we handle explicitly to avoid duplication
+    const explicitHeaders = new Set([
+      'request_Referer',
+      'request_referer',
+      'request_User-Agent',
+      'request_User_Agent',
+      'request_CF-Connecting-IP',
+      'request_CF_Connecting_IP',
+      'request_CF-Connecting-Ip',
+      'request_CF_Connecting_Ip',
+      'request_X-Forwarded-For',
+      'request_X_Forwarded_For',
+      'request_X-Real-IP',
+      'request_X_Real_IP',
+      'request_X-Real-Ip',
+      'request_X_Real_Ip',
+    ]);
+
+    const dynamicHeaders: Record<string, unknown> = {};
+    for (const key in parsed) {
+      if (key.startsWith('request_') && !explicitHeaders.has(key)) {
+        // Convert hyphens to underscores for consistency
+        const normalizedKey = key.replace(/-/g, '_');
+        dynamicHeaders[normalizedKey] = parsed[key];
+      }
+    }
 
     // OPTIMIZATION: Use pre-defined field keys cache to reduce allocations
     return {
@@ -201,10 +246,12 @@ function parseJSONLog(logLine: string): TraefikLog | null {
       StartLocal: getStringValue(parsed, FIELD_KEYS.startLocal),
       StartUTC: getStringValue(parsed, FIELD_KEYS.startUTC),
       entryPointName: getStringValue(parsed, FIELD_KEYS.entryPointName),
-      request_Referer: parsed['request_Referer'] || parsed['request_referer'] || parsed['RequestReferer'] || parsed['Referer'] || '',
+      request_Referer: requestReferer,
       request_User_Agent: requestUserAgent,
+      request_CF_Connecting_IP: requestCFConnectingIP,
       request_X_Forwarded_For: requestXForwardedFor,
       request_X_Real_IP: requestXRealIP,
+      ...dynamicHeaders, // Include all other request_* headers
     };
   } catch {
     return null;
