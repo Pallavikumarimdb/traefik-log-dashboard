@@ -92,7 +92,7 @@ function isValidTraefikLog(parsed: Record<string, unknown>): boolean {
   if (parsed.DownstreamStatus !== undefined || parsed.downstreamStatus !== undefined) {
     return true;
   }
-  
+
   if (parsed.RequestMethod !== undefined || parsed.requestMethod !== undefined) {
     return true;
   }
@@ -151,6 +151,26 @@ function parseJSONLog(logLine: string): TraefikLog | null {
                            parsed['UserAgent'] ||
                            '';
 
+    const requestXForwardedFor = parsed['request_X-Forwarded-For'] ||
+                               parsed['request_X_Forwarded_For'] ||
+                               parsed['RequestXForwardedFor'] ||
+                               parsed['X-Forwarded-For'] ||
+                               parsed['XForwardedFor'] ||
+                               '';
+
+    const requestXRealIP = parsed['request_X-Real-IP'] ||
+                         parsed['request_X_Real_IP'] ||
+                         parsed['RequestXRealIP'] ||
+                         parsed['X-Real-IP'] ||
+                         parsed['XRealIP'] ||
+                         parsed['request_X-Real-Ip'] ||
+                         parsed['request_X_Real_Ip'] ||
+                         parsed['RequestXRealIp'] ||
+                         parsed['X-Real-Ip'] ||
+                         parsed['XRealIp'] ||
+                         '';
+
+
     // OPTIMIZATION: Use pre-defined field keys cache to reduce allocations
     return {
       ClientAddr: getStringValue(parsed, FIELD_KEYS.clientAddr),
@@ -183,6 +203,8 @@ function parseJSONLog(logLine: string): TraefikLog | null {
       entryPointName: getStringValue(parsed, FIELD_KEYS.entryPointName),
       request_Referer: parsed['request_Referer'] || parsed['request_referer'] || parsed['RequestReferer'] || parsed['Referer'] || '',
       request_User_Agent: requestUserAgent,
+      request_X_Forwarded_For: requestXForwardedFor,
+      request_X_Real_IP: requestXRealIP,
     };
   } catch {
     return null;
@@ -194,7 +216,7 @@ function parseJSONLog(logLine: string): TraefikLog | null {
  */
 function parseCLFLog(logLine: string): TraefikLog | null {
   const match = logLine.match(CLF_PATTERN);
-  
+
   if (!match) {
     return null;
   }
@@ -218,8 +240,8 @@ function parseCLFLog(logLine: string): TraefikLog | null {
   ] = match;
 
   // Extract host and port from remote address
-  const [clientHost, clientPort] = remoteAddr.includes(':') 
-    ? remoteAddr.split(':') 
+  const [clientHost, clientPort] = remoteAddr.includes(':')
+    ? remoteAddr.split(':')
     : [remoteAddr, ''];
 
   return {
