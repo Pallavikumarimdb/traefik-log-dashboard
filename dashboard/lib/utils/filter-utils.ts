@@ -45,6 +45,40 @@ function getRealIP(log: TraefikLog, settings: FilterSettings): string {
 }
 
 /**
+ * Replace ClientAddr and ClientHost with real IP from headers
+ */
+function replaceClientIP(log: TraefikLog, settings: FilterSettings): TraefikLog {
+  if (!settings.proxySettings.replaceClientIP) {
+    return log;
+  }
+
+  const realIP = getRealIP(log, settings);
+  
+  // Only replace if we found a different IP from headers
+  const currentAddr = log.ClientAddr || '';
+  const currentIPClean = currentAddr.includes(':') ? currentAddr.split(':')[0] : currentAddr;
+  
+  if (realIP && realIP !== currentIPClean) {
+    // Extract port from original ClientAddr if present
+    let port = '';
+    if (currentAddr.includes(':')) {
+      const parts = currentAddr.split(':');
+      port = parts[parts.length - 1]; // Get last part (port)
+    }
+    
+    const newClientAddr = port ? `${realIP}:${port}` : realIP;
+    
+    return {
+      ...log,
+      ClientAddr: newClientAddr,
+      ClientHost: realIP,
+    };
+  }
+
+  return log;
+}
+
+/**
  * Check if a log entry matches a filter condition
  */
 function matchesCondition(log: TraefikLog, condition: FilterCondition): boolean {
@@ -85,7 +119,7 @@ function matchesCondition(log: TraefikLog, condition: FilterCondition): boolean 
  */
 function isBot(userAgent: string): boolean {
   if (!userAgent) return false;
-  
+
   const botPatterns = [
     'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget',
     'python-requests', 'go-http-client', 'java', 'apache-httpclient',
@@ -101,9 +135,11 @@ function isBot(userAgent: string): boolean {
  * Apply filter settings to logs array
  */
 export function applyFilters(logs: TraefikLog[], settings: FilterSettings): TraefikLog[] {
-  return logs.filter(log => {
-    // Get real IP based on proxy settings
-    const realIP = getRealIP(log, settings);
+  return logs
+    .map(log => replaceClientIP(log, settings)) // Replace client IP if enabled
+    .filter(log => {
+      // Get real IP based on proxy settings
+      const realIP = getRealIP(log, settings);
 
     // Filter excluded IPs
     if (settings.excludedIPs.includes(realIP)) {

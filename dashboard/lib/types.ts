@@ -30,6 +30,10 @@ export interface TraefikLog {
   entryPointName: string;
   request_Referer?: string;
   request_User_Agent?: string;
+  // Real IP fields (added by proxy)
+  request_CF_Connecting_IP?: string;
+  request_X_Forwarded_For?: string;
+  request_X_Real_IP?: string;
   // GeoIP fields (added by enrichment)
   geoCountry?: string;
   geoCity?: string;

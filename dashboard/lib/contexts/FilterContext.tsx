@@ -102,29 +102,32 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
   // PERFORMANCE FIX: Memoize callback functions to prevent unnecessary re-renders
   const updateSettings = useCallback((newSettings: Partial<FilterSettings>) => {
     setSettings((prev) => {
-      const mergedExcludedIPs = newSettings.excludedIPs
-        ? dedupeStrings([...prev.excludedIPs, ...newSettings.excludedIPs])
+      // If new settings explicitly provide arrays, use them directly (for removals)
+      // Otherwise, merge arrays (for additions)
+      const mergedExcludedIPs = newSettings.excludedIPs !== undefined
+        ? newSettings.excludedIPs
         : prev.excludedIPs;
 
-      const mergedExcludePaths = newSettings.excludePaths
-        ? dedupeStrings([...prev.excludePaths, ...newSettings.excludePaths])
+      const mergedExcludePaths = newSettings.excludePaths !== undefined
+        ? newSettings.excludePaths
         : prev.excludePaths;
 
-      const mergedStatusCodes = newSettings.excludeStatusCodes
-        ? dedupeNumbers([...prev.excludeStatusCodes, ...newSettings.excludeStatusCodes])
+      const mergedStatusCodes = newSettings.excludeStatusCodes !== undefined
+        ? newSettings.excludeStatusCodes
         : prev.excludeStatusCodes;
 
-      const mergedProxySettings = {
-        ...prev.proxySettings,
-        ...(newSettings.proxySettings || {}),
-        customHeaders: dedupeStrings([
-          ...prev.proxySettings.customHeaders,
-          ...(newSettings.proxySettings?.customHeaders || []),
-        ]),
-      };
+      const mergedProxySettings = newSettings.proxySettings
+        ? {
+            ...prev.proxySettings,
+            ...newSettings.proxySettings,
+            customHeaders: newSettings.proxySettings.customHeaders !== undefined
+              ? newSettings.proxySettings.customHeaders
+              : prev.proxySettings.customHeaders,
+          }
+        : prev.proxySettings;
 
-      const mergedCustomConditions = newSettings.customConditions
-        ? dedupeConditions([...prev.customConditions, ...newSettings.customConditions])
+      const mergedCustomConditions = newSettings.customConditions !== undefined
+        ? newSettings.customConditions
         : prev.customConditions;
 
       return {
