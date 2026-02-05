@@ -8,7 +8,6 @@ import {
   Bell,
   Filter,
   Server,
-  History,
   Activity,
   Play,
 } from 'lucide-react';
@@ -27,7 +26,8 @@ import {
 } from '@/components/ui/ui-sidebar';
 
 // Check if demo page should be shown (respects NEXT_PUBLIC_SHOW_DEMO_PAGE env var)
-const showDemoPage = process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE !== 'false';
+const showDemoPage =
+  (process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE ?? process.env.SHOW_DEMO_PAGE ?? '').toLowerCase() === 'true';
 
 const baseNavItems = [
   {
@@ -65,11 +65,6 @@ const settingsNavItems = [
     title: 'Filters',
     url: '/settings/filters',
     icon: Filter,
-  },
-  {
-    title: 'Historical',
-    url: '/settings/historical',
-    icon: History,
   },
 ];
 

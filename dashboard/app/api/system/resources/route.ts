@@ -38,6 +38,18 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`${agent.url}/api/system/resources`, { headers });
 
     if (!response.ok) {
+      // Gracefully downgrade disabled monitoring (older agents may return 403)
+      if (response.status === 403) {
+        const errorText = await response.text();
+        if (errorText.toLowerCase().includes('system monitoring is disabled')) {
+          return NextResponse.json({
+            status: 'disabled',
+            system_monitoring: false,
+            message: 'System monitoring is disabled on the agent',
+          }, { status: 200 });
+        }
+      }
+
       const error = await response.text();
       return NextResponse.json(
         { error: `Agent error: ${error}` },

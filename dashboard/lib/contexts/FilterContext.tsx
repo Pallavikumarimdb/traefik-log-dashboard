@@ -4,23 +4,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { FilterSettings, FilterCondition, defaultFilterSettings } from '../types/filter';
 
-function dedupeStrings(values: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const value of values) {
-    const key = value.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(value);
-    }
-  }
-  return result;
-}
-
-function dedupeNumbers(values: number[]): number[] {
-  return Array.from(new Set(values));
-}
-
 function isDuplicateCondition(existing: FilterCondition, candidate: FilterCondition): boolean {
   return (
     existing.field === candidate.field &&

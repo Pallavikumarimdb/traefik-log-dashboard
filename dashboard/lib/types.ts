@@ -66,6 +66,14 @@ export interface SystemStats {
   [key: string]: unknown; // Allow additional properties from agent
 }
 
+export interface SystemMonitoringDisabled {
+  status: 'disabled';
+  system_monitoring?: false;
+  message?: string;
+}
+
+export type SystemStatsResponse = SystemStats | SystemMonitoringDisabled;
+
 export interface CPUStats {
   model?: string;
   cores: number;

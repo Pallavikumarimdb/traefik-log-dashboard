@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useTabVisibility } from './useTabVisibility';
-import { SystemStats } from '@/lib/types';
+import { SystemStatsResponse } from '@/lib/types';
 
 export function useSystemStats(demoMode: boolean) {
-  const [systemStats, setSystemStats] = useState<SystemStats | undefined>(undefined);
+  const [systemStats, setSystemStats] = useState<SystemStatsResponse | undefined>(undefined);
   
   // REDUNDANCY FIX: Use shared visibility hook
   const isTabVisible = useTabVisibility();
@@ -21,9 +21,15 @@ export function useSystemStats(demoMode: boolean) {
         // MEMORY LEAK FIX: Add abort signal support
         // Note: getSystemResources needs to support abort signal, will be handled in API route
         const data = await apiClient.getSystemResources();
-        if (isMounted) {
+        if (!isMounted) return;
+
+        // Treat disabled monitoring as a non-error terminal state
+        if (data && typeof data === 'object' && 'status' in data && (data as { status?: string }).status === 'disabled') {
           setSystemStats(data);
+          return;
         }
+
+        setSystemStats(data);
       } catch (error) {
         // Don't log abort errors as they're expected
         if (error instanceof Error && error.name === 'AbortError') {

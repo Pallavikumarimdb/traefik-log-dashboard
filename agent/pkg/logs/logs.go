@@ -3,15 +3,27 @@ package logs
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/logger"
+)
+
+var (
+	scanBufPool = sync.Pool{
+		New: func() any {
+			// 64KB buffer per scanner; cap defined in scanner below
+			buf := make([]byte, 64*1024)
+			return &buf
+		},
+	}
 )
 
 func GetLogs(path string, positions []Position, isErrorLog bool, includeCompressed bool) (LogResult, error) {
@@ -94,7 +106,9 @@ func readLogFile(filePath string, position int64) (LogResult, error) {
 	// PERFORMANCE FIX: Pre-allocate slice with estimated capacity
 	logs := make([]string, 0, 1000)
 	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024) // Handle larger lines
+	bufPtr := scanBufPool.Get().(*[]byte)
+	defer scanBufPool.Put(bufPtr)
+	scanner.Buffer(*bufPtr, 1024*1024) // Handle larger lines
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -117,6 +131,74 @@ func readLogFile(filePath string, position int64) (LogResult, error) {
 		Logs:      logs,
 		Positions: []Position{{Position: currentPos}},
 	}, nil
+}
+
+// StreamFromPosition reads new lines from a file starting at position and emits in batches.
+// It stops on context cancellation or EOF without new data and returns the latest position.
+func StreamFromPosition(ctx context.Context, filePath string, position int64, batchLines int, maxBytes int) (lines []string, nextPos int64, err error) {
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return nil, position, err
+	}
+
+	// No new data
+	if position >= fileInfo.Size() {
+		return []string{}, fileInfo.Size(), nil
+	}
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, position, err
+	}
+	defer f.Close()
+
+	if position > 0 {
+		if _, err := f.Seek(position, io.SeekStart); err != nil {
+			return nil, position, err
+		}
+	}
+
+	reader := bufio.NewReaderSize(f, 64*1024)
+	lines = make([]string, 0, batchLines)
+	bytesUsed := 0
+	if batchLines <= 0 {
+		batchLines = 400
+	}
+	if maxBytes <= 0 {
+		maxBytes = 512 * 1024
+	}
+
+	for len(lines) < batchLines && bytesUsed < maxBytes {
+		select {
+		case <-ctx.Done():
+			return lines, position, ctx.Err()
+		default:
+		}
+
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				position, _ = f.Seek(0, io.SeekCurrent)
+				return lines, position, nil
+			}
+			return lines, position, err
+		}
+
+		trimmed := strings.TrimRight(line, "\r\n")
+		if trimmed != "" {
+			entrySize := len(trimmed) + 1 // include newline
+			if bytesUsed+entrySize > maxBytes {
+				// stop and return what we have; caller may re-read from current position
+				position, _ = f.Seek(0, io.SeekCurrent)
+				return lines, position, nil
+			}
+			lines = append(lines, trimmed)
+			bytesUsed += entrySize
+		}
+	}
+
+	position, _ = f.Seek(0, io.SeekCurrent)
+	return lines, position, nil
 }
 
 // tailLogFile reads the last N lines from a file

@@ -56,6 +56,7 @@ func main() {
 	mux.HandleFunc("/api/logs/access", middleware.Apply(chain, authenticator.Middleware(handler.HandleAccessLogs)))
 	mux.HandleFunc("/api/logs/error", middleware.Apply(chain, authenticator.Middleware(handler.HandleErrorLogs)))
 	mux.HandleFunc("/api/logs/get", middleware.Apply(chain, authenticator.Middleware(handler.HandleGetLog)))
+	mux.HandleFunc("/api/logs/stream", middleware.Apply(chain, authenticator.Middleware(handler.HandleStreamAccessLogs)))
 
 	// System endpoints (with auth)
 	mux.HandleFunc("/api/system/logs", middleware.Apply(chain, authenticator.Middleware(handler.HandleSystemLogs)))
