@@ -4,6 +4,7 @@
 import { alertEngine } from './alert-engine';
 import { archivalService } from './archival-service';
 import { snapshotScheduler } from './snapshot-scheduler';
+import { backgroundScheduler } from './background-scheduler';
 import { DashboardMetrics } from '../types';
 import { TraefikLog } from '../types';
 
@@ -47,6 +48,8 @@ export class ServiceManager {
 
       // Start archival service
       archivalService.start();
+      // Start background scheduler for alerts
+      backgroundScheduler.start();
 
       this.initialized = true;
       if (process.env.NODE_ENV === 'development') {
@@ -73,6 +76,8 @@ export class ServiceManager {
 
       // Stop archival service
       archivalService.stop();
+      // Stop background scheduler
+      backgroundScheduler.stop();
 
       this.initialized = false;
       if (process.env.NODE_ENV === 'development') {
@@ -115,10 +120,12 @@ export class ServiceManager {
   getStatus(): {
     initialized: boolean;
     archivalService: ReturnType<typeof archivalService.getStatus>;
+    backgroundScheduler: ReturnType<typeof backgroundScheduler.getStatus>;
   } {
     return {
       initialized: this.initialized,
       archivalService: archivalService.getStatus(),
+      backgroundScheduler: backgroundScheduler.getStatus(),
     };
   }
 
