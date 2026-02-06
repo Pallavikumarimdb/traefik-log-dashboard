@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import packageJson from '../../package.json';
 import {
   LayoutDashboard,
   Settings,
@@ -70,6 +71,7 @@ const settingsNavItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const appVersion = `v${packageJson.version}`;
 
   return (
     <Sidebar collapsible="icon">
@@ -144,7 +146,7 @@ export function DashboardSidebar() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span className="text-xs text-muted-foreground">v2.4.0</span>
+                <span className="text-xs text-muted-foreground">{appVersion}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
