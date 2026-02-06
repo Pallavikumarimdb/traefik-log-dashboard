@@ -160,15 +160,3 @@ export class ServiceManager {
 
 // Export singleton instance
 export const serviceManager = ServiceManager.getInstance();
-
-// Auto-initialize in server context
-if (typeof window === 'undefined') {
-  try {
-    serviceManager.initialize();
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Service Manager auto-initialized');
-    }
-  } catch (error) {
-    console.error('Failed to auto-initialize services:', error);
-  }
-}
