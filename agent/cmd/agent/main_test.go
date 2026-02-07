@@ -9,6 +9,7 @@ import (
 
 	"github.com/hhftechnology/traefik-log-dashboard/agent/internal/auth"
 	"github.com/hhftechnology/traefik-log-dashboard/agent/internal/config"
+	"github.com/hhftechnology/traefik-log-dashboard/agent/internal/middleware"
 	"github.com/hhftechnology/traefik-log-dashboard/agent/internal/routes"
 	"github.com/hhftechnology/traefik-log-dashboard/agent/internal/state"
 )
@@ -155,7 +156,8 @@ func TestCORSHeaders(t *testing.T) {
 	req := httptest.NewRequest(http.MethodOptions, "/api/logs/status", nil)
 	w := httptest.NewRecorder()
 
-	handler.HandleStatus(w, req)
+	corsHandler := middleware.CORS(middleware.DefaultCORSConfig())(http.HandlerFunc(handler.HandleStatus))
+	corsHandler.ServeHTTP(w, req)
 
 	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
 		t.Error("Expected CORS header not set")
@@ -219,8 +221,8 @@ func TestSystemResourcesDisabled(t *testing.T) {
 
 	handler.HandleSystemResources(w, req)
 
-	if w.Code != http.StatusForbidden {
-		t.Errorf("Expected status 403, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 }
 

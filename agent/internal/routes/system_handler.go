@@ -22,7 +22,12 @@ func (h *Handler) HandleSystemLogs(w http.ResponseWriter, r *http.Request) {
 // HandleSystemResources handles requests for system resource statistics
 func (h *Handler) HandleSystemResources(w http.ResponseWriter, r *http.Request) {
 	if !h.config.SystemMonitoring {
-		utils.RespondError(w, http.StatusForbidden, "System monitoring is disabled")
+		utils.RespondJSON(w, http.StatusOK, map[string]interface{}{
+			"status":              "disabled",
+			"system_monitoring":   false,
+			"message":             "System monitoring is disabled",
+			"resources_available": false,
+		})
 		return
 	}
 

@@ -1,6 +1,6 @@
 import {
   LogsResponse,
-  SystemStats,
+  SystemStatsResponse,
   LogSizesResponse,
   StatusResponse,
 } from './types';
@@ -125,8 +125,61 @@ export class APIClient {
   /**
    * Get system resources
    */
-  async getSystemResources(): Promise<SystemStats> {
-    return this.fetch<SystemStats>('/api/system/resources');
+  async getSystemResources(): Promise<SystemStatsResponse> {
+    return this.fetch<SystemStatsResponse>('/api/system/resources');
+  }
+
+  /**
+   * Stream access logs via SSE/fetch stream.
+   */
+  async *streamAccessLogs(options: { signal?: AbortSignal } = {}): AsyncGenerator<string, void, unknown> {
+    const headers: Record<string, string> = {
+      'Cache-Control': 'no-cache',
+      'Accept': 'text/event-stream',
+    };
+
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
+    const url = this.buildApiUrl('/api/logs/stream');
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      signal: options.signal,
+      cache: 'no-store',
+    });
+
+    if (!response.ok || !response.body) {
+      const text = await response.text().catch(() => '');
+      throw new Error(`Stream error: ${response.status} ${text}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
+
+        for (const evt of events) {
+          const lines = evt.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              yield line.slice(6);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   /**

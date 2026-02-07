@@ -1,11 +1,15 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/hhftechnology/traefik-log-dashboard/agent/internal/utils"
+	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/logger"
 	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/logs"
 )
 
@@ -157,4 +161,95 @@ func (h *Handler) HandleGetLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondJSON(w, http.StatusOK, result)
+}
+
+// HandleStreamAccessLogs streams access logs over SSE with light batching/backpressure.
+func (h *Handler) HandleStreamAccessLogs(w http.ResponseWriter, r *http.Request) {
+	if h.streamClients.Load() >= int32(h.config.StreamMaxClients) {
+		utils.RespondError(w, http.StatusServiceUnavailable, "too many streaming clients")
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		utils.RespondError(w, http.StatusInternalServerError, "streaming not supported")
+		return
+	}
+
+	h.streamClients.Add(1)
+	defer h.streamClients.Add(-1)
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	ctx := r.Context()
+	startPos := h.state.GetFilePosition(h.config.AccessPath)
+	currentPos := startPos
+
+	flushInterval := time.Duration(h.config.StreamFlushIntervalMS) * time.Millisecond
+	ticker := time.NewTicker(flushInterval)
+	defer ticker.Stop()
+
+	maxDuration := time.Duration(h.config.StreamMaxDurationSec) * time.Second
+	timeout := time.NewTimer(maxDuration)
+	defer timeout.Stop()
+
+	// Initial comment to establish stream
+	if _, err := w.Write([]byte(": stream-start\n\n")); err == nil {
+		flusher.Flush()
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-timeout.C:
+			_, _ = w.Write([]byte("event: end\ndata: stream timeout\n\n"))
+			flusher.Flush()
+			return
+		case <-ticker.C:
+			lines, nextPos, err := logs.StreamFromPosition(ctx, h.config.AccessPath, currentPos, h.config.StreamBatchLines, h.config.StreamMaxBytesPerBatch)
+			if err != nil && err != context.Canceled {
+				logger.Log.Printf("stream error: %v", err)
+				utils.RespondError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			if len(lines) == 0 {
+				_, _ = w.Write([]byte(": keep-alive\n\n"))
+				flusher.Flush()
+				continue
+			}
+
+			var builder strings.Builder
+			bytesUsed := 0
+			maxBytes := h.config.StreamMaxBytesPerBatch
+			if maxBytes <= 0 {
+				maxBytes = 512 * 1024
+			}
+
+			for _, line := range lines {
+				entry := "data: " + line + "\n"
+				if bytesUsed+len(entry)+1 > maxBytes {
+					logger.Log.Printf("stream batch truncated at %d bytes", bytesUsed)
+					break
+				}
+				builder.WriteString(entry)
+				builder.WriteString("\n")
+				bytesUsed += len(entry) + 1
+			}
+
+			if builder.Len() > 0 {
+				if _, err := w.Write([]byte(builder.String())); err != nil {
+					return
+				}
+				flusher.Flush()
+			}
+
+			currentPos = nextPos
+			h.state.SetFilePosition(h.config.AccessPath, currentPos)
+		}
+	}
 }

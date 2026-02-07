@@ -25,12 +25,6 @@ const settingsItems = [
     href: '/settings/alerts',
   },
   {
-    title: 'Historical Data',
-    description: 'Configure long-term data retention and archival',
-    icon: Database,
-    href: '/settings/historical',
-  },
-  {
     title: 'Filters',
     description: 'Configure log filtering and search settings',
     icon: Filter,

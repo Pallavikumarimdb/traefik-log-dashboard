@@ -146,15 +146,7 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // SECURITY: Block malicious Server Actions
-  const nextAction = request.headers.get('next-action');
-  if (nextAction && isSuspiciousServerAction(nextAction)) {
-    console.error(`[Security] Blocked suspicious Server Action from ${clientIP}:`, {
-      action: nextAction,
-      path: pathWithoutBase,
-    });
-    return new NextResponse('Forbidden', { status: 403 });
-  }
+  // SECURITY: Allow Next.js Server Action headers to pass through; rely on upstream validation.
 
   // SECURITY: Validate URL and search params for malicious content
   const fullUrl = request.url;
@@ -175,7 +167,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // SECURITY: Validate POST/PUT request bodies
-  if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
+  // NOTE: Skip deep body inspection for internal API routes to avoid false positives on large JSON payloads
+  const shouldInspectBody =
+    !isInternalApiRoute(pathWithoutBase) &&
+    (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH');
+
+  if (shouldInspectBody) {
     try {
       // Clone request to read body without consuming it
       const clonedRequest = request.clone();

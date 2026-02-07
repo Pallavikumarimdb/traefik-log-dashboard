@@ -76,6 +76,13 @@ class BackgroundScheduler {
     };
   }
 
+  /**
+   * Run the scheduler job immediately (cron/ops trigger)
+   */
+  async runOnce() {
+    await this.runJob();
+  }
+
   private async runJob() {
     if (this.isRunning) {
       if (process.env.NODE_ENV === 'development') {

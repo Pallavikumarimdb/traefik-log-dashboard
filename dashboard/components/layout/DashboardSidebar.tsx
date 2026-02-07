@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import packageJson from '../../package.json';
 import {
   LayoutDashboard,
   Settings,
   Bell,
   Filter,
   Server,
-  History,
   Activity,
   Play,
 } from 'lucide-react';
@@ -27,7 +27,8 @@ import {
 } from '@/components/ui/ui-sidebar';
 
 // Check if demo page should be shown (respects NEXT_PUBLIC_SHOW_DEMO_PAGE env var)
-const showDemoPage = process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE !== 'false';
+const showDemoPage =
+  (process.env.NEXT_PUBLIC_SHOW_DEMO_PAGE ?? process.env.SHOW_DEMO_PAGE ?? '').toLowerCase() === 'true';
 
 const baseNavItems = [
   {
@@ -66,15 +67,11 @@ const settingsNavItems = [
     url: '/settings/filters',
     icon: Filter,
   },
-  {
-    title: 'Historical',
-    url: '/settings/historical',
-    icon: History,
-  },
 ];
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const appVersion = `v${packageJson.version}`;
 
   return (
     <Sidebar collapsible="icon">
@@ -149,7 +146,7 @@ export function DashboardSidebar() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span className="text-xs text-muted-foreground">v2.4.0</span>
+                <span className="text-xs text-muted-foreground">{appVersion}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

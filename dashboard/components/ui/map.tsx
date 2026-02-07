@@ -67,6 +67,7 @@ import {
     createContext,
     useContext,
     useEffect,
+    useCallback,
     useRef,
     useState,
     type ComponentType,
@@ -240,7 +241,7 @@ function MapTileLayer({
                 attribution: resolvedAttribution,
             })
         }
-    }, [context, name, url, attribution])
+    }, [context, name, resolvedUrl, resolvedAttribution])
 
     if (context && context.selectedTileLayer !== name) {
         return null
@@ -791,15 +792,15 @@ function MapLocateControl({
         })
     }
 
-    function stopLocating() {
+    const stopLocating = useCallback(() => {
         map.stopLocate()
         map.off("locationfound")
         map.off("locationerror")
         setPosition(null)
         setIsLocating(false)
-    }
+    }, [map])
 
-    useEffect(() => () => stopLocating(), [])
+    useEffect(() => () => stopLocating(), [stopLocating])
 
     return (
         <MapControlContainer className={cn("right-1 bottom-1", className)}>
@@ -910,7 +911,7 @@ function MapDrawControl({
             map.off(L.Draw.Event.EDITED, handleDrawEditedOrDeleted)
             map.off(L.Draw.Event.DELETED, handleDrawEditedOrDeleted)
         }
-    }, [L, LeafletDraw, map, onLayersChange])
+    }, [L, LeafletDraw, map, onLayersChange, handleDrawCreated, handleDrawEditedOrDeleted])
 
     return (
         <MapDrawContext.Provider
@@ -1159,7 +1160,7 @@ function MapDrawActionButton<T extends EditToolbar.Edit | EditToolbar.Delete>({
             control.disable?.()
             controlRef.current = null
         }
-    }, [L, map, isActive, featureGroup, createDrawTool])
+    }, [L, map, isActive, featureGroup, createDrawTool, controlRef])
 
     function handleClick() {
         controlRef.current?.save()
@@ -1219,7 +1220,7 @@ function MapDrawEdit({
         L.drawLocal.edit.handlers.remove.tooltip = {
             text: "Click on a shape to remove.",
         }
-    }, [mapDrawHandleIcon])
+    }, [mapDrawHandleIcon, L])
 
     return (
         <MapDrawActionButton

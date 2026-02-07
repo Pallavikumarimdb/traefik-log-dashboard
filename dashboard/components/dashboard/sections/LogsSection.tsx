@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TraefikLog, ErrorLog } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
+import { buildLogKey } from '@/lib/utils/log-batching';
 
 interface LogsSectionProps {
   logs: TraefikLog[];
@@ -82,8 +83,15 @@ function LogsSection({ logs, errors }: LogsSectionProps) {
     count: logs.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 48,
-    overscan: 10,
+    overscan: 12,
+    getItemKey: (index) => {
+      const log = logs[index];
+      return log ? buildLogKey(log) : `log-${index}`;
+    },
   });
+
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
 
   const toggleColumn = useCallback((key: ColumnKey) => {
     setVisibleColumns(prev => {
@@ -217,12 +225,12 @@ function LogsSection({ logs, errors }: LogsSectionProps) {
               >
                 <div
                   style={{
-                    height: `${virtualizer.getTotalSize()}px`,
+                    height: `${totalSize}px`,
                     width: '100%',
                     position: 'relative',
                   }}
                 >
-                  {virtualizer.getVirtualItems().map(virtualRow => {
+                  {virtualItems.map(virtualRow => {
                     const log = logs[virtualRow.index];
                     return (
                       <div

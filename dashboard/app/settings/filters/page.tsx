@@ -372,6 +372,29 @@ export default function FilterSettingsPage() {
                 <label className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-accent">
                   <div>
                     <div className="text-sm font-medium text-foreground">
+                      Replace Client IP with Real IP
+                    </div>
+                    <div className="text-xs text-muted-foreground">Update ClientAddr/ClientHost with detected Real IP</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.proxySettings.replaceClientIP}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      updateSettings({
+                        proxySettings: {
+                          ...settings.proxySettings,
+                          replaceClientIP: e.target.checked,
+                        },
+                      });
+                      showSavedIndicator();
+                    }}
+                    className="w-4 h-4"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-accent">
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
                       Cloudflare Headers
                     </div>
                     <div className="text-xs text-muted-foreground">CF-Connecting-IP</div>
