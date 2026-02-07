@@ -320,7 +320,7 @@ jobs:
           
           ## 📋 Changelog
           
-          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          See [CHANGELOG.md](https://traefik-log-dashboard.hhf.technology/docs/changelog) for details.
           
           ## 🔧 Docker Compose
           
@@ -328,15 +328,41 @@ jobs:
           services:
             traefik-agent:
               image: hhftechnology/traefik-log-dashboard-agent:${VERSION}
+              container_name: traefik-log-dashboard-agent
+              restart: unless-stopped
               volumes:
-                - /var/log/traefik:/logs:ro
+                - /root/config/traefik/logs:/logs:ro
+                - ./data/positions:/data
+              environment:
+                # Log Paths
+                - TRAEFIK_LOG_DASHBOARD_ACCESS_PATH=/logs/access.log
+                - TRAEFIK_LOG_DASHBOARD_ERROR_PATH=/logs/access.log
+                # Authentication
+                - TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN=d41d8cd98f00b204e9800998ecf8427e
+                # System Monitoring
+                - TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING=true      
+              healthcheck:
+                test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/logs/status"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+                start_period: 10s   
               ports:
-                - "8080:8080"
+                - "5000:5000"
           
             traefik-dashboard:
               image: hhftechnology/traefik-log-dashboard:${VERSION}
+              container_name: traefik-log-dashboard
+              restart: unless-stopped
+              volumes:
+                - ./data/dashboard:/app/data
+                - ./data/positions:/data
               environment:
-                - NEXT_PUBLIC_API_URL=http://traefik-agent:8080
+                - NEXT_PUBLIC_API_URL=http://traefik-agent:5000
+                - AGENT_API_TOKEN=d41d8cd98f00b204e9800998ecf8427e
+                - AGENT_NAME=Default Agent
+                - ENABLE_BACKGROUND_SCHEDULER=true
+                - NEXT_PUBLIC_SHOW_DEMO_PAGE=false
               ports:
                 - "3000:3000"
               depends_on:
