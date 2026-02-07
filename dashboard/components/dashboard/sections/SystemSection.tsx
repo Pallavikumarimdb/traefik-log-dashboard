@@ -4,10 +4,10 @@ import { memo } from 'react';
 import { Cpu, HardDrive, MemoryStick, Activity, Server } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Progress } from '@/components/ui/progress';
-import { SystemStats } from '@/lib/types';
+import { SystemMonitoringDisabled, SystemStats, SystemStatsResponse } from '@/lib/types';
 
 interface SystemSectionProps {
-  systemStats: SystemStats | null | undefined;
+  systemStats: SystemStatsResponse | null | undefined;
 }
 
 function formatBytes(bytes: number): string {
@@ -40,6 +40,34 @@ function getStatusLabel(percentage: number): string {
 }
 
 function SystemSection({ systemStats }: SystemSectionProps) {
+  const isDisabled = (value: SystemStatsResponse): value is SystemMonitoringDisabled =>
+    typeof value === 'object' && value !== null && (value as any).status === 'disabled';
+
+  if (systemStats && isDisabled(systemStats)) {
+    const message = systemStats.message || 'System monitoring is disabled';
+    return (
+      <div className="space-y-6">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide">System Resources</CardTitle>
+            <Server className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <div className="text-center space-y-2">
+                <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                  <Server className="h-6 w-6" />
+                </div>
+                <p className="text-sm font-medium">Monitoring disabled</p>
+                <p className="text-xs">{message}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!systemStats) {
     return (
       <div className="space-y-6">
@@ -62,9 +90,10 @@ function SystemSection({ systemStats }: SystemSectionProps) {
     );
   }
 
-  const cpuPercent = systemStats.cpu.usage_percent;
-  const memoryPercent = systemStats.memory.used_percent;
-  const diskPercent = systemStats.disk.used_percent;
+  const stats = systemStats as SystemStats;
+  const cpuPercent = stats.cpu.usage_percent;
+  const memoryPercent = stats.memory.used_percent;
+  const diskPercent = stats.disk.used_percent;
 
   return (
     <div className="space-y-6">
@@ -90,13 +119,13 @@ function SystemSection({ systemStats }: SystemSectionProps) {
               <div className="text-sm text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Cores</span>
-                  <span className="font-medium text-foreground">{systemStats.cpu.cores}</span>
+                  <span className="font-medium text-foreground">{stats.cpu.cores}</span>
                 </div>
-                {systemStats.cpu.model && (
+                {stats.cpu.model && (
                   <div className="flex justify-between mt-1">
                     <span>Model</span>
-                    <span className="font-medium text-foreground truncate max-w-[150px]" title={systemStats.cpu.model}>
-                      {systemStats.cpu.model}
+                    <span className="font-medium text-foreground truncate max-w-[150px]" title={stats.cpu.model}>
+                      {stats.cpu.model}
                     </span>
                   </div>
                 )}
@@ -125,15 +154,15 @@ function SystemSection({ systemStats }: SystemSectionProps) {
               <div className="text-sm text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Used</span>
-                  <span className="font-medium text-foreground">{formatBytes(systemStats.memory.used)}</span>
+                  <span className="font-medium text-foreground">{formatBytes(stats.memory.used)}</span>
                 </div>
                 <div className="flex justify-between mt-1">
                   <span>Total</span>
-                  <span className="font-medium text-foreground">{formatBytes(systemStats.memory.total)}</span>
+                  <span className="font-medium text-foreground">{formatBytes(stats.memory.total)}</span>
                 </div>
                 <div className="flex justify-between mt-1">
                   <span>Available</span>
-                  <span className="font-medium text-foreground">{formatBytes(systemStats.memory.available)}</span>
+                  <span className="font-medium text-foreground">{formatBytes(stats.memory.available)}</span>
                 </div>
               </div>
             </div>
@@ -160,15 +189,15 @@ function SystemSection({ systemStats }: SystemSectionProps) {
               <div className="text-sm text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Used</span>
-                  <span className="font-medium text-foreground">{formatBytes(systemStats.disk.used)}</span>
+                  <span className="font-medium text-foreground">{formatBytes(stats.disk.used)}</span>
                 </div>
                 <div className="flex justify-between mt-1">
                   <span>Total</span>
-                  <span className="font-medium text-foreground">{formatBytes(systemStats.disk.total)}</span>
+                  <span className="font-medium text-foreground">{formatBytes(stats.disk.total)}</span>
                 </div>
                 <div className="flex justify-between mt-1">
                   <span>Free</span>
-                  <span className="font-medium text-foreground">{formatBytes(systemStats.disk.free)}</span>
+                  <span className="font-medium text-foreground">{formatBytes(stats.disk.free)}</span>
                 </div>
               </div>
             </div>

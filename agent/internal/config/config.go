@@ -5,8 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/joho/godotenv"
 	"github.com/hhftechnology/traefik-log-dashboard/agent/pkg/logger"
+	"github.com/joho/godotenv"
 )
 
 // Config holds the application configuration
@@ -28,6 +28,13 @@ type Config struct {
 	// Log parsing
 	LogFormat string
 
+	// Streaming / batching
+	StreamBatchLines       int
+	StreamFlushIntervalMS  int
+	StreamMaxClients       int
+	StreamMaxDurationSec   int
+	StreamMaxBytesPerBatch int
+
 	// State persistence
 	PositionFile string
 }
@@ -41,14 +48,19 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:             getEnv("PORT", "5000"),
-		AccessPath:       getEnv("TRAEFIK_LOG_DASHBOARD_ACCESS_PATH", "/var/log/traefik/access.log"),
-		ErrorPath:        getEnv("TRAEFIK_LOG_DASHBOARD_ERROR_PATH", "/var/log/traefik/traefik.log"),
-		AuthToken:        getEnv("TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN", ""),
-		SystemMonitoring: getEnvBool("TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING", true),
-		MonitorInterval:  getEnvInt("TRAEFIK_LOG_DASHBOARD_MONITOR_INTERVAL", 2000),
-		LogFormat:        getEnv("TRAEFIK_LOG_DASHBOARD_LOG_FORMAT", "json"),
-		PositionFile:     getEnv("POSITION_FILE", "/data/.position"),
+		Port:                   getEnv("PORT", "5000"),
+		AccessPath:             getEnv("TRAEFIK_LOG_DASHBOARD_ACCESS_PATH", "/var/log/traefik/access.log"),
+		ErrorPath:              getEnv("TRAEFIK_LOG_DASHBOARD_ERROR_PATH", "/var/log/traefik/traefik.log"),
+		AuthToken:              getEnv("TRAEFIK_LOG_DASHBOARD_AUTH_TOKEN", ""),
+		SystemMonitoring:       getEnvBool("TRAEFIK_LOG_DASHBOARD_SYSTEM_MONITORING", true),
+		MonitorInterval:        getEnvInt("TRAEFIK_LOG_DASHBOARD_MONITOR_INTERVAL", 2000),
+		LogFormat:              getEnv("TRAEFIK_LOG_DASHBOARD_LOG_FORMAT", "json"),
+		StreamBatchLines:       getEnvInt("TRAEFIK_LOG_DASHBOARD_STREAM_BATCH_LINES", 400),
+		StreamFlushIntervalMS:  getEnvInt("TRAEFIK_LOG_DASHBOARD_STREAM_FLUSH_INTERVAL_MS", 1000),
+		StreamMaxClients:       getEnvInt("TRAEFIK_LOG_DASHBOARD_STREAM_MAX_CLIENTS", 50),
+		StreamMaxDurationSec:   getEnvInt("TRAEFIK_LOG_DASHBOARD_STREAM_MAX_DURATION_SEC", 300),
+		StreamMaxBytesPerBatch: getEnvInt("TRAEFIK_LOG_DASHBOARD_STREAM_MAX_BYTES_PER_BATCH", 512*1024),
+		PositionFile:           getEnv("POSITION_FILE", "/data/.position"),
 	}
 }
 

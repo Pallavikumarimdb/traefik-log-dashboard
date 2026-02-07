@@ -31,11 +31,22 @@ export async function register() {
     }
 
     const { backgroundScheduler } = await import('./lib/services/background-scheduler');
+    const { serviceManager } = await import('./lib/services/service-manager');
     const { initDatabase, syncEnvAgents } = await import('./lib/db/database');
 
     // Initialize DB and sync env agents
     initDatabase();
     syncEnvAgents();
+
+    // Initialize core services (archival, etc.)
+    try {
+      serviceManager.initialize();
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Instrumentation] Service manager initialized');
+      }
+    } catch (error) {
+      console.error('[Instrumentation] Failed to initialize services:', error);
+    }
 
     // PERFORMANCE FIX: Allow disabling background scheduler via env var
     const schedulerEnabled = process.env.ENABLE_BACKGROUND_SCHEDULER !== 'false';

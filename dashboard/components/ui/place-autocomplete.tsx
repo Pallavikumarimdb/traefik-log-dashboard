@@ -230,13 +230,7 @@ function usePlaceSearch({
         return () => abortController.abort()
     }, [
         debouncedQuery,
-        props.lang,
-        props.limit,
-        props.bbox,
-        props.lat,
-        props.lon,
-        props.zoom,
-        props.locationBiasScale,
+        props,
     ])
 
     return { results, isLoading, error, hasSearched }
