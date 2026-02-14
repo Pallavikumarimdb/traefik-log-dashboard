@@ -139,6 +139,27 @@ export function initDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_metric_snapshots_interval ON metric_snapshots(interval);
     CREATE INDEX IF NOT EXISTS idx_metric_snapshots_timestamp ON metric_snapshots(timestamp);
     CREATE INDEX IF NOT EXISTS idx_metric_snapshots_window ON metric_snapshots(agent_id, interval, window_start);
+
+    -- NEW: Persists alert cooldown clocks across Next.js restarts.
+    -- Without this every interval alert re-fires on every deploy because
+    -- the previous in-memory Map is wiped on process exit.
+    CREATE TABLE IF NOT EXISTS alert_execution_state (
+      alert_id          TEXT PRIMARY KEY,
+      last_triggered_at TEXT,
+      threshold_active  INTEGER NOT NULL DEFAULT 0,
+      updated_at        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_alert_execution_state_id
+      ON alert_execution_state(alert_id);
+
+    -- NEW: Per-agent high-water-mark for incremental log fetching.
+    -- Without this the scheduler re-fetches the entire log file every 5 min.
+    CREATE TABLE IF NOT EXISTS agent_log_cursors (
+      agent_id    TEXT PRIMARY KEY,
+      cursor      TEXT NOT NULL,
+      updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   return db;
@@ -159,10 +180,10 @@ export function getDatabase(): Database.Database {
  */
 export function syncEnvAgents(): void {
   const db = getDatabase();
-  
+
   const envUrl = process.env.AGENT_API_URL;
   const envToken = process.env.AGENT_API_TOKEN;
-  
+
   if (!envUrl || !envToken) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('No environment agents to sync');
@@ -266,19 +287,10 @@ export function getAgentById(id: string): Agent | null {
  * Add new agent to database
  */
 export function addAgent(agent: Omit<Agent, 'id' | 'number'>): Agent {
-  const db = getDatabase();
-  
-  const result = db.prepare(`
-    SELECT COALESCE(MAX(number), 0) + 1 as next_number FROM agents
-  `).get() as { next_number: number };
-  
-  const nextNumber = result.next_number;
-  const newAgent: Agent = {
-    ...agent,
-    id: `agent-${String(nextNumber).padStart(3, '0')}`,
-    number: nextNumber,
-    status: 'checking',
-  };
+  const db     = getDatabase();
+  const result = db.prepare(`SELECT COALESCE(MAX(number), 0) + 1 as next_number FROM agents`).get() as { next_number: number };
+  const next   = result.next_number;
+  const newAgent: Agent = { ...agent, id: `agent-${String(next).padStart(3, '0')}`, number: next, status: 'checking' };
 
   db.prepare(`
     INSERT INTO agents (id, name, url, token, location, number, status, description, tags, source)
@@ -308,30 +320,30 @@ export function updateAgent(id: string, updates: AgentUpdate): void {
   const sets: string[] = [];
   const values: unknown[] = [];
 
-  if (updates.name !== undefined) {
+  if (updates.name !== undefined) { 
     sets.push('name = ?');
-    values.push(updates.name);
+    values.push(updates.name); 
   }
   if (updates.url !== undefined) {
     sets.push('url = ?');
-    values.push(updates.url);
+    values.push(updates.url); 
   }
-  if (updates.token !== undefined) {
-    sets.push('token = ?');
-    values.push(updates.token);
+  if (updates.token !== undefined) { 
+    sets.push('token = ?');       
+    values.push(updates.token); 
   }
-  if (updates.location !== undefined) {
-    sets.push('location = ?');
-    values.push(updates.location);
-  }
-  if (updates.status !== undefined) {
-    sets.push('status = ?');
-    values.push(updates.status);
+  if (updates.location !== undefined) { 
+      sets.push('location = ?');    
+      values.push(updates.location); 
+    }
+  if (updates.status !== undefined) { 
+    sets.push('status = ?');      
+    values.push(updates.status); 
   }
   if (updates.lastSeen !== undefined) {
     sets.push('last_seen = ?');
     // FIX: Handle both Date objects and ISO strings
-    if (updates.lastSeen instanceof Date) {
+    if (updates.lastSeen instanceof Date) {     
       values.push(updates.lastSeen.toISOString());
     } else if (typeof updates.lastSeen === 'string') {
       values.push(updates.lastSeen);
@@ -379,7 +391,7 @@ export function getSelectedAgentId(): string | null {
   const db = getDatabase();
   const row = db.prepare(`
     SELECT agent_id FROM selected_agent WHERE id = 1
-  `).get() as { agent_id: string } | undefined;
+    `).get() as { agent_id: string } | undefined;
 
   return row?.agent_id || null;
 }
@@ -428,7 +440,7 @@ export function getAllWebhooks(): Webhook[] {
   const db = getDatabase();
   const rows = db.prepare(`
     SELECT * FROM webhooks ORDER BY created_at DESC
-  `).all() as Array<Record<string, unknown>>;
+    `).all() as Array<Record<string, unknown>>;
 
   return rows.map(row => ({
     id: row.id as string,
@@ -565,90 +577,45 @@ export function getEnabledWebhooks(): Webhook[] {
   }));
 }
 
-// ==================== ALERT RULES CRUD ====================
+// ==================== ALERT RULES ====================
 
-/**
- * Get all alert rules
- */
-export function getAllAlertRules(): AlertRule[] {
-  const db = getDatabase();
-  const rows = db.prepare(`
-    SELECT * FROM alert_rules ORDER BY created_at DESC
-  `).all() as Array<Record<string, unknown>>;
-
-  return rows.map(row => ({
-    id: row.id as string,
-    name: row.name as string,
-    description: row.description as string | undefined,
-    enabled: Boolean(row.enabled),
-    agent_id: row.agent_id as string | undefined,
-    webhook_ids: JSON.parse(row.webhook_ids as string) as string[],
-    trigger_type: row.trigger_type as 'interval' | 'threshold' | 'event',
-    interval: row.interval as '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '24h' | undefined,
-    parameters: JSON.parse(row.parameters as string),
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string,
-  }));
-}
-
-/**
- * Get alert rule by ID
- */
-export function getAlertRuleById(id: string): AlertRule | null {
-  const db = getDatabase();
-  const row = db.prepare(`
-    SELECT * FROM alert_rules WHERE id = ?
-  `).get(id) as Record<string, unknown> | undefined;
-
-  if (!row) return null;
-
+function parseAlertRuleRow(row: Record<string, unknown>): AlertRule {
   return {
-    id: row.id as string,
-    name: row.name as string,
-    description: row.description as string | undefined,
-    enabled: Boolean(row.enabled),
-    agent_id: row.agent_id as string | undefined,
-    webhook_ids: JSON.parse(row.webhook_ids as string) as string[],
+    id:           row.id as string,
+    name:         row.name as string,
+    description:  row.description as string | undefined,
+    enabled:      Boolean(row.enabled),
+    agent_id:     row.agent_id as string | undefined,
+    webhook_ids:  JSON.parse(row.webhook_ids as string) as string[],
     trigger_type: row.trigger_type as 'interval' | 'threshold' | 'event',
-    interval: row.interval as '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '24h' | undefined,
-    parameters: JSON.parse(row.parameters as string),
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string,
+    interval:     row.interval as '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '24h' | undefined,
+    parameters:   JSON.parse(row.parameters as string),
+    created_at:   row.created_at as string,
+    updated_at:   row.updated_at as string,
   };
 }
 
-/**
- * Add new alert rule
- */
+export function getAllAlertRules(): AlertRule[] {
+  const rows = getDatabase().prepare(`SELECT * FROM alert_rules ORDER BY created_at DESC`).all() as Array<Record<string, unknown>>;
+  return rows.map(parseAlertRuleRow);
+}
+
+export function getAlertRuleById(id: string): AlertRule | null {
+  const row = getDatabase().prepare(`SELECT * FROM alert_rules WHERE id = ?`).get(id) as Record<string, unknown> | undefined;
+  return row ? parseAlertRuleRow(row) : null;
+}
+
 export function addAlertRule(rule: Omit<AlertRule, 'id' | 'created_at' | 'updated_at'>): AlertRule {
-  const db = getDatabase();
-
-  const id = `alert-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  const db  = getDatabase();
+  const id  = `alert-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const now = new Date().toISOString();
-
   db.prepare(`
     INSERT INTO alert_rules (id, name, description, enabled, agent_id, webhook_ids, trigger_type, interval, parameters, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    rule.name,
-    rule.description || null,
-    rule.enabled ? 1 : 0,
-    rule.agent_id || null,
-    JSON.stringify(rule.webhook_ids),
-    rule.trigger_type,
-    rule.interval || null,
-    JSON.stringify(rule.parameters),
-    now,
-    now
-  );
-
-  return {
-    id,
-    ...rule,
-    created_at: now,
-    updated_at: now,
-  };
+  `).run(id, rule.name, rule.description || null, rule.enabled ? 1 : 0, rule.agent_id || null,
+         JSON.stringify(rule.webhook_ids), rule.trigger_type, rule.interval || null,
+         JSON.stringify(rule.parameters), now, now);
+  return { id, ...rule, created_at: now, updated_at: now };
 }
 
 /**
@@ -715,24 +682,8 @@ export function deleteAlertRule(id: string): void {
  * Get enabled alert rules
  */
 export function getEnabledAlertRules(): AlertRule[] {
-  const db = getDatabase();
-  const rows = db.prepare(`
-    SELECT * FROM alert_rules WHERE enabled = 1 ORDER BY created_at DESC
-  `).all() as Array<Record<string, unknown>>;
-
-  return rows.map(row => ({
-    id: row.id as string,
-    name: row.name as string,
-    description: row.description as string | undefined,
-    enabled: Boolean(row.enabled),
-    agent_id: row.agent_id as string | undefined,
-    webhook_ids: JSON.parse(row.webhook_ids as string) as string[],
-    trigger_type: row.trigger_type as 'interval' | 'threshold' | 'event',
-    interval: row.interval as '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '24h' | undefined,
-    parameters: JSON.parse(row.parameters as string),
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string,
-  }));
+  const rows = getDatabase().prepare(`SELECT * FROM alert_rules WHERE enabled = 1 ORDER BY created_at DESC`).all() as Array<Record<string, unknown>>;
+  return rows.map(parseAlertRuleRow);
 }
 
 // ==================== NOTIFICATION HISTORY ====================
@@ -879,89 +830,190 @@ export function saveMetricSnapshot(snapshot: MetricSnapshot): StoredSnapshot {
  * Get the latest snapshot for an agent and interval
  */
 export function getLatestSnapshot(agentId: string, interval: string): MetricSnapshot | null {
-  const db = getDatabase();
-
-  const row = db.prepare(`
-    SELECT * FROM metric_snapshots
-    WHERE agent_id = ? AND interval = ?
-    ORDER BY timestamp DESC
-    LIMIT 1
+  const row = getDatabase().prepare(`
+    SELECT * FROM metric_snapshots WHERE agent_id = ? AND interval = ?
+    ORDER BY timestamp DESC LIMIT 1
   `).get(agentId, interval) as StoredSnapshot | undefined;
-
   if (!row) return null;
-
-  return {
-    id: row.id,
-    agent_id: row.agent_id,
-    agent_name: row.agent_name,
-    timestamp: row.timestamp,
-    window_start: row.window_start,
-    window_end: row.window_end,
-    interval: row.interval as '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '24h',
-    log_count: row.log_count,
-    metrics: JSON.parse(row.metrics),
-  };
+  return { ...row, interval: row.interval as MetricSnapshot['interval'], metrics: JSON.parse(row.metrics) };
 }
 
-/**
- * Get snapshots for an agent within a time range
- */
-export function getSnapshotsByTimeRange(
-  agentId: string,
-  interval: string,
-  startTime: string,
-  endTime: string
-): MetricSnapshot[] {
-  const db = getDatabase();
-
-  const rows = db.prepare(`
+export function getSnapshotsByTimeRange(agentId: string, interval: string, startTime: string, endTime: string): MetricSnapshot[] {
+  const rows = getDatabase().prepare(`
     SELECT * FROM metric_snapshots
     WHERE agent_id = ? AND interval = ? AND timestamp >= ? AND timestamp <= ?
     ORDER BY timestamp DESC
   `).all(agentId, interval, startTime, endTime) as StoredSnapshot[];
-
-  return rows.map(row => ({
-    id: row.id,
-    agent_id: row.agent_id,
-    agent_name: row.agent_name,
-    timestamp: row.timestamp,
-    window_start: row.window_start,
-    window_end: row.window_end,
-    interval: row.interval as '5m' | '15m' | '30m' | '1h' | '6h' | '12h' | '24h',
-    log_count: row.log_count,
-    metrics: JSON.parse(row.metrics),
-  }));
+  return rows.map(row => ({ ...row, interval: row.interval as MetricSnapshot['interval'], metrics: JSON.parse(row.metrics) }));
 }
 
-/**
- * Clean up old snapshots (older than specified days)
- */
-export function cleanupOldSnapshots(daysToKeep: number = 7): number {
-  const db = getDatabase();
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-  const result = db.prepare(`
-    DELETE FROM metric_snapshots
-    WHERE created_at < ?
-  `).run(cutoffDate.toISOString());
-
-  return result.changes;
-}
-
-/**
- * Get snapshot count for an agent
- */
 export function getSnapshotCount(agentId: string): number {
-  const db = getDatabase();
-  const result = db.prepare(`
-    SELECT COUNT(*) as count FROM metric_snapshots WHERE agent_id = ?
-  `).get(agentId) as { count: number };
-
+  const result = getDatabase().prepare(`SELECT COUNT(*) as count FROM metric_snapshots WHERE agent_id = ?`).get(agentId) as { count: number };
   return result.count;
 }
 
-// Initialize database and sync env agents on module load
+/**
+ * Delete metric snapshots older than `daysToKeep` days.
+ * Used by SnapshotCleanupService for aged-out orphan sweeps.
+ */
+export function deleteOldMetricSnapshots(daysToKeep = 1): number {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysToKeep);
+  const result = getDatabase().prepare(`DELETE FROM metric_snapshots WHERE created_at < ?`).run(cutoff.toISOString());
+  return result.changes;
+}
+
+/** @deprecated Use deleteOldMetricSnapshots() */
+export function cleanupOldSnapshots(daysToKeep = 7): number {
+  return deleteOldMetricSnapshots(daysToKeep);
+}
+
+/**
+ * Return aggregate statistics about the metric_snapshots table.
+ * Used by SnapshotCleanupService to log remaining counts after sweeps.
+ */
+export function getMetricSnapshotStats(): {
+  totalCount:  number;
+  oldestEntry: string | null;
+  newestEntry: string | null;
+  agentCount:  number;
+} {
+  const result = getDatabase().prepare(`
+    SELECT
+      COUNT(*)                  AS totalCount,
+      MIN(created_at)           AS oldestEntry,
+      MAX(created_at)           AS newestEntry,
+      COUNT(DISTINCT agent_id)  AS agentCount
+    FROM metric_snapshots
+  `).get() as { totalCount: number; oldestEntry: string | null; newestEntry: string | null; agentCount: number };
+  return {
+    totalCount:  result.totalCount  ?? 0,
+    oldestEntry: result.oldestEntry ?? null,
+    newestEntry: result.newestEntry ?? null,
+    agentCount:  result.agentCount  ?? 0,
+  };
+}
+
+
+
+
+export function cleanupMetricSnapshots(maxSnapshotsPerIntervalPerAgent = 50): number {
+  const database = getDatabase();
+  let totalDeleted = 0;
+
+  const combinations = database.prepare(`
+    SELECT DISTINCT agent_id, interval FROM metric_snapshots
+  `).all() as Array<{ agent_id: string; interval: string }>;
+
+  for (const { agent_id, interval } of combinations) {
+    const keepRows = database.prepare(`
+      SELECT id FROM metric_snapshots
+      WHERE agent_id = ? AND interval = ?
+      ORDER BY created_at DESC LIMIT ?
+    `).all(agent_id, interval, maxSnapshotsPerIntervalPerAgent) as Array<{ id: string }>;
+
+    if (keepRows.length === 0) continue;
+
+    const keepIds      = keepRows.map(r => r.id);            
+    const placeholders = keepIds.map(() => '?').join(',');
+
+    const result = database.prepare(`
+      DELETE FROM metric_snapshots
+      WHERE agent_id = ? AND interval = ? AND id NOT IN (${placeholders})
+    `).run(agent_id, interval, ...keepIds);
+
+    totalDeleted += result.changes;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[DB] cleanupMetricSnapshots: removed ${totalDeleted} overflow snapshot(s)`);
+  }
+  return totalDeleted;
+}
+
+// ==================== ALERT EXECUTION STATE  ====================
+
+export interface AlertExecutionState {
+  alert_id:          string;
+  last_triggered_at: string | null;
+  threshold_active:  number; // 0 | 1
+}
+
+/**
+ * Load persisted cooldown state for an alert rule.
+ * Returns null if the alert has never fired.
+ */
+export function getAlertExecutionState(alertId: string): AlertExecutionState | null {
+  const row = getDatabase().prepare(`
+    SELECT alert_id, last_triggered_at, threshold_active
+    FROM alert_execution_state WHERE alert_id = ?
+  `).get(alertId) as AlertExecutionState | undefined;
+  return row ?? null;
+}
+
+/**
+ * Upsert execution state for an alert rule.
+ * Call immediately after firing so the cooldown survives restarts.
+ */
+export function setAlertExecutionState(
+  alertId: string,
+  state:   Pick<AlertExecutionState, 'last_triggered_at' | 'threshold_active'>
+): void {
+  getDatabase().prepare(`
+    INSERT INTO alert_execution_state (alert_id, last_triggered_at, threshold_active, updated_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(alert_id) DO UPDATE SET
+      last_triggered_at = excluded.last_triggered_at,
+      threshold_active  = excluded.threshold_active,
+      updated_at        = CURRENT_TIMESTAMP
+  `).run(alertId, state.last_triggered_at, state.threshold_active);
+}
+
+// ==================== AGENT LOG CURSORS ====================
+
+/**
+ * Get the stored high-water-mark ISO timestamp for an agent's log stream.
+ * Returns null on the very first run.
+ */
+export function getLogCursor(agentId: string): string | null {
+  const row = getDatabase().prepare(`
+    SELECT cursor FROM agent_log_cursors WHERE agent_id = ?
+  `).get(agentId) as { cursor: string } | undefined;
+  return row?.cursor ?? null;
+}
+
+/**
+ * Advance the log cursor after a successful incremental fetch.
+ */
+export function setLogCursor(agentId: string, cursor: string): void {
+  getDatabase().prepare(`
+    INSERT INTO agent_log_cursors (agent_id, cursor, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(agent_id) DO UPDATE SET
+      cursor     = excluded.cursor,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(agentId, cursor);
+}
+
+// ==================== SNAPSHOT DELETE ON SEND ====================
+
+/**
+ * Delete metric snapshots for a specific agent+interval immediately after
+ * a successful alert dispatch.
+ * Fulfils maintainer spec: "cleared once the alert is sent."
+ */
+export function deleteSnapshotsAfterAlert(agentId: string, interval: string): void {
+  const result = getDatabase().prepare(`
+    DELETE FROM metric_snapshots WHERE agent_id = ? AND interval = ?
+  `).run(agentId, interval);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[DB] deleteSnapshotsAfterAlert: removed ${result.changes} snapshot(s) ` +
+      `for agent=${agentId} interval=${interval}`);
+  }
+}
+
+// Initialize on module load (server-side only)
 if (typeof window === 'undefined') {
   initDatabase();
   syncEnvAgents();
