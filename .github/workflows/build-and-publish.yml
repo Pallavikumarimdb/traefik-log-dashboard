@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
       - dev-dashboard
     paths:
       - 'agent/**'
